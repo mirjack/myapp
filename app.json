@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "myApp",
-    "slug": "myApp",
+    "slug": "myapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,6 +12,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "uz.miobeauty.webview",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "eefe2988-ec8e-4e41-a047-c061e6b94c51"
+      }
     }
   }
 }

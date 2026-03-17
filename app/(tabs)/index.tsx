@@ -65,6 +65,16 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
+        <Link href={'/onboarding/phone' as any}>
+          <Link.Trigger>
+            <ThemedText type="subtitle">Open onboarding WebView</ThemedText>
+          </Link.Trigger>
+        </Link>
+        <ThemedText>
+          {`Opens https://test.app.miobeauty.uz/onboarding/phone inside the app (WebView).`}
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
         <ThemedText>
           {`When you're ready, run `}
