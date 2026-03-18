@@ -1,21 +1,19 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Platform, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import type { WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
 
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ONBOARDING_PHONE_URL = 'https://shop.miobeauty.uz/';
 
 export default function OnboardingPhoneScreen() {
   const router = useRouter();
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef(null);
   const [canGoBack, setCanGoBack] = useState(false);
-  const insets = useSafeAreaInsets();
 
-  const onNavigationStateChange = useCallback((navState: WebViewNavigation) => {
+  const onNavigationStateChange = useCallback((navState) => {
     setCanGoBack(navState.canGoBack);
   }, []);
 
