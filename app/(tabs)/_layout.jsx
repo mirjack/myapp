@@ -1,64 +1,74 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import { Platform } from "react-native";
+import { Slot } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+  Icon,
+  Label,
+  NativeTabs,
+  VectorIcon,
+} from "expo-router/unstable-native-tabs";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const tint = Colors[colorScheme ?? "light"].tint;
+export default function TabsLayout() {
+  if (Platform.OS === "android") {
+    return <Slot />;
+  }
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: tint,
-        tabBarButton: HapticTab,
-        headerShown: false,
-        tabBarStyle: { display: "none" },
+    <NativeTabs
+      disableTransparentOnScrollEdge
+      minimizeBehavior={Platform.OS === "ios" ? "onScrollDown" : undefined}
+      blurEffect={Platform.OS === "ios" ? "systemChromeMaterial" : undefined}
+      iconColor={{ default: "#757575", selected: "#FE946E" }}
+      labelStyle={{
+        default: { color: "#757575", fontSize: 11, fontWeight: "500" },
+        selected: { color: "#FE946E", fontSize: 11, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="house.fill" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="catalog"
-        options={{
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="square.grid.2x2.fill" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="cart.fill" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="heart.fill" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="person.fill" size={24} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="index">
+        <Icon
+          src={{
+            default: <VectorIcon family={Ionicons} name="home-outline" />,
+            selected: <VectorIcon family={Ionicons} name="home" />,
+          }}
+        />
+        <Label>Home</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="catalog">
+        <Icon
+          src={{
+            default: <VectorIcon family={Ionicons} name="grid-outline" />,
+            selected: <VectorIcon family={Ionicons} name="grid" />,
+          }}
+        />
+        <Label>Catalog</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="cart">
+        <Icon
+          src={{
+            default: <VectorIcon family={Ionicons} name="bag-outline" />,
+            selected: <VectorIcon family={Ionicons} name="bag" />,
+          }}
+        />
+        <Label>Cart</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="favorites">
+        <Icon
+          src={{
+            default: <VectorIcon family={Ionicons} name="heart-outline" />,
+            selected: <VectorIcon family={Ionicons} name="heart" />,
+          }}
+        />
+        <Label>Favorites</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <Icon
+          src={{
+            default: <VectorIcon family={Ionicons} name="person-outline" />,
+            selected: <VectorIcon family={Ionicons} name="person" />,
+          }}
+        />
+        <Label>Profile</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
