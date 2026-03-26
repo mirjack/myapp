@@ -7,9 +7,16 @@ import {
   NativeTabs,
   VectorIcon,
 } from "expo-router/unstable-native-tabs";
+import { useIsTabBarVisible } from "@/lib/tab-bar-visibility";
 
 export default function TabsLayout() {
+  const isTabBarVisible = useIsTabBarVisible();
+
   if (Platform.OS === "android") {
+    return <Slot />;
+  }
+
+  if (!isTabBarVisible) {
     return <Slot />;
   }
 

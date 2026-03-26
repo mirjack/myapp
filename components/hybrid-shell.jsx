@@ -27,6 +27,10 @@ import {
   getStoredAuthTokens,
   setStoredAuthTokens,
 } from "@/lib/auth-storage";
+import {
+  isTabBarVisiblePath,
+  setCurrentWebPath,
+} from "@/lib/tab-bar-visibility";
 
 const BASE_URL = (
   process.env.EXPO_PUBLIC_WEB_URL || "http://192.168.68.127:80"
@@ -354,7 +358,13 @@ export function HybridShell({ routePath = "/" }) {
     () => startsWithAny(currentPath, HEADER_VISIBLE_PATHS),
     [currentPath],
   );
-  const showAndroidTabBar = Platform.OS === "android";
+
+  useEffect(() => {
+    setCurrentWebPath(currentPath);
+  }, [currentPath]);
+
+  const showAndroidTabBar =
+    Platform.OS === "android" && isTabBarVisiblePath(currentPath);
   const activeAndroidTabIndex = useMemo(() => {
     const foundIndex = ANDROID_TAB_ITEMS.findIndex((tab) =>
       isTabActive(currentPath, tab),
@@ -596,7 +606,7 @@ export function HybridShell({ routePath = "/" }) {
   }));
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={showHeader ? ["top"] : []}>
       {showHeader ? (
         <View style={styles.header}>
           <Pressable
@@ -765,7 +775,7 @@ const styles = StyleSheet.create({
   androidTabBarWrap: {
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 24,
     backgroundColor: "#fff",
   },
   androidTabBar: {
