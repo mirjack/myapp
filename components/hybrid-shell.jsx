@@ -634,6 +634,7 @@ export function HybridShell({ routePath = "/" }) {
         <WebView
           ref={webViewRef}
           source={{ uri: INITIAL_WEB_URL }}
+          pullToRefreshEnabled
           onMessage={onMessage}
           onLoadEnd={() => {
             setIsWebReady(true);
