@@ -25,10 +25,28 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Start Metro for development build / dev client (recommended)
 
    ```bash
-   npx expo start
+   npm run start:dev-client
+   ```
+
+3. Build and install development client (Android first)
+
+   ```bash
+   npm run build:dev:android
+   ```
+
+   or local native run:
+
+   ```bash
+   npm run android:dev
+   ```
+
+4. Optional iOS development client build
+
+   ```bash
+   npm run build:dev:ios
    ```
 
 In the output, you'll find options to open the app in a
@@ -36,7 +54,7 @@ In the output, you'll find options to open the app in a
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [Expo Go](https://expo.dev/go), a limited sandbox (not the primary workflow for this hybrid shell)
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 

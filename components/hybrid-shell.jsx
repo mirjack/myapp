@@ -34,10 +34,13 @@ import {
   setTabBarForcedHidden,
   setCurrentWebPath,
 } from "@/lib/tab-bar-visibility";
+import {
+  isWebViewInternalUrl,
+  toWebViewUrl,
+  WEBVIEW_BASE_URL,
+} from "@/lib/runtime-config";
 
-const BASE_URL = (
-  process.env.EXPO_PUBLIC_WEB_URL || "http://192.168.68.127:80"
-).replace(/\/$/, "");
+const BASE_URL = WEBVIEW_BASE_URL.replace(/\/$/, "");
 const INITIAL_WEB_URL = `${BASE_URL}/`;
 const BOTTOM_SHEET_CLOSE_EVENT = "native:bottomSheetClose";
 const BOTTOM_SHEET_ACTION_EVENT = "native:bottomSheetAction";
@@ -474,14 +477,6 @@ export function HybridShell({ routePath = "/" }) {
     [walletBalance],
   );
 
-  const webOrigin = useMemo(() => {
-    try {
-      return new URL(BASE_URL).origin;
-    } catch {
-      return null;
-    }
-  }, []);
-
   const handleBackPress = useCallback(() => {
     if (canGoBack && !ROOT_PATHS.has(currentPath)) {
       webViewRef.current?.goBack();
@@ -544,12 +539,12 @@ export function HybridShell({ routePath = "/" }) {
     (request) => {
       const nextUrl = request?.url;
       if (!nextUrl) return true;
-      if (webOrigin && nextUrl.startsWith(webOrigin)) return true;
+      if (isWebViewInternalUrl(nextUrl)) return true;
 
       openBrowserAsync(nextUrl).catch(() => {});
       return false;
     },
-    [webOrigin],
+    [],
   );
 
   const navigateWebPath = useCallback(
@@ -1024,7 +1019,7 @@ export function HybridShell({ routePath = "/" }) {
       <View style={styles.webviewWrap}>
         <WebView
           ref={webViewRef}
-          source={{ uri: INITIAL_WEB_URL }}
+          source={{ uri: toWebViewUrl("/") }}
           pullToRefreshEnabled
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}

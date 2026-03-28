@@ -13,16 +13,14 @@ import { openBrowserAsync } from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { setStoredAuthTokens } from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
+import {
+  isWebViewInternalUrl,
+  toWebViewUrl,
+  WEBVIEW_BASE_URL,
+} from "@/lib/runtime-config";
 
-const ONBOARDING_PHONE_URL = "http://192.168.68.127:80/";
-const WEBVIEW_URL = process.env.EXPO_PUBLIC_WEB_URL || ONBOARDING_PHONE_URL;
-const LOGIN_WEBVIEW_URL = (() => {
-  try {
-    return new URL("/login/phone", WEBVIEW_URL).toString();
-  } catch {
-    return WEBVIEW_URL;
-  }
-})();
+const WEBVIEW_URL = WEBVIEW_BASE_URL;
+const LOGIN_WEBVIEW_URL = toWebViewUrl("/login/phone");
 
 // Zoom o'chirish uchun viewport meta tag
 const DISABLE_ZOOM_SCRIPT = `
@@ -162,27 +160,19 @@ export default function OnboardingPhoneScreen() {
     }, [handleBackPress]),
   );
 
-  const webOrigin = useMemo(() => {
-    try {
-      return new URL(WEBVIEW_URL).origin;
-    } catch {
-      return null;
-    }
-  }, []);
-
   const onShouldStartLoadWithRequest = useCallback(
     (request) => {
       const nextUrl = request?.url;
       if (!nextUrl) return true;
 
-      if (webOrigin && nextUrl.startsWith(webOrigin)) {
+      if (isWebViewInternalUrl(nextUrl)) {
         return true;
       }
 
       openBrowserAsync(nextUrl).catch(() => {});
       return false;
     },
-    [webOrigin],
+    [],
   );
 
   return (
