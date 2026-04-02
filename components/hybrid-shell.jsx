@@ -411,6 +411,13 @@ export function HybridShell({ routePath = "/" }) {
     () => startsWithAny(currentPath, HEADER_VISIBLE_PATHS),
     [currentPath],
   );
+  const shouldApplyTopInset = useMemo(() => {
+    if (showHeader) return true;
+    return (
+      Platform.OS === "android" &&
+      startsWithAny(currentPath, LOGIN_PATH_PREFIXES)
+    );
+  }, [currentPath, showHeader]);
   const shouldShowInlineAuthGuard = useMemo(() => {
     if (Platform.OS !== "ios") return false;
     if (isLoggedIn) return false;
@@ -982,7 +989,10 @@ export function HybridShell({ routePath = "/" }) {
   }));
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={showHeader ? ["top"] : []}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={shouldApplyTopInset ? ["top"] : []}
+    >
       {showHeader ? (
         <View style={styles.header}>
           <Pressable

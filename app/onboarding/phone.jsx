@@ -93,6 +93,33 @@ function normalizeNextPath(next) {
   return "/";
 }
 
+function getPathnameFromUrl(url) {
+  try {
+    return new URL(String(url || "")).pathname || "/";
+  } catch {
+    return "/";
+  }
+}
+
+function normalizeWebPath(pathname) {
+  const raw = String(pathname || "/");
+  if (raw === "/home") return "/";
+  if (raw.startsWith("/catalog")) return "/catalog";
+  if (raw.startsWith("/cart")) return "/cart";
+  if (raw.startsWith("/favorites")) return "/favorites";
+  if (raw.startsWith("/profile")) return "/profile";
+  return "/";
+}
+
+function isLoginFlowPath(pathname) {
+  const path = String(pathname || "/");
+  return (
+    path.startsWith("/login") ||
+    path.startsWith("/register") ||
+    path.startsWith("/onboarding")
+  );
+}
+
 function toNativeTabsPath(pathname) {
   if (pathname === "/catalog") return "/(tabs)/catalog";
   if (pathname === "/cart") return "/(tabs)/cart";
@@ -142,7 +169,14 @@ export default function OnboardingPhoneScreen() {
 
   const onNavigationStateChange = useCallback((nextNavState) => {
     setNavState({ canGoBack: nextNavState.canGoBack, url: nextNavState.url });
-  }, []);
+    if (redirectedRef.current) return;
+
+    const currentWebPath = getPathnameFromUrl(nextNavState?.url);
+    if (isLoginFlowPath(currentWebPath)) return;
+
+    redirectedRef.current = true;
+    router.replace(toNativeTabsPath(normalizeWebPath(currentWebPath)));
+  }, [router]);
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });

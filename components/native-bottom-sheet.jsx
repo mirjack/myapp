@@ -167,6 +167,8 @@ export function NativeBottomSheet({
       visible={mounted}
       transparent
       animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.modalRoot}>
