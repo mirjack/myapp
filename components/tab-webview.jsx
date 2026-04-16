@@ -4,6 +4,8 @@ import { WebView } from "react-native-webview";
 import { useFocusEffect } from "@react-navigation/native";
 import { openBrowserAsync } from "expo-web-browser";
 
+const LOADING_BACKGROUND_COLOR = "#F8F8F8";
+
 const DISABLE_ZOOM_SCRIPT = `
 (function() {
   var meta = document.querySelector('meta[name="viewport"]');
@@ -74,7 +76,7 @@ export function TabWebView({ url }) {
   const normalizedInitialUrl = useMemo(() => normalizeUrl(url), [url]);
   const normalizedCurrentUrl = useMemo(
     () => normalizeUrl(navState.url),
-    [navState.url]
+    [navState.url],
   );
   const canGoBackInWebView =
     navState.canGoBack && normalizedCurrentUrl !== normalizedInitialUrl;
@@ -100,10 +102,10 @@ export function TabWebView({ url }) {
       if (Platform.OS !== "android") return;
       const sub = BackHandler.addEventListener(
         "hardwareBackPress",
-        handleBackPress
+        handleBackPress,
       );
       return () => sub.remove();
-    }, [handleBackPress])
+    }, [handleBackPress]),
   );
 
   const webOrigin = useMemo(() => {
@@ -122,13 +124,16 @@ export function TabWebView({ url }) {
       openBrowserAsync(nextUrl).catch(() => {});
       return false;
     },
-    [webOrigin]
+    [webOrigin],
   );
 
   return (
     <WebView
       ref={webViewRef}
       source={{ uri: url }}
+      style={{ backgroundColor: LOADING_BACKGROUND_COLOR }}
+      containerStyle={{ backgroundColor: LOADING_BACKGROUND_COLOR }}
+      originWhitelist={["http://*", "https://*", "about:blank"]}
       onNavigationStateChange={onNavigationStateChange}
       onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
       injectedJavaScriptBeforeContentLoaded={WEBVIEW_BRIDGE_SCRIPT}
@@ -137,7 +142,14 @@ export function TabWebView({ url }) {
       setSupportMultipleWindows={false}
       startInLoadingState
       renderLoading={() => (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: LOADING_BACKGROUND_COLOR,
+          }}
+        >
           <ActivityIndicator />
         </View>
       )}

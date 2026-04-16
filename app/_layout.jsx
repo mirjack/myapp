@@ -23,7 +23,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={AppTheme}>
       <Stack initialRouteName="(tabs)">
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen
           name="onboarding/phone"
           options={{ headerShown: false }}

@@ -1,18 +1,21 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  BackHandler,
-  Platform,
-  View,
-} from "react-native";
+import { ActivityIndicator, BackHandler, Platform, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { setStoredAuthTokens } from "@/lib/auth-storage";
+import {
+  getPendingAuthAction,
+  setPendingAuthAction,
+  setStoredAuthTokens,
+} from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
+import {
+  addFavorite,
+  adjustCartItemByProduct,
+} from "@/lib/native-market-api";
 import {
   isWebViewInternalUrl,
   toWebViewUrl,
@@ -21,6 +24,7 @@ import {
 
 const WEBVIEW_URL = WEBVIEW_BASE_URL;
 const LOGIN_WEBVIEW_URL = toWebViewUrl("/login/phone");
+const LOADING_BACKGROUND_COLOR = "#F8F8F8";
 
 // Zoom o'chirish uchun viewport meta tag
 const DISABLE_ZOOM_SCRIPT = `
@@ -128,13 +132,50 @@ function toNativeTabsPath(pathname) {
   return "/(tabs)";
 }
 
+function parseTokensString(tokensString) {
+  if (!tokensString) return null;
+  try {
+    return JSON.parse(tokensString);
+  } catch {
+    return null;
+  }
+}
+
+async function flushPendingAuthAction(tokensString) {
+  const tokens = parseTokensString(tokensString);
+  if (!tokens?.access) return;
+  const action = await getPendingAuthAction();
+  if (!action?.type || action.productId == null) return;
+  await setPendingAuthAction(null);
+
+  try {
+    if (action.type === "cart") {
+      await adjustCartItemByProduct(
+        tokens.access,
+        action.productId,
+        Number(action.delta) || 1,
+      );
+      return;
+    }
+
+    if (action.type === "favorite") {
+      await addFavorite(tokens.access, action.productId);
+    }
+  } catch {
+    // Login should still finish even if the queued product action fails.
+  }
+}
+
 export default function OnboardingPhoneScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const navigation = useNavigation();
   const webViewRef = useRef(null);
   const redirectedRef = useRef(false);
-  const nextPath = useMemo(() => normalizeNextPath(params?.next), [params?.next]);
+  const nextPath = useMemo(
+    () => normalizeNextPath(params?.next),
+    [params?.next],
+  );
   const [navState, setNavState] = useState({
     canGoBack: false,
     url: LOGIN_WEBVIEW_URL,
@@ -167,16 +208,19 @@ export default function OnboardingPhoneScreen() {
     return true;
   }, [canGoBackInWebView, router]);
 
-  const onNavigationStateChange = useCallback((nextNavState) => {
-    setNavState({ canGoBack: nextNavState.canGoBack, url: nextNavState.url });
-    if (redirectedRef.current) return;
+  const onNavigationStateChange = useCallback(
+    (nextNavState) => {
+      setNavState({ canGoBack: nextNavState.canGoBack, url: nextNavState.url });
+      if (redirectedRef.current) return;
 
-    const currentWebPath = getPathnameFromUrl(nextNavState?.url);
-    if (isLoginFlowPath(currentWebPath)) return;
+      const currentWebPath = getPathnameFromUrl(nextNavState?.url);
+      if (isLoginFlowPath(currentWebPath)) return;
 
-    redirectedRef.current = true;
-    router.replace(toNativeTabsPath(normalizeWebPath(currentWebPath)));
-  }, [router]);
+      redirectedRef.current = true;
+      router.replace(toNativeTabsPath(normalizeWebPath(currentWebPath)));
+    },
+    [router],
+  );
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -194,26 +238,25 @@ export default function OnboardingPhoneScreen() {
     }, [handleBackPress]),
   );
 
-  const onShouldStartLoadWithRequest = useCallback(
-    (request) => {
-      const nextUrl = request?.url;
-      if (!nextUrl) return true;
+  const onShouldStartLoadWithRequest = useCallback((request) => {
+    const nextUrl = request?.url;
+    if (!nextUrl) return true;
 
-      if (isWebViewInternalUrl(nextUrl)) {
-        return true;
-      }
+    if (isWebViewInternalUrl(nextUrl)) {
+      return true;
+    }
 
-      openBrowserAsync(nextUrl).catch(() => {});
-      return false;
-    },
-    [],
-  );
+    openBrowserAsync(nextUrl).catch(() => {});
+    return false;
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <WebView
         ref={webViewRef}
         source={{ uri: LOGIN_WEBVIEW_URL }}
+        style={{ backgroundColor: LOADING_BACKGROUND_COLOR }}
+        containerStyle={{ backgroundColor: LOADING_BACKGROUND_COLOR }}
         onNavigationStateChange={onNavigationStateChange}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={(event) => {
@@ -232,6 +275,7 @@ export default function OnboardingPhoneScreen() {
 
           redirectedRef.current = true;
           setStoredAuthTokens(message.tokens);
+          flushPendingAuthAction(message.tokens).catch(() => {});
           setAuthStateCache(true);
           router.replace(toNativeTabsPath(nextPath));
         }}
@@ -242,7 +286,12 @@ export default function OnboardingPhoneScreen() {
         startInLoadingState
         renderLoading={() => (
           <View
-            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: LOADING_BACKGROUND_COLOR,
+            }}
           >
             <ActivityIndicator />
           </View>

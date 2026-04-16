@@ -13,7 +13,12 @@
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "Allow Mio Beauty to connect to the local development server.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        }
       },
       "userInterfaceStyle": "light"
     },
@@ -24,6 +29,7 @@
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/logo.jpg"
       },
+      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -40,9 +46,9 @@
           "image": "./assets/images/logo.jpg",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#F8F8F8",
           "dark": {
-            "backgroundColor": "#ffffff"
+            "backgroundColor": "#F8F8F8"
           }
         }
       ]

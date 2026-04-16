@@ -18,14 +18,18 @@ import Svg, { Path } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRootNavigationState, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { openBrowserAsync } from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 import { WebView } from "react-native-webview";
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
+import { NativeStoriesViewer } from "@/components/native-stories-viewer";
 
 import {
   clearStoredAuthTokens,
+  getPendingAuthAction,
   getStoredAuthTokens,
+  setPendingAuthAction,
   setStoredAuthTokens,
 } from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
@@ -39,14 +43,40 @@ import {
   toWebViewUrl,
   WEBVIEW_BASE_URL,
 } from "@/lib/runtime-config";
+import {
+  addFavorite,
+  adjustCartItemByProduct,
+  fetchProductById,
+  getCartItems,
+  mapProduct,
+} from "@/lib/native-market-api";
 
 const BASE_URL = WEBVIEW_BASE_URL.replace(/\/$/, "");
 const INITIAL_WEB_URL = `${BASE_URL}/`;
 const BOTTOM_SHEET_CLOSE_EVENT = "native:bottomSheetClose";
 const BOTTOM_SHEET_ACTION_EVENT = "native:bottomSheetAction";
-const NATIVE_SHEET_CLOSE_MS = 170;
+const NATIVE_SHEET_CLOSE_MS = 280;
+const PRODUCT_SHEET_KEY = "product_detail";
 const ROUTE_GUARD_PATHS = new Set(["/cart", "/favorites", "/profile"]);
 const LOGIN_PATH_PREFIXES = ["/login", "/register", "/onboarding"];
+const LOADING_BACKGROUND_COLOR = "#F8F8F8";
+const HEADER_HEIGHT = 64;
+const HEADER_CONTENT_HEIGHT = 67;
+const HEADER_SHADOW_SPACE = 18;
+const HEADER_WRAP_HEIGHT = HEADER_CONTENT_HEIGHT + HEADER_SHADOW_SPACE;
+const ANDROID_TAB_WRAP_HEIGHT = 98;
+
+function normalizeStoriesPayload(payload) {
+  const items = Array.isArray(payload?.items)
+    ? payload.items.filter((item) => item && typeof item === "object")
+    : [];
+  const numericStartIndex = Number(payload?.startIndex ?? 0);
+  const startIndex = Number.isFinite(numericStartIndex)
+    ? Math.max(0, Math.trunc(numericStartIndex))
+    : 0;
+  return { items, startIndex };
+}
+
 function authPromptDescription(path) {
   if (path.startsWith("/cart")) return "Чтобы открыть корзину, авторизуйтесь.";
   if (path.startsWith("/favorites")) {
@@ -98,6 +128,17 @@ const ANDROID_TAB_ITEMS = [
   },
   { key: "profile", label: "Profile", path: "/profile" },
 ];
+
+const PRODUCT_SHEET_REQUEST_ID = "native-product-detail";
+
+function parseTokensString(tokensString) {
+  if (!tokensString) return null;
+  try {
+    return JSON.parse(tokensString);
+  } catch {
+    return null;
+  }
+}
 
 function isTabActive(pathname, tab) {
   return (
@@ -228,11 +269,11 @@ const DISABLE_ZOOM_SCRIPT = `
 (function() {
   var meta = document.querySelector('meta[name="viewport"]');
   if (meta) {
-    meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
   } else {
     var newMeta = document.createElement('meta');
     newMeta.name = 'viewport';
-    newMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+    newMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
     document.head.appendChild(newMeta);
   }
 
@@ -272,6 +313,50 @@ function buildBridgeScript(tokensString, nativePlatform) {
     document.documentElement.dataset.nativeApp = 'true';
     document.documentElement.dataset.nativePlatform = ${JSON.stringify(nativePlatform)};
 
+    var nativeHeaderInsetStyleId = 'native-header-inset-style';
+    var nativeHeaderOffset = ${HEADER_CONTENT_HEIGHT};
+    var nativeCatalogHeaderOffset = ${HEADER_HEIGHT};
+    var nativeHeaderPaths = ${JSON.stringify(HEADER_VISIBLE_PATHS)};
+
+    function hasNativeHeader(pathname) {
+      var path = pathname || '/';
+      for (var i = 0; i < nativeHeaderPaths.length; i += 1) {
+        var prefix = nativeHeaderPaths[i];
+        if (path === prefix || path.indexOf(prefix + '/') === 0) return true;
+      }
+      return false;
+    }
+
+    function getNativeHeaderOffset(pathname) {
+      var path = pathname || '/';
+      if (path === '/catalog' || path.indexOf('/catalog/') === 0 || path === '/search' || path.indexOf('/search/') === 0) {
+        return nativeCatalogHeaderOffset;
+      }
+      return hasNativeHeader(path) ? nativeHeaderOffset : 0;
+    }
+
+    function ensureNativeHeaderInsetStyle() {
+      if (document.getElementById(nativeHeaderInsetStyleId)) return;
+      var style = document.createElement('style');
+      style.id = nativeHeaderInsetStyleId;
+      style.textContent = 'html[data-native-app="true"] body { padding-top: var(--native-header-inset, 0px) !important; box-sizing: border-box !important; }';
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    function applyNativeHeaderInset() {
+      try {
+        ensureNativeHeaderInsetStyle();
+        var offset = getNativeHeaderOffset(window.location.pathname || '/');
+        document.documentElement.style.setProperty('--native-header-inset', offset + 'px');
+      } catch (e) {}
+    }
+
+    window.__applyNativeHeaderInset = applyNativeHeaderInset;
+    applyNativeHeaderInset();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyNativeHeaderInset, { once: true });
+    }
+
     var nativeTokens = ${JSON.stringify(tokensString ?? null)};
     if (nativeTokens) {
       window.localStorage.setItem('authTokens', nativeTokens);
@@ -290,6 +375,16 @@ function buildBridgeScript(tokensString, nativePlatform) {
       } catch (e) {}
     }
 
+    function postPendingAuthAction() {
+      try {
+        var action = window.localStorage.getItem('pendingAuthAction');
+        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'pendingAuthAction',
+          action: action || null,
+        }));
+      } catch (e) {}
+    }
+
     function postPath() {
       try {
         window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -303,27 +398,34 @@ function buildBridgeScript(tokensString, nativePlatform) {
     window.localStorage.setItem = function (key, value) {
       originalSetItem.apply(this, arguments);
       if (key === 'authTokens') postTokens();
+      if (key === 'pendingAuthAction') postPendingAuthAction();
     };
 
     var originalRemoveItem = window.localStorage.removeItem;
     window.localStorage.removeItem = function (key) {
       originalRemoveItem.apply(this, arguments);
       if (key === 'authTokens') postTokens();
+      if (key === 'pendingAuthAction') postPendingAuthAction();
     };
 
     var originalPushState = window.history.pushState;
     window.history.pushState = function () {
       originalPushState.apply(window.history, arguments);
+      applyNativeHeaderInset();
       postPath();
     };
 
     var originalReplaceState = window.history.replaceState;
     window.history.replaceState = function () {
       originalReplaceState.apply(window.history, arguments);
+      applyNativeHeaderInset();
       postPath();
     };
 
-    window.addEventListener('popstate', postPath);
+    window.addEventListener('popstate', function () {
+      applyNativeHeaderInset();
+      postPath();
+    });
 
     window.__handleNativeMessage = function (message) {
       try {
@@ -343,6 +445,7 @@ function buildBridgeScript(tokensString, nativePlatform) {
     };
 
     postTokens();
+    postPendingAuthAction();
     postPath();
   } catch (e) {}
 })();
@@ -372,11 +475,15 @@ export function HybridShell({ routePath = "/" }) {
   const [logoBroken, setLogoBroken] = useState(false);
   const [nativeSheet, setNativeSheet] = useState(null);
   const [isNativeSheetVisible, setIsNativeSheetVisible] = useState(false);
+  const [isWebFullscreen, setIsWebFullscreen] = useState(false);
+  const [nativeStories, setNativeStories] = useState(null);
   const nativeSheetCloseTimerRef = useRef(null);
   const nativeSheetMetaRef = useRef(new Map());
   const nativeGuardOpenRef = useRef(false);
   const iosHomeRedirectTimerRef = useRef(null);
   const authReturnPathRef = useRef(null);
+  const productSheetLoadSeqRef = useRef(0);
+  const pendingAuthActionRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -407,17 +514,21 @@ export function HybridShell({ routePath = "/" }) {
     [],
   );
 
-  const showHeader = useMemo(
+  const shouldRenderHeader = useMemo(
     () => startsWithAny(currentPath, HEADER_VISIBLE_PATHS),
     [currentPath],
   );
+  const isCatalogPath = useMemo(
+    () => startsWithAny(currentPath, ["/catalog", "/search"]),
+    [currentPath],
+  );
   const shouldApplyTopInset = useMemo(() => {
-    if (showHeader) return true;
+    if (shouldRenderHeader) return true;
     return (
       Platform.OS === "android" &&
       startsWithAny(currentPath, LOGIN_PATH_PREFIXES)
     );
-  }, [currentPath, showHeader]);
+  }, [currentPath, shouldRenderHeader]);
   const shouldShowInlineAuthGuard = useMemo(() => {
     if (Platform.OS !== "ios") return false;
     if (isLoggedIn) return false;
@@ -427,11 +538,11 @@ export function HybridShell({ routePath = "/" }) {
 
   useEffect(() => {
     if (Platform.OS !== "ios") return;
-    setTabBarForcedHidden(shouldShowInlineAuthGuard);
+    setTabBarForcedHidden(isWebFullscreen || shouldShowInlineAuthGuard);
     return () => {
       setTabBarForcedHidden(false);
     };
-  }, [shouldShowInlineAuthGuard]);
+  }, [isWebFullscreen, shouldShowInlineAuthGuard]);
 
   const goToNativeLoginScreen = useCallback(
     (targetPath) => {
@@ -466,7 +577,7 @@ export function HybridShell({ routePath = "/" }) {
     setCurrentWebPath(currentPath);
   }, [currentPath]);
 
-  const showAndroidTabBar =
+  const shouldRenderAndroidTabBar =
     Platform.OS === "android" && isTabBarVisiblePath(currentPath);
   const activeAndroidTabIndex = useMemo(() => {
     const foundIndex = ANDROID_TAB_ITEMS.findIndex((tab) =>
@@ -475,6 +586,7 @@ export function HybridShell({ routePath = "/" }) {
     return foundIndex >= 0 ? foundIndex : 0;
   }, [currentPath]);
   const androidActiveTabIndexAnim = useSharedValue(activeAndroidTabIndex);
+  const fullscreenProgress = useSharedValue(0);
 
   const formattedWalletBalance = useMemo(
     () =>
@@ -542,17 +654,14 @@ export function HybridShell({ routePath = "/" }) {
     setCanGoBack(Boolean(nextNavState?.canGoBack));
   }, []);
 
-  const onShouldStartLoadWithRequest = useCallback(
-    (request) => {
-      const nextUrl = request?.url;
-      if (!nextUrl) return true;
-      if (isWebViewInternalUrl(nextUrl)) return true;
+  const onShouldStartLoadWithRequest = useCallback((request) => {
+    const nextUrl = request?.url;
+    if (!nextUrl) return true;
+    if (isWebViewInternalUrl(nextUrl)) return true;
 
-      openBrowserAsync(nextUrl).catch(() => {});
-      return false;
-    },
-    [],
-  );
+    openBrowserAsync(nextUrl).catch(() => {});
+    return false;
+  }, []);
 
   const navigateWebPath = useCallback(
     (path) => {
@@ -672,6 +781,13 @@ export function HybridShell({ routePath = "/" }) {
     });
   }, [activeAndroidTabIndex, androidActiveTabIndexAnim]);
 
+  useEffect(() => {
+    fullscreenProgress.value = withTiming(isWebFullscreen ? 1 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [fullscreenProgress, isWebFullscreen]);
+
   const goNativeTab = useCallback(
     (tabKey) => {
       Haptics.selectionAsync().catch(() => {});
@@ -723,6 +839,12 @@ export function HybridShell({ routePath = "/" }) {
     navigateWebPath("/login/phone");
   }, [goToNativeLoginScreen, navigateWebPath, routePath]);
 
+  const queuePendingAuthAction = useCallback((action) => {
+    if (!action?.type || action.productId == null) return;
+    pendingAuthActionRef.current = action;
+    setPendingAuthAction(action);
+  }, []);
+
   const emitToWeb = useCallback((eventName, detail) => {
     if (!webViewRef.current) return;
     const payload = JSON.stringify(detail || {});
@@ -735,6 +857,154 @@ export function HybridShell({ routePath = "/" }) {
       })();
     `);
   }, []);
+
+  const flushPendingAuthAction = useCallback(
+    async (tokens) => {
+      if (!tokens?.access) return;
+      const action =
+        pendingAuthActionRef.current ?? (await getPendingAuthAction());
+      if (!action?.type || action.productId == null) return;
+      pendingAuthActionRef.current = null;
+      await setPendingAuthAction(null);
+
+      try {
+        if (action.type === "cart") {
+          const updated = await adjustCartItemByProduct(
+            tokens.access,
+            action.productId,
+            Number(action.delta) || 1,
+          );
+          const nextQuantity = Math.max(0, Number(updated?.quantity ?? 0));
+          setCartCount((prevCount) =>
+            Math.max(0, prevCount + (Number(action.delta) || 1)),
+          );
+          emitToWeb("cart:updated", {
+            productId: action.productId,
+            quantity: nextQuantity,
+          });
+          return;
+        }
+
+        if (action.type === "favorite") {
+          await addFavorite(tokens.access, action.productId);
+          emitToWeb("favorites:updated", { productId: action.productId });
+        }
+      } catch {
+        // Keep auth success smooth even if the queued product action fails.
+      }
+    },
+    [emitToWeb],
+  );
+
+  const updateNativeProductSheetPayload = useCallback((updater) => {
+    setNativeSheet((current) => {
+      if (!current || current.sheetKey !== PRODUCT_SHEET_KEY) return current;
+      const nextPayload =
+        typeof updater === "function"
+          ? updater(current.payload || {})
+          : updater || {};
+      return {
+        ...current,
+        payload: {
+          ...(current.payload || {}),
+          ...nextPayload,
+        },
+      };
+    });
+  }, []);
+
+  const refreshNativeProductQuantity = useCallback(
+    async (productId, seq) => {
+      const tokensString = await getStoredAuthTokens();
+      const tokens = parseTokensString(tokensString);
+      if (!tokens?.access) {
+        if (seq === productSheetLoadSeqRef.current) {
+          updateNativeProductSheetPayload({ quantity: 0 });
+        }
+        return;
+      }
+      try {
+        const response = await getCartItems(tokens.access);
+        const items = Array.isArray(response)
+          ? response
+          : (response?.items ?? []);
+        const found = items.find(
+          (entry) => String(entry.product?.id) === String(productId),
+        );
+        if (seq === productSheetLoadSeqRef.current) {
+          updateNativeProductSheetPayload({ quantity: found?.quantity ?? 0 });
+        }
+      } catch {
+        if (seq === productSheetLoadSeqRef.current) {
+          updateNativeProductSheetPayload({ quantity: 0 });
+        }
+      }
+    },
+    [updateNativeProductSheetPayload],
+  );
+
+  const openNativeProductSheet = useCallback(
+    async ({ productId, product }) => {
+      const resolvedId = productId ?? product?.id;
+      if (!resolvedId) return;
+      const requestId = PRODUCT_SHEET_REQUEST_ID;
+      const seq = productSheetLoadSeqRef.current + 1;
+      productSheetLoadSeqRef.current = seq;
+
+      if (nativeSheetCloseTimerRef.current) {
+        clearTimeout(nativeSheetCloseTimerRef.current);
+        nativeSheetCloseTimerRef.current = null;
+      }
+
+      const initialProduct =
+        product && typeof product === "object" ? mapProduct(product) : null;
+      setNativeSheet({
+        requestId,
+        sheetKey: PRODUCT_SHEET_KEY,
+        payload: {
+          productId: String(resolvedId),
+          product: initialProduct,
+          fallbackProduct: initialProduct,
+          quantity: 0,
+          isLoading: true,
+          isCartPending: false,
+          error: null,
+        },
+        options: { hideClose: false },
+      });
+      nativeSheetMetaRef.current.set(requestId, { source: PRODUCT_SHEET_KEY });
+      setIsNativeSheetVisible(true);
+
+      refreshNativeProductQuantity(resolvedId, seq);
+      try {
+        const data = await fetchProductById(resolvedId);
+        if (seq !== productSheetLoadSeqRef.current) return;
+        updateNativeProductSheetPayload((current) => ({
+          product:
+            data ||
+            current.product ||
+            current.fallbackProduct ||
+            initialProduct,
+          isLoading: false,
+          error:
+            data || current.product || current.fallbackProduct || initialProduct
+              ? null
+              : "Product not found.",
+        }));
+      } catch {
+        if (seq !== productSheetLoadSeqRef.current) return;
+        updateNativeProductSheetPayload((current) => ({
+          product: current.product || current.fallbackProduct || initialProduct,
+          isLoading: false,
+          error:
+            current.product || current.fallbackProduct || initialProduct
+              ? null
+              : "Failed to load product information.",
+        }));
+      }
+    },
+    [refreshNativeProductQuantity, updateNativeProductSheetPayload],
+  );
 
   const closeNativeSheet = useCallback(
     ({ shouldNotify = true } = {}) => {
@@ -785,9 +1055,62 @@ export function HybridShell({ routePath = "/" }) {
   );
 
   const handleNativeSheetAction = useCallback(
-    (actionId, payload) => {
+    async (actionId, payload) => {
       if (!nativeSheet?.requestId || !actionId) return;
       const meta = nativeSheetMetaRef.current.get(nativeSheet.requestId);
+      if (meta?.source === PRODUCT_SHEET_KEY) {
+        const productId = nativeSheet?.payload?.productId;
+        if (actionId === "catalog") {
+          closeNativeSheet({ shouldNotify: false });
+          goNativeTab("catalog");
+          return;
+        }
+
+        const delta =
+          actionId === "add_to_cart" || actionId === "increment"
+            ? 1
+            : actionId === "decrement"
+              ? -1
+              : 0;
+        if (!productId || !delta) return;
+        const currentQuantity = Math.max(
+          0,
+          Number(nativeSheet?.payload?.quantity || 0),
+        );
+        if (delta < 0 && currentQuantity <= 0) return;
+
+        const tokensString = await getStoredAuthTokens();
+        const tokens = parseTokensString(tokensString);
+        if (!tokens?.access) {
+          queuePendingAuthAction({ type: "cart", productId, delta });
+          closeNativeSheet({ shouldNotify: false });
+          openLogin();
+          return;
+        }
+
+        updateNativeProductSheetPayload({ isCartPending: true });
+        try {
+          const updated = await adjustCartItemByProduct(
+            tokens.access,
+            productId,
+            delta,
+          );
+          const nextQuantity = Math.max(
+            0,
+            updated?.quantity ?? currentQuantity + delta,
+          );
+          updateNativeProductSheetPayload({
+            quantity: nextQuantity,
+            isCartPending: false,
+          });
+          setCartCount((prevCount) => Math.max(0, prevCount + delta));
+          emitToWeb("cart:updated", { productId, quantity: nextQuantity });
+        } catch {
+          updateNativeProductSheetPayload({ isCartPending: false });
+        }
+        return;
+      }
+
       if (meta?.source === "native_guard" && actionId === "login") {
         setTabBarForcedHidden(false);
         if (webViewRef.current) {
@@ -815,13 +1138,46 @@ export function HybridShell({ routePath = "/" }) {
         }, NATIVE_SHEET_CLOSE_MS);
         return;
       }
+
+      if (meta?.source === "web_login_required" && actionId === "login") {
+        emitToWeb(BOTTOM_SHEET_CLOSE_EVENT, {
+          requestId: nativeSheet.requestId,
+        });
+        setIsNativeSheetVisible(false);
+        if (nativeSheetCloseTimerRef.current) {
+          clearTimeout(nativeSheetCloseTimerRef.current);
+        }
+        const requestId = nativeSheet.requestId;
+        nativeSheetMetaRef.current.delete(requestId);
+        setNativeSheet(null);
+        nativeGuardOpenRef.current = false;
+        openLogin();
+        nativeSheetCloseTimerRef.current = setTimeout(() => {
+          nativeSheetMetaRef.current.delete(requestId);
+          nativeGuardOpenRef.current = false;
+        }, NATIVE_SHEET_CLOSE_MS);
+        return;
+      }
+
       emitToWeb(BOTTOM_SHEET_ACTION_EVENT, {
         requestId: nativeSheet.requestId,
         actionId,
         payload: payload ?? null,
       });
+      if (nativeSheet.sheetKey === "catalog_filter" && actionId === "apply") {
+        closeNativeSheet({ shouldNotify: false });
+      }
     },
-    [emitToWeb, nativeSheet, navigateWebPath],
+    [
+      closeNativeSheet,
+      emitToWeb,
+      goNativeTab,
+      nativeSheet,
+      navigateWebPath,
+      openLogin,
+      queuePendingAuthAction,
+      updateNativeProductSheetPayload,
+    ],
   );
 
   const onMessage = useCallback(
@@ -839,9 +1195,6 @@ export function HybridShell({ routePath = "/" }) {
       if (message?.type === "OPEN_BOTTOM_SHEET") {
         const incoming = message?.payload;
         if (!incoming?.requestId || !incoming?.sheetKey) return;
-        if (incoming.sheetKey === "login_required" && !isLoggedIn) {
-          return;
-        }
         if (nativeSheetCloseTimerRef.current) {
           clearTimeout(nativeSheetCloseTimerRef.current);
           nativeSheetCloseTimerRef.current = null;
@@ -859,7 +1212,10 @@ export function HybridShell({ routePath = "/" }) {
               : {},
         });
         nativeSheetMetaRef.current.set(String(incoming.requestId), {
-          source: "web",
+          source:
+            incoming.sheetKey === "login_required"
+              ? "web_login_required"
+              : "web",
         });
         setIsNativeSheetVisible(true);
         return;
@@ -873,12 +1229,34 @@ export function HybridShell({ routePath = "/" }) {
         return;
       }
 
+      if (message?.type === "OPEN_PRODUCT_SHEET") {
+        openNativeProductSheet(message?.payload || {});
+        return;
+      }
+
+      if (message?.type === "OPEN_STORIES") {
+        const storiesPayload = normalizeStoriesPayload(message?.payload);
+        if (storiesPayload.items.length > 0) {
+          setNativeStories(storiesPayload);
+        }
+        return;
+      }
+
+      if (message?.type === "WEB_FULLSCREEN") {
+        const enabled = Boolean(message?.payload?.enabled);
+        setIsWebFullscreen(enabled);
+        setTabBarForcedHidden(enabled || shouldShowInlineAuthGuard);
+        return;
+      }
+
       if (message?.type === "authTokens") {
         const loggedIn = Boolean(message?.tokens);
         setStoredAuthTokens(message?.tokens ?? null);
         setIsLoggedIn(loggedIn);
         setAuthStateCache(loggedIn);
         if (loggedIn) {
+          const tokens = parseTokensString(message.tokens);
+          flushPendingAuthAction(tokens).catch(() => {});
           setTabBarForcedHidden(false);
           const target = authReturnPathRef.current;
           authReturnPathRef.current = null;
@@ -890,6 +1268,23 @@ export function HybridShell({ routePath = "/" }) {
         return;
       }
 
+      if (message?.type === "pendingAuthAction") {
+        if (!message?.action) {
+          pendingAuthActionRef.current = null;
+          setPendingAuthAction(null);
+          return;
+        }
+        try {
+          const action = JSON.parse(message.action);
+          if (!action?.type || action.productId == null) return;
+          pendingAuthActionRef.current = action;
+          setPendingAuthAction(action);
+        } catch {
+          // ignore malformed bridge payloads
+        }
+        return;
+      }
+
       if (message?.type === "AUTH_LOGIN") {
         const tokens = message?.payload;
         if (tokens && typeof tokens === "object") {
@@ -897,6 +1292,7 @@ export function HybridShell({ routePath = "/" }) {
           setStoredAuthTokens(JSON.stringify(tokens));
           setIsLoggedIn(true);
           setAuthStateCache(true);
+          flushPendingAuthAction(tokens).catch(() => {});
           const target = authReturnPathRef.current;
           authReturnPathRef.current = null;
           if (target && ROUTE_GUARD_PATHS.has(target)) {
@@ -968,10 +1364,12 @@ export function HybridShell({ routePath = "/" }) {
     },
     [
       closeNativeSheet,
+      flushPendingAuthAction,
       goNativeTab,
-      isLoggedIn,
       nativeSheet?.requestId,
       navigateWebPath,
+      openNativeProductSheet,
+      shouldShowInlineAuthGuard,
     ],
   );
 
@@ -988,58 +1386,115 @@ export function HybridShell({ routePath = "/" }) {
     opacity: androidItemWidth > 0 ? 1 : 0,
   }));
 
+  const headerAnimatedStyle = useAnimatedStyle(
+    () => ({
+      height:
+        (isCatalogPath ? HEADER_HEIGHT : HEADER_WRAP_HEIGHT) *
+        (1 - fullscreenProgress.value),
+      opacity: 1 - fullscreenProgress.value,
+      transform: [
+        {
+          translateY:
+            -(isCatalogPath ? HEADER_HEIGHT : HEADER_WRAP_HEIGHT) *
+            fullscreenProgress.value,
+        },
+      ],
+    }),
+    [isCatalogPath],
+  );
+
+  const androidTabWrapAnimatedStyle = useAnimatedStyle(() => ({
+    height: ANDROID_TAB_WRAP_HEIGHT * (1 - fullscreenProgress.value),
+    opacity: 1 - fullscreenProgress.value,
+    transform: [
+      { translateY: ANDROID_TAB_WRAP_HEIGHT * fullscreenProgress.value },
+    ],
+  }));
+
   return (
     <SafeAreaView
       style={styles.safeArea}
       edges={shouldApplyTopInset ? ["top"] : []}
     >
-      {showHeader ? (
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => goNativeTab("home")}
-            style={styles.brandPressable}
+      <StatusBar
+        style={
+          isWebFullscreen
+            ? "light"
+            : Platform.OS === "android"
+              ? "dark"
+              : "auto"
+        }
+        backgroundColor={isWebFullscreen ? "#000000" : "transparent"}
+      />
+      <View style={styles.mainContent}>
+        {shouldRenderHeader ? (
+          <Animated.View
+            style={[
+              styles.headerAnimatedWrap,
+              isCatalogPath ? styles.catalogHeaderAnimatedWrap : null,
+              headerAnimatedStyle,
+            ]}
           >
-            {!logoBroken && brandLogo ? (
-              <Image
-                source={{ uri: brandLogo }}
-                style={styles.brandLogo}
-                resizeMode="contain"
-                onError={() => setLogoBroken(true)}
-              />
-            ) : (
-              <Text style={styles.brandText}>
-                {brandTitle || "Comfort Market"}
-              </Text>
+            {isCatalogPath ? null : (
+              <View pointerEvents="none" style={styles.headerShadowSurface} />
             )}
-          </Pressable>
+            <View
+              style={[
+                styles.header,
+                isCatalogPath ? styles.catalogHeader : null,
+              ]}
+            >
+              <Pressable
+                onPress={() => goNativeTab("home")}
+                style={styles.brandPressable}
+              >
+                {!logoBroken && brandLogo ? (
+                  <Image
+                    source={{ uri: brandLogo }}
+                    style={styles.brandLogo}
+                    resizeMode="contain"
+                    onError={() => setLogoBroken(true)}
+                  />
+                ) : (
+                  <Text style={styles.brandText}>
+                    {brandTitle || "Comfort Market"}
+                  </Text>
+                )}
+              </Pressable>
 
-          {isLoggedIn ? (
-            <View style={styles.walletBadge}>
-              <Text style={styles.walletIcon}>*</Text>
-              <Text style={styles.walletText}>{formattedWalletBalance}</Text>
+              {isLoggedIn ? (
+                <View style={styles.walletBadge}>
+                  <Text style={styles.walletIcon}>*</Text>
+                  <Text style={styles.walletText}>
+                    {formattedWalletBalance}
+                  </Text>
+                </View>
+              ) : (
+                <Pressable onPress={openLogin} style={styles.loginButton}>
+                  <Text style={styles.loginButtonText}>Login</Text>
+                </Pressable>
+              )}
             </View>
-          ) : (
-            <Pressable onPress={openLogin} style={styles.loginButton}>
-              <Text style={styles.loginButtonText}>Login</Text>
-            </Pressable>
-          )}
-        </View>
-      ) : null}
+          </Animated.View>
+        ) : null}
 
-      <View style={styles.webviewWrap}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: toWebViewUrl("/") }}
-          pullToRefreshEnabled
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          onMessage={onMessage}
-          onLoadEnd={() => {
-            setIsWebReady(true);
-            if (pendingPathRef.current && webViewRef.current) {
-              const path = pendingPathRef.current;
-              pendingPathRef.current = null;
-              webViewRef.current.injectJavaScript(`
+        <View style={styles.webviewWrap}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: toWebViewUrl("/") }}
+            style={styles.webview}
+            containerStyle={styles.webview}
+            originWhitelist={["http://*", "https://*", "about:blank"]}
+            pullToRefreshEnabled
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            onMessage={onMessage}
+            onLoadEnd={() => {
+              setIsWebReady(true);
+              if (pendingPathRef.current && webViewRef.current) {
+                const path = pendingPathRef.current;
+                pendingPathRef.current = null;
+                webViewRef.current.injectJavaScript(`
                 (function () {
                   try {
                     var nextPath = ${JSON.stringify(path)};
@@ -1052,51 +1507,54 @@ export function HybridShell({ routePath = "/" }) {
                   true;
                 })();
               `);
-            }
-          }}
-          onNavigationStateChange={onNavigationStateChange}
-          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          onError={() => {
-            if (Platform.OS === "ios") {
+              }
+            }}
+            onNavigationStateChange={onNavigationStateChange}
+            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+            onError={() => {
+              if (Platform.OS === "ios") {
+                webViewRef.current?.reload();
+              }
+            }}
+            onHttpError={() => {
+              if (Platform.OS === "ios") {
+                webViewRef.current?.reload();
+              }
+            }}
+            onContentProcessDidTerminate={() => {
               webViewRef.current?.reload();
-            }
-          }}
-          onHttpError={() => {
-            if (Platform.OS === "ios") {
-              webViewRef.current?.reload();
-            }
-          }}
-          onContentProcessDidTerminate={() => {
-            webViewRef.current?.reload();
-          }}
-          onRenderProcessGone={() => {
-            if (Platform.OS === "android") {
-              webViewRef.current?.reload();
-            }
-          }}
-          injectedJavaScriptBeforeContentLoaded={bridgeScript}
-          injectedJavaScript={DISABLE_ZOOM_SCRIPT}
-          scalesPageToFit={false}
-          setSupportMultipleWindows={false}
-        />
-        {shouldShowInlineAuthGuard ? (
-          <View style={styles.inlineGuardOverlay}>
-            <View style={styles.inlineGuardCard}>
-              <Image
-                source={{ uri: `${BASE_URL}/race.png` }}
-                style={styles.inlineGuardImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.inlineGuardTitle}>Авторизуйтесь</Text>
-              <Text style={styles.inlineGuardText}>
-                {authPromptDescription(routePath || "/")}
-              </Text>
-              <Pressable style={styles.inlineGuardButton} onPress={openLogin}>
-                <Text style={styles.inlineGuardButtonText}>Авторизоваться</Text>
-              </Pressable>
+            }}
+            onRenderProcessGone={() => {
+              if (Platform.OS === "android") {
+                webViewRef.current?.reload();
+              }
+            }}
+            injectedJavaScriptBeforeContentLoaded={bridgeScript}
+            injectedJavaScript={DISABLE_ZOOM_SCRIPT}
+            scalesPageToFit={false}
+            setSupportMultipleWindows={false}
+          />
+          {shouldShowInlineAuthGuard ? (
+            <View style={styles.inlineGuardOverlay}>
+              <View style={styles.inlineGuardCard}>
+                <Image
+                  source={{ uri: `${BASE_URL}/race.png` }}
+                  style={styles.inlineGuardImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.inlineGuardTitle}>Авторизуйтесь</Text>
+                <Text style={styles.inlineGuardText}>
+                  {authPromptDescription(routePath || "/")}
+                </Text>
+                <Pressable style={styles.inlineGuardButton} onPress={openLogin}>
+                  <Text style={styles.inlineGuardButtonText}>
+                    Авторизоваться
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
       </View>
 
       <NativeBottomSheet
@@ -1107,33 +1565,49 @@ export function HybridShell({ routePath = "/" }) {
         onAction={handleNativeSheetAction}
       />
 
-      {showAndroidTabBar ? (
-        <View style={styles.androidTabBarWrap}>
-          <View
-            style={styles.androidTabBar}
-            onLayout={(event) => {
-              setAndroidTabBarWidth(event.nativeEvent.layout.width);
-            }}
-          >
-            <Animated.View
-              style={[styles.androidTabActivePill, androidActiveBgStyle]}
-            />
-            {ANDROID_TAB_ITEMS.map((tab) => {
-              const isActive = isTabActive(currentPath, tab);
+      {shouldRenderAndroidTabBar ? (
+        <Animated.View
+          style={[
+            styles.androidTabBarAnimatedWrap,
+            androidTabWrapAnimatedStyle,
+          ]}
+        >
+          <View style={styles.androidTabBarWrap}>
+            <View
+              style={styles.androidTabBar}
+              onLayout={(event) => {
+                setAndroidTabBarWidth(event.nativeEvent.layout.width);
+              }}
+            >
+              <Animated.View
+                style={[styles.androidTabActivePill, androidActiveBgStyle]}
+              />
+              {ANDROID_TAB_ITEMS.map((tab) => {
+                const isActive = isTabActive(currentPath, tab);
 
-              return (
-                <AndroidTabButton
-                  key={tab.key}
-                  tab={tab}
-                  isActive={isActive}
-                  cartCount={cartCount}
-                  onPress={() => goNativeTab(tab.key)}
-                />
-              );
-            })}
+                return (
+                  <AndroidTabButton
+                    key={tab.key}
+                    tab={tab}
+                    isActive={isActive}
+                    cartCount={cartCount}
+                    onPress={() => goNativeTab(tab.key)}
+                  />
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </Animated.View>
       ) : null}
+
+      <NativeStoriesViewer
+        items={nativeStories?.items ?? []}
+        startIndex={nativeStories?.startIndex ?? 0}
+        visible={Boolean(nativeStories)}
+        onClose={() => {
+          setNativeStories(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1143,8 +1617,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  mainContent: {
+    flex: 1,
+    position: "relative",
+  },
   webviewWrap: {
     flex: 1,
+    backgroundColor: LOADING_BACKGROUND_COLOR,
+  },
+  webview: {
+    backgroundColor: LOADING_BACKGROUND_COLOR,
+  },
+  headerAnimatedWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HEADER_WRAP_HEIGHT,
+    overflow: "hidden",
+    backgroundColor: "transparent",
+    zIndex: 30,
+    elevation: 30,
+  },
+  catalogHeaderAnimatedWrap: {
+    height: HEADER_HEIGHT,
   },
   inlineGuardOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -1195,12 +1691,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   header: {
-    height: 64,
+    height: HEADER_CONTENT_HEIGHT,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#fff",
+  },
+  headerShadowSurface: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: HEADER_CONTENT_HEIGHT,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    backgroundColor: "#fff",
+    shadowColor: "#00001E",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 9,
+    elevation: 5,
+  },
+  catalogHeader: {
+    height: HEADER_HEIGHT,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   brandPressable: {
     flexDirection: "row",
@@ -1256,7 +1774,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 24,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8F8F8",
+  },
+  androidTabBarAnimatedWrap: {
+    height: ANDROID_TAB_WRAP_HEIGHT,
+    overflow: "hidden",
+    backgroundColor: "#F8F8F8",
   },
   androidTabBar: {
     position: "relative",
