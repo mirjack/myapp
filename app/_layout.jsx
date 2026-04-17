@@ -22,10 +22,13 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <ThemeProvider value={AppTheme}>
-      <Stack initialRouteName="(tabs)">
+      <Stack
+        initialRouteName="(tabs)"
+        screenOptions={{ animation: "none", gestureEnabled: false }}
+      >
         <Stack.Screen
           name="(tabs)"
-          options={{ headerShown: false, gestureEnabled: false }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="onboarding/phone"

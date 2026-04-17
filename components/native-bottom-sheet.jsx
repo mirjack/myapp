@@ -43,6 +43,7 @@ const SHEET_CLOSE_EASING = Easing.bezier(0.32, 0, 0.67, 0);
 const SHEET_DRAG_CLOSE_EASING = Easing.out(Easing.cubic);
 const PRICE_FILTER_MIN = 0;
 const PRICE_FILTER_MAX = 10000000;
+const PRODUCT_IMAGE_HEIGHT = 358;
 
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   maximumFractionDigits: 0,
@@ -179,6 +180,124 @@ function ContactInfoSheet({ payload }) {
         <Text style={styles.contactPhone}>{payload?.phoneNumber || ""}</Text>
       </View>
       <Text style={styles.contactWorkHours}>{payload?.workHours || ""}</Text>
+    </View>
+  );
+}
+
+function WalletInfoSheet({ payload }) {
+  const amount = Number(payload?.amount ?? 0);
+  const formattedValue = currencyFormatter.format(
+    Math.max(0, Math.round(amount)),
+  );
+  return (
+    <View style={styles.walletSheetWrap}>
+      <View style={styles.walletHeroWrap}>
+        <LinearGradient
+          colors={["#FAF56C", "#7EFDEC"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.walletHeroBase}
+        />
+        <LinearGradient
+          colors={["#FFA483", "#FD7D4F"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.walletHeroOverlay}
+        />
+
+        <View style={styles.walletHeroContent}>
+          <View style={styles.walletHeroIconWrap}>
+            <Svg width={48} height={48} viewBox="0 0 16 16" fill="none">
+              <Path
+                d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM8.70312 3.50098C8.46151 2.84801 7.53849 2.84801 7.29688 3.50098L6.3916 5.94824C6.31563 6.15333 6.15334 6.31466 5.94824 6.39062L3.50098 7.29688C2.84817 7.53858 2.84809 8.46151 3.50098 8.70312L5.94824 9.6084C6.15352 9.68437 6.31564 9.84648 6.3916 10.0518L7.29688 12.499C7.53854 13.1518 8.46141 13.1517 8.70312 12.499L9.60938 10.0518C9.68534 9.84663 9.84663 9.68437 10.0518 9.6084L12.499 8.70312C13.152 8.46151 13.152 7.53849 12.499 7.29688L10.0518 6.39062C9.84683 6.31466 9.68537 6.15315 9.60938 5.94824L8.70312 3.50098Z"
+                fill="#ffffff"
+              />
+            </Svg>
+          </View>
+
+          <Text style={styles.walletHeroTitle}>
+            {payload?.title || "Your bonus balance"}
+          </Text>
+          <Text style={styles.walletHeroDescription}>
+            {payload?.description || "Use bonuses for purchases in the app"}
+          </Text>
+
+          <View style={styles.walletHeroDivider} />
+
+          <View style={styles.walletInfoCard}>
+            <Text style={styles.walletInfoLabel}>
+              {payload?.youHaveLabel || "YOU HAVE"}
+            </Text>
+            <View style={styles.walletInfoAmountRow}>
+              <Text style={styles.walletInfoAmount}>{formattedValue}</Text>
+              <Svg width={24} height={24} viewBox="0 0 16 16" fill="none">
+                <Path
+                  d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM8.70312 3.50098C8.46151 2.84801 7.53849 2.84801 7.29688 3.50098L6.3916 5.94824C6.31563 6.15333 6.15334 6.31466 5.94824 6.39062L3.50098 7.29688C2.84817 7.53858 2.84809 8.46151 3.50098 8.70312L5.94824 9.6084C6.15352 9.68437 6.31564 9.84648 6.3916 10.0518L7.29688 12.499C7.53854 13.1518 8.46141 13.1517 8.70312 12.499L9.60938 10.0518C9.68534 9.84663 9.84663 9.68437 10.0518 9.6084L12.499 8.70312C13.152 8.46151 13.152 7.53849 12.499 7.29688L10.0518 6.39062C9.84683 6.31466 9.68537 6.15315 9.60938 5.94824L8.70312 3.50098Z"
+                  fill="#ffffff"
+                />
+              </Svg>
+            </View>
+            <Text style={styles.walletInfoNote}>
+              {payload?.conversionNote || "1 bonus = 1 sum"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.walletHelpWrap}>
+        <Text style={styles.walletHelpTitle}>
+          {payload?.howToSpendTitle || "How to spend bonuses"}
+        </Text>
+        <Text style={styles.walletHelpText}>
+          {payload?.howToSpendDescription ||
+            "At checkout, select bonus payment and apply available balance."}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function LoyaltyProgressSheet({ payload, onAction }) {
+  const points = Math.max(0, Math.round(parseNumber(payload?.allBalls ?? 0)));
+  const percent = Math.max(
+    0,
+    Math.min(100, Math.round(parseNumber(payload?.indicatorPercent ?? 0))),
+  );
+  return (
+    <View style={styles.loyaltySheetWrap}>
+      <View style={styles.loyaltyHeaderCard}>
+        <Text style={styles.loyaltyHeadText}>{payload?.headText || ""}</Text>
+        <Text style={styles.loyaltyPoints}>
+          {currencyFormatter.format(points)}
+          <Text style={styles.loyaltyPointsSuffix}>
+            {" "}
+            {payload?.monet || ""}
+          </Text>
+        </Text>
+        <Text style={styles.loyaltySubText}>
+          {payload?.subTextPrefix || ""}{" "}
+          <Text style={styles.loyaltySubTextAccent}>
+            {payload?.subTextAccent || ""}
+          </Text>
+        </Text>
+        <View style={styles.loyaltyProgressTrack}>
+          <View
+            style={[styles.loyaltyProgressFill, { width: `${percent}%` }]}
+          />
+        </View>
+      </View>
+
+      <View style={styles.loyaltyBody}>
+        <Text style={styles.loyaltyBodyTitle}>{payload?.modalTitle || ""}</Text>
+        <Text style={styles.loyaltyBodyText}>{payload?.modalBody || ""}</Text>
+      </View>
+
+      <Pressable
+        style={styles.loyaltyCta}
+        onPress={() => onAction?.("loyalty_info", null)}
+      >
+        <Text style={styles.loyaltyCtaText}>{payload?.modalCta || "Info"}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -424,8 +543,8 @@ function ProductSheetSkeleton() {
   return (
     <View style={styles.skeletonRoot}>
       <View style={styles.skeletonImage} />
-      <View style={styles.skeletonBody}>
-        <View style={styles.skeletonHeaderRow}>
+      <View style={styles.skeletonDetails}>
+        <View style={styles.skeletonPriceHeader}>
           <View style={styles.skeletonBadgeRow}>
             <View style={styles.skeletonCashbackBadge} />
             <View style={styles.skeletonDiscountBadge} />
@@ -435,11 +554,15 @@ function ProductSheetSkeleton() {
             <View style={styles.skeletonPriceLarge} />
           </View>
         </View>
-        <View style={styles.skeletonTitle} />
-        <View style={styles.skeletonLine} />
-        <View style={styles.skeletonLineShort} />
+        <View style={styles.skeletonTitleRaised}>
+          <View style={styles.skeletonTitle} />
+          <View style={styles.skeletonLine} />
+          <View style={styles.skeletonLineShort} />
+        </View>
       </View>
-      <View style={styles.skeletonButton} />
+      <View style={styles.skeletonOrderSection}>
+        <View style={styles.skeletonButton} />
+      </View>
     </View>
   );
 }
@@ -448,6 +571,7 @@ function ProductDetailSheet({ payload, onAction }) {
   const product = payload?.product;
   const quantity = Math.max(0, Number(payload?.quantity || 0));
   const isLoading = Boolean(payload?.isLoading);
+  const isQuantityLoading = Boolean(payload?.isQuantityLoading);
   const isCartPending = Boolean(payload?.isCartPending);
   const error = payload?.error;
   const priceStats = computePriceStats(product);
@@ -536,7 +660,7 @@ function ProductDetailSheet({ payload, onAction }) {
     );
   }
 
-  if (isLoading && !product) {
+  if ((isLoading && !product) || isQuantityLoading) {
     return <ProductSheetSkeleton />;
   }
 
@@ -889,6 +1013,12 @@ function renderSheetContent(sheet, onAction) {
   if (sheet.sheetKey === "contact_info") {
     return <ContactInfoSheet payload={sheet.payload} />;
   }
+  if (sheet.sheetKey === "wallet_info") {
+    return <WalletInfoSheet payload={sheet.payload} />;
+  }
+  if (sheet.sheetKey === "loyalty_progress") {
+    return <LoyaltyProgressSheet payload={sheet.payload} onAction={onAction} />;
+  }
   if (sheet.sheetKey === "catalog_filter") {
     return <CatalogFilterSheet payload={sheet.payload} onAction={onAction} />;
   }
@@ -924,6 +1054,14 @@ export function NativeBottomSheet({
   const contentOpacity = useSharedValue(1);
   const skeletonOpacity = useSharedValue(0);
   const backdropOpacity = useSharedValue(0);
+  const isProductDetailSheet = sheet?.sheetKey === "product_detail";
+  const isProductSheetHydrating = Boolean(
+    isProductDetailSheet &&
+      ((sheet?.payload?.isLoading && !sheet?.payload?.product) ||
+        sheet?.payload?.isQuantityLoading),
+  );
+  const shouldShowProductSkeleton =
+    isProductDetailSheet && (isOpening || isProductSheetHydrating);
 
   useEffect(() => {
     if (contentRevealTimerRef.current) {
@@ -937,27 +1075,14 @@ export function NativeBottomSheet({
 
     if (visible) {
       isDragClosingRef.current = false;
-      const shouldDelayContent = sheet?.sheetKey === "product_detail";
+      const shouldDelayContent = isProductDetailSheet;
       setIsOpening(shouldDelayContent);
       contentOpacity.value = shouldDelayContent ? 0 : 1;
       skeletonOpacity.value = shouldDelayContent ? 1 : 0;
       sheetScaleX.value = 1;
       if (shouldDelayContent) {
         contentRevealTimerRef.current = setTimeout(() => {
-          contentRevealFrameRef.current = requestAnimationFrame(() => {
-            contentOpacity.value = withTiming(1, {
-              duration: SHEET_CONTENT_FADE_MS,
-              easing: SHEET_CONTENT_EASING,
-            });
-            skeletonOpacity.value = withTiming(0, {
-              duration: SHEET_CONTENT_FADE_MS,
-              easing: SHEET_CONTENT_EASING,
-            });
-            setTimeout(() => {
-              setIsOpening(false);
-            }, SHEET_CONTENT_FADE_MS);
-            contentRevealFrameRef.current = null;
-          });
+          setIsOpening(false);
           contentRevealTimerRef.current = null;
         }, SHEET_CONTENT_REVEAL_MS);
       }
@@ -1010,7 +1135,37 @@ export function NativeBottomSheet({
     sheetTranslateY,
     sheetWidth,
     skeletonOpacity,
-    sheet?.sheetKey,
+    isProductDetailSheet,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (!visible || !isProductDetailSheet) return;
+    if (shouldShowProductSkeleton) {
+      contentOpacity.value = withTiming(0, {
+        duration: 90,
+        easing: SHEET_CONTENT_EASING,
+      });
+      skeletonOpacity.value = withTiming(1, {
+        duration: 90,
+        easing: SHEET_CONTENT_EASING,
+      });
+      return;
+    }
+
+    contentOpacity.value = withTiming(1, {
+      duration: SHEET_CONTENT_FADE_MS,
+      easing: SHEET_CONTENT_EASING,
+    });
+    skeletonOpacity.value = withTiming(0, {
+      duration: SHEET_CONTENT_FADE_MS,
+      easing: SHEET_CONTENT_EASING,
+    });
+  }, [
+    contentOpacity,
+    isProductDetailSheet,
+    shouldShowProductSkeleton,
+    skeletonOpacity,
     visible,
   ]);
 
@@ -1154,7 +1309,7 @@ export function NativeBottomSheet({
             <Animated.View style={contentStyle}>
               {renderSheetContent(sheet, onAction)}
             </Animated.View>
-            {isOpening && sheet?.sheetKey === "product_detail" ? (
+            {shouldShowProductSkeleton ? (
               <Animated.View
                 pointerEvents="none"
                 style={[styles.sheetSkeletonOverlay, skeletonStyle]}
@@ -1185,7 +1340,7 @@ const styles = StyleSheet.create({
   },
   backdropTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.30)",
+    backgroundColor: "rgba(0,0,0,0.16)",
   },
   sheetWrap: {
     alignSelf: "center",
@@ -1348,6 +1503,176 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: "#6B7280",
   },
+  walletSheetWrap: {
+    gap: 12,
+  },
+  walletHeroWrap: {
+    borderRadius: 20,
+    overflow: "hidden",
+    position: "relative",
+  },
+  walletHeroBase: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  walletHeroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.92,
+  },
+  walletHeroContent: {
+    padding: 12,
+    position: "relative",
+    zIndex: 1,
+  },
+  walletHeroIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletHeroTitle: {
+    marginTop: 8,
+    textAlign: "center",
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  walletHeroDescription: {
+    marginTop: 2,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#fff",
+  },
+  walletHeroDivider: {
+    marginVertical: 14,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  walletInfoCard: {
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    gap: 2,
+  },
+  walletInfoLabel: {
+    fontSize: 14,
+    lineHeight: 17,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    color: "#fff",
+  },
+  walletInfoAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  walletInfoAmount: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  walletInfoNote: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "500",
+    color: "#fff",
+    textAlign: "center",
+  },
+  walletHelpWrap: {
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  walletHelpTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  walletHelpText: {
+    marginBottom: 3,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#131314",
+  },
+  loyaltySheetWrap: {
+    gap: 12,
+  },
+  loyaltyHeaderCard: {
+    borderRadius: 20,
+    backgroundColor: "#F6F6F7",
+    padding: 14,
+    gap: 8,
+  },
+  loyaltyHeadText: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  loyaltyPoints: {
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  loyaltyPointsSuffix: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  loyaltySubText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  loyaltySubTextAccent: {
+    color: "#16C647",
+    fontWeight: "600",
+  },
+  loyaltyProgressTrack: {
+    marginTop: 2,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#E6E8EC",
+    overflow: "hidden",
+  },
+  loyaltyProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "#16C647",
+  },
+  loyaltyBody: {
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  loyaltyBodyTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  loyaltyBodyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#131314",
+  },
+  loyaltyCta: {
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: "#0000000D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loyaltyCtaText: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#131314",
+  },
   catalogFilterWrap: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -1446,11 +1771,11 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   productScrollContent: {
-    gap: 16,
+    gap: 8,
     paddingBottom: 2,
   },
   productImageWrap: {
-    height: 360,
+    height: PRODUCT_IMAGE_HEIGHT,
     borderRadius: 30,
     overflow: "hidden",
     borderWidth: 0,
@@ -1580,10 +1905,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: "#00031A",
     fontWeight: "600",
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
   productDescription: {
-    minHeight: 36,
     fontSize: 14,
     lineHeight: 18,
     color: "#747479",
@@ -1602,17 +1926,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 100,
+    paddingVertical: 0,
   },
   imageViewerImageWrap: {
     width: "100%",
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 0,
+    overflow: "visible",
   },
   imageViewerImage: {
     width: "100%",
     height: "100%",
+    borderRadius: 0,
   },
   imageViewerClose: {
     position: "absolute",
@@ -1631,20 +1958,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   productOrderSectionActive: {
-    padding: 16,
-    borderRadius: 24,
-    shadowColor: "#000014",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.09,
-    shadowRadius: 10,
-    elevation: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    // borderRadius: 24,
+    // shadowColor: "#000014",
+    // shadowOffset: { width: 0, height: 0 },
+    // shadowOpacity: 0.09,
+    // shadowRadius: 10,
+    // elevation: 8,
     backgroundColor: "#fff",
   },
   cartSummaryWrap: {
-    gap: 12,
+    gap: 10,
   },
   cartSummary: {
-    paddingBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#EDEDEF",
     flexDirection: "row",
@@ -1738,20 +2066,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   skeletonRoot: {
-    gap: 16,
-    paddingBottom: 4,
+    gap: 8,
+    paddingBottom: 2,
   },
   skeletonImage: {
-    height: 360,
+    height: PRODUCT_IMAGE_HEIGHT,
     borderRadius: 30,
     backgroundColor: "#F1F3F6",
   },
-  skeletonBody: {
+  skeletonDetails: {
     paddingHorizontal: 4,
-    gap: 8,
   },
-  skeletonHeaderRow: {
-    minHeight: 58,
+  skeletonPriceHeader: {
+    minHeight: 46,
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
@@ -1774,8 +2101,8 @@ const styles = StyleSheet.create({
   },
   skeletonPriceColumn: {
     alignItems: "flex-end",
-    gap: 6,
-    paddingTop: 7,
+    gap: 5,
+    paddingTop: 4,
   },
   skeletonPriceSmall: {
     width: 56,
@@ -1794,23 +2121,30 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 8,
     backgroundColor: "#E7EBF0",
+    marginBottom: 6,
   },
   skeletonLine: {
     width: "100%",
-    height: 12,
+    height: 14,
     borderRadius: 999,
     backgroundColor: "#EEF1F4",
   },
   skeletonLineShort: {
     width: "84%",
-    height: 12,
+    height: 14,
     borderRadius: 999,
     backgroundColor: "#EEF1F4",
+    marginTop: 2,
+  },
+  skeletonTitleRaised: {
+    marginTop: -14,
+  },
+  skeletonOrderSection: {
+    padding: 4,
   },
   skeletonButton: {
-    height: 48,
+    minHeight: 48,
     borderRadius: 999,
     backgroundColor: "#F3F4F6",
-    marginHorizontal: 4,
   },
 });
