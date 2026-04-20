@@ -10,12 +10,12 @@ import Svg, { Path } from "react-native-svg";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { NativeStoriesViewer } from "@/components/native-stories-viewer";
-import { toWebViewUrl } from "@/lib/runtime-config";
 
 import {
   ANDROID_TAB_ITEMS,
   ANDROID_TAB_WRAP_HEIGHT,
   BASE_URL,
+  INITIAL_WEB_URL,
 } from "./constants";
 import { AndroidTabButton } from "./android-tab-button";
 import { DISABLE_ZOOM_SCRIPT } from "./scripts";
@@ -31,10 +31,6 @@ export function HybridShell({ routePath = "/" }) {
   const rootNavigationState = useRootNavigationState();
   const insets = useSafeAreaInsets();
   const core = useHybridShellState();
-  const webViewInitialUrl = useMemo(
-    () => toWebViewUrl(routePath?.startsWith("/") ? routePath : "/"),
-    [routePath],
-  );
 
   const navigation = useHybridShellNavigation({
     routePath,
@@ -169,7 +165,7 @@ export function HybridShell({ routePath = "/" }) {
         <View style={styles.webviewWrap}>
           <WebView
             ref={core.refs.webViewRef}
-            source={{ uri: webViewInitialUrl }}
+            source={{ uri: INITIAL_WEB_URL }}
             style={styles.webview}
             containerStyle={styles.webview}
             originWhitelist={["http://*", "https://*", "about:blank"]}

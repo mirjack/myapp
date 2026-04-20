@@ -7,8 +7,8 @@
 - Android uses a custom native tab bar in `components/hybrid-shell.jsx` (web `mobile-navigation` look), while web `mobile-navigation` is hidden in native Android.
 - Each tab route (`index`, `catalog`, `cart`, `favorites`, `profile`) renders `components/hybrid-shell.jsx` with its target web path.
 - Native top header is rendered in `components/hybrid-shell.jsx` (brand + login/wallet chip) to match app-only shell UX.
-- Auth tokens from web (`localStorage.authTokens`) are mirrored into native `SecureStore` via `onMessage`.
-- On startup, native injects stored tokens back into WebView before content load.
+- Native owns auth tokens in `SecureStore`; WebView receives an in-memory auth session through the native bridge.
+- On startup and reload, native syncs the stored auth session into WebView before/after content load.
 - Native injects platform flag into WebView:
   - `window.__NATIVE_APP__ = true`
   - `window.__NATIVE_PLATFORM__ = "ios" | "android"`

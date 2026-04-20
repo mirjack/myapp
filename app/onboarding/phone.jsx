@@ -42,34 +42,15 @@ const DISABLE_ZOOM_SCRIPT = `
 true;
 `;
 
-// Auth token bridge: web → native (kelajakda kerak bo'lsa ishlatish uchun)
 const WEBVIEW_BRIDGE_SCRIPT = `
 (function () {
-  function postTokens() {
-    try {
-      var tokens = window.localStorage.getItem('authTokens');
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'authTokens',
-        tokens: tokens || null,
-      }));
-    } catch (e) {}
-  }
-
   try {
-    var originalSetItem = window.localStorage.setItem;
-    window.localStorage.setItem = function (key, value) {
-      originalSetItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
-    };
-
-    var originalRemoveItem = window.localStorage.removeItem;
-    window.localStorage.removeItem = function (key) {
-      originalRemoveItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
-    };
+    window.__NATIVE_APP__ = true;
+    window.__NATIVE_PLATFORM__ = "${Platform.OS}";
+    document.documentElement.dataset.nativeApp = 'true';
+    document.documentElement.dataset.nativePlatform = "${Platform.OS}";
+    try { window.localStorage.removeItem('authTokens'); } catch (e) {}
   } catch (e) {}
-
-  postTokens();
 })();
 true;
 `;
@@ -270,14 +251,20 @@ export default function OnboardingPhoneScreen() {
             return;
           }
 
-          if (message?.type !== "authTokens") return;
-          if (!message?.tokens) return;
+          if (message?.type !== "AUTH_LOGIN") return;
+          const tokens = message?.payload;
+          if (!tokens?.access) return;
 
           redirectedRef.current = true;
-          setStoredAuthTokens(message.tokens);
-          flushPendingAuthAction(message.tokens).catch(() => {});
-          setAuthStateCache(true);
-          router.replace(toNativeTabsPath(nextPath));
+          (async () => {
+            const tokensString = JSON.stringify(tokens);
+            await setStoredAuthTokens(tokensString);
+            flushPendingAuthAction(tokensString).catch(() => {});
+            setAuthStateCache(true);
+            router.replace(toNativeTabsPath(nextPath));
+          })().catch(() => {
+            redirectedRef.current = false;
+          });
         }}
         injectedJavaScriptBeforeContentLoaded={WEBVIEW_BRIDGE_SCRIPT}
         injectedJavaScript={DISABLE_ZOOM_SCRIPT}
@@ -300,3 +287,4 @@ export default function OnboardingPhoneScreen() {
     </SafeAreaView>
   );
 }
+

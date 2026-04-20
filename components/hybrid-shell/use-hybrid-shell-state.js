@@ -101,6 +101,7 @@ export function useHybridShellState() {
       setAndroidTabBarWidth,
       setBrandLogo,
       setBrandTitle,
+      setBridgeScript,
       setCanGoBack,
       setCartCount,
       setCurrentPath,

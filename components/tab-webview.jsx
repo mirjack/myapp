@@ -27,31 +27,13 @@ true;
 
 const WEBVIEW_BRIDGE_SCRIPT = `
 (function () {
-  function postTokens() {
-    try {
-      var tokens = window.localStorage.getItem('authTokens');
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'authTokens',
-        tokens: tokens || null,
-      }));
-    } catch (e) {}
-  }
-
   try {
-    var originalSetItem = window.localStorage.setItem;
-    window.localStorage.setItem = function (key, value) {
-      originalSetItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
-    };
-
-    var originalRemoveItem = window.localStorage.removeItem;
-    window.localStorage.removeItem = function (key) {
-      originalRemoveItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
-    };
+    window.__NATIVE_APP__ = true;
+    window.__NATIVE_PLATFORM__ = "${Platform.OS}";
+    document.documentElement.dataset.nativeApp = 'true';
+    document.documentElement.dataset.nativePlatform = "${Platform.OS}";
+    try { window.localStorage.removeItem('authTokens'); } catch (e) {}
   } catch (e) {}
-
-  postTokens();
 })();
 true;
 `;

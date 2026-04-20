@@ -54,13 +54,13 @@ export function goNativeTabImpl({ tabKey, isLoggedIn, navigateWebPath, openNativ
       openNativeAuthGuardSheet(`/${tabKey}`);
       return;
     }
-    const nextRoute = TAB_NATIVE_ROUTES[tabKey];
-    if (nextRoute) router.replace(nextRoute);
+    const nextWebPath = tabKey === "home" ? "/" : `/${tabKey}`;
+    navigateWebPath(nextWebPath);
     return;
   }
 
   const nextRoute = TAB_NATIVE_ROUTES[tabKey];
-  if (nextRoute) router.navigate(nextRoute);
+  if (nextRoute) router.replace(nextRoute);
 }
 
 export function goToNativeLoginScreenImpl({ refs, rootNavigationState, router, targetPath }) {

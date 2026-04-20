@@ -8,7 +8,9 @@ import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 import { BOTTOM_SHEET_ACTION_EVENT, BOTTOM_SHEET_CLOSE_EVENT, NATIVE_SHEET_CLOSE_MS, PRODUCT_SHEET_KEY, PRODUCT_SHEET_REQUEST_ID } from "./constants";
 import { parseTokensString } from "./utils";
 
-if (Platform.OS === "android") {
+const isNewArchitectureEnabled = Boolean(global?.nativeFabricUIManager);
+
+if (Platform.OS === "android" && !isNewArchitectureEnabled) {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
 }
 

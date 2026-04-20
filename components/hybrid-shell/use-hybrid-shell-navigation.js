@@ -6,6 +6,7 @@ import { openBrowserAsync } from "expo-web-browser";
 
 import { isTabBarVisiblePath, setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 import { isWebViewInternalUrl } from "@/lib/runtime-config";
+import { getStoredAuthTokens } from "@/lib/auth-storage";
 
 import {
   ANDROID_TAB_ITEMS,
@@ -47,7 +48,6 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
   const navigateWebPath = useCallback(
     (path) => {
       const safePath = path?.startsWith("/") ? path : "/";
-      if (state.isWebReady && state.currentPath === safePath) return;
       const js = `(function(){try{var nextPath=${JSON.stringify(safePath)};if(typeof window.__reactRouter_navigate === "function"){window.__reactRouter_navigate(nextPath);}else if(window.location.pathname !== nextPath){window.__pendingNativePath=nextPath;}}catch(e){}true;})();`;
       if (state.isWebReady && refs.webViewRef.current) {
         refs.webViewRef.current.injectJavaScript(js);
@@ -57,7 +57,7 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
         setters.setCurrentPath(safePath);
       }
     },
-    [refs.pendingPathRef, refs.webViewRef, setters, state.currentPath, state.isWebReady],
+    [refs.pendingPathRef, refs.webViewRef, setters, state.isWebReady],
   );
 
   const goToNativeLoginScreen = useCallback(
@@ -123,6 +123,19 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
 
   const onWebLoadEnd = useCallback(() => {
     setters.setCurrentWebReady(true);
+    getStoredAuthTokens().then((tokensString) => {
+      const tokens = tokensString ? JSON.parse(tokensString) : null;
+      refs.webViewRef.current?.injectJavaScript(`
+        (function () {
+          try {
+            if (typeof window.__handleNativeMessage === "function") {
+              window.__handleNativeMessage(${JSON.stringify(JSON.stringify(tokens ? { type: "AUTH_SESSION", payload: tokens } : { type: "AUTH_LOGOUT" }))});
+            }
+          } catch (e) {}
+          true;
+        })();
+      `);
+    }).catch(() => {});
     if (refs.webViewRef.current) {
       refs.webViewRef.current.injectJavaScript(`
         (function () {
@@ -189,23 +202,24 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
   }, [state.currentPath]);
 
   useEffect(() => {
+    if (!state.isAuthLoaded) return;
     const targetPath = normalizeToTabPath(routePath || "/");
-    if (Platform.OS === "ios") return;
-    if (!state.isAuthLoaded) return;
-    if (state.isLoggedIn) return;
-    if (!ROUTE_GUARD_PATHS.has(targetPath)) return;
-    openNativeAuthGuardSheet(targetPath);
-  }, [openNativeAuthGuardSheet, routePath, state.isAuthLoaded, state.isLoggedIn]);
 
-  useEffect(() => {
-    if (Platform.OS === "android") return;
-    if (!state.isAuthLoaded) return;
-    if (!state.isLoggedIn) {
-      const targetPath = normalizeToTabPath(routePath || "/");
-      if (ROUTE_GUARD_PATHS.has(targetPath)) return;
+    if (!state.isLoggedIn && ROUTE_GUARD_PATHS.has(targetPath)) {
+      if (Platform.OS === "android") {
+        openNativeAuthGuardSheet(targetPath);
+      }
+      return;
     }
+
     navigateWebPath(routePath);
-  }, [navigateWebPath, routePath, state.isAuthLoaded, state.isLoggedIn]);
+  }, [
+    navigateWebPath,
+    openNativeAuthGuardSheet,
+    routePath,
+    state.isAuthLoaded,
+    state.isLoggedIn,
+  ]);
 
   useEffect(() => {
     androidActiveTabIndexAnim.value = withTiming(activeAndroidTabIndex, {
@@ -238,3 +252,5 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
     shouldShowInlineAuthGuard,
   };
 }
+
+

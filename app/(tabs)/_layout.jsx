@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { Platform } from "react-native";
-import { Slot, Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   Icon,
@@ -8,6 +9,7 @@ import {
   VectorIcon,
 } from "expo-router/unstable-native-tabs";
 import { useIsTabBarVisible } from "@/lib/tab-bar-visibility";
+import { HybridShell } from "@/components/hybrid-shell";
 
 const IOS_NATIVE_TABS_MIN_VERSION = 26;
 
@@ -20,9 +22,32 @@ function getIosMajorVersion() {
 
 export default function TabsLayout() {
   const isTabBarVisible = useIsTabBarVisible();
+  const pathname = usePathname();
+  const lastStableAndroidPathRef = useRef("/");
+
+  const resolveAndroidRoutePath = () => {
+    let nextPath = "/";
+    if (!pathname || pathname === "/home") {
+      nextPath = "/";
+    } else if (pathname === "/(tabs)") {
+      nextPath = null;
+    } else if (pathname.startsWith("/catalog")) {
+      nextPath = "/catalog";
+    } else if (pathname.startsWith("/cart")) {
+      nextPath = "/cart";
+    } else if (pathname.startsWith("/favorites")) {
+      nextPath = "/favorites";
+    } else if (pathname.startsWith("/profile")) {
+      nextPath = "/profile";
+    }
+
+    if (!nextPath) return lastStableAndroidPathRef.current;
+    lastStableAndroidPathRef.current = nextPath;
+    return nextPath;
+  };
 
   if (Platform.OS === "android") {
-    return <Slot />;
+    return <HybridShell routePath={resolveAndroidRoutePath()} />;
   }
 
   if (getIosMajorVersion() < IOS_NATIVE_TABS_MIN_VERSION) {

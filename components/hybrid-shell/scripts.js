@@ -50,22 +50,33 @@ export function buildBridgeScript(tokensString, nativePlatform) {
     }
 
     var nativeTokens = ${JSON.stringify(tokensString ?? null)};
-    if (nativeTokens) {
-      window.localStorage.setItem('authTokens', nativeTokens);
+
+    function parseNativeTokens(tokensString) {
+      if (!tokensString) return null;
       try {
-        window.dispatchEvent(new CustomEvent('auth:tokens', { detail: JSON.parse(nativeTokens) }));
+        var parsed = typeof tokensString === 'string' ? JSON.parse(tokensString) : tokensString;
+        return parsed && parsed.access ? parsed : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function applyNativeAuthSession(tokensString) {
+      try {
+        var tokens = parseNativeTokens(tokensString);
+        window.__NATIVE_AUTH_SESSION__ = tokens;
+        try { window.localStorage.removeItem('authTokens'); } catch (e) {}
+
+        if (window.__HYBRID_AUTH__ && typeof window.__HYBRID_AUTH__.setSessionFromNative === 'function') {
+          window.__HYBRID_AUTH__.setSessionFromNative(tokens);
+          return;
+        }
+
+        window.dispatchEvent(new CustomEvent('native:auth-session', { detail: tokens }));
       } catch (e) {}
     }
 
-    function postTokens() {
-      try {
-        var tokens = window.localStorage.getItem('authTokens');
-        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'authTokens',
-          tokens: tokens || null,
-        }));
-      } catch (e) {}
-    }
+    applyNativeAuthSession(nativeTokens);
 
     function postPendingAuthAction() {
       try {
@@ -89,14 +100,15 @@ export function buildBridgeScript(tokensString, nativePlatform) {
     var originalSetItem = window.localStorage.setItem;
     window.localStorage.setItem = function (key, value) {
       originalSetItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
+      if (key === 'authTokens') {
+        try { window.localStorage.removeItem('authTokens'); } catch (e) {}
+      }
       if (key === 'pendingAuthAction') postPendingAuthAction();
     };
 
     var originalRemoveItem = window.localStorage.removeItem;
     window.localStorage.removeItem = function (key) {
       originalRemoveItem.apply(this, arguments);
-      if (key === 'authTokens') postTokens();
       if (key === 'pendingAuthAction') postPendingAuthAction();
     };
 
@@ -125,18 +137,16 @@ export function buildBridgeScript(tokensString, nativePlatform) {
         if (!payload || !payload.type) return;
 
         if (payload.type === 'AUTH_LOGOUT') {
-          window.localStorage.removeItem('authTokens');
-          window.dispatchEvent(new Event('auth:logout'));
+          applyNativeAuthSession(null);
+          window.dispatchEvent(new Event('native:auth-logout'));
         }
 
-        if (payload.type === 'AUTH_TOKENS' && payload.payload) {
-          window.localStorage.setItem('authTokens', JSON.stringify(payload.payload));
-          window.dispatchEvent(new CustomEvent('auth:tokens', { detail: payload.payload }));
+        if (payload.type === 'AUTH_SESSION' && payload.payload) {
+          applyNativeAuthSession(payload.payload);
         }
       } catch (e) {}
     };
 
-    postTokens();
     postPendingAuthAction();
     postPath();
   } catch (e) {}
@@ -144,3 +154,5 @@ export function buildBridgeScript(tokensString, nativePlatform) {
 true;
 `;
 }
+
+

@@ -17,9 +17,9 @@ import {
 import { updateHeaderCache } from "./header-cache";
 import {
   normalizeStoriesPayload,
-  parseTokensString,
   toNumber,
 } from "./utils";
+import { buildBridgeScript } from "./scripts";
 
 export function useHybridShellMessageHandler({
   core,
@@ -56,6 +56,26 @@ export function useHybridShellMessageHandler({
           applyNativeInsetForPath(target);
           return;
         }
+      };
+
+      const syncWebAuthSession = (tokensLike) => {
+        const nextTokens = tokensLike || null;
+        const tokensString = nextTokens ? JSON.stringify(nextTokens) : null;
+        const nativeMessage = nextTokens
+          ? { type: "AUTH_SESSION", payload: nextTokens }
+          : { type: "AUTH_LOGOUT" };
+
+        setters.setBridgeScript(buildBridgeScript(tokensString, Platform.OS));
+        refs.webViewRef.current?.injectJavaScript(`
+          (function () {
+            try {
+              if (typeof window.__handleNativeMessage === "function") {
+                window.__handleNativeMessage(${JSON.stringify(JSON.stringify(nativeMessage))});
+              }
+            } catch (e) {}
+            true;
+          })();
+        `);
       };
 
       const raw = event?.nativeEvent?.data;
@@ -116,25 +136,6 @@ export function useHybridShellMessageHandler({
         return;
       }
 
-      if (message?.type === "authTokens") {
-        const loggedIn = Boolean(message?.tokens);
-        const wasLoggedIn = state.isLoggedIn;
-        setStoredAuthTokens(message?.tokens ?? null);
-        setters.setIsLoggedIn(loggedIn);
-        setAuthStateCache(loggedIn);
-        if (loggedIn) {
-          const tokens = parseTokensString(message.tokens);
-          const shouldHandlePostLogin =
-            !wasLoggedIn ||
-            Boolean(refs.authReturnPathRef.current) ||
-            Boolean(refs.pendingAuthActionRef.current);
-          if (shouldHandlePostLogin) {
-            applyPostLoginTransition(tokens);
-          }
-        }
-        return;
-      }
-
       if (message?.type === "pendingAuthAction") {
         if (!message?.action) {
           refs.pendingAuthActionRef.current = null;
@@ -155,10 +156,14 @@ export function useHybridShellMessageHandler({
       if (message?.type === "AUTH_LOGIN") {
         const tokens = message?.payload;
         if (tokens && typeof tokens === "object") {
-          setStoredAuthTokens(JSON.stringify(tokens));
-          setters.setIsLoggedIn(true);
-          setAuthStateCache(true);
-          applyPostLoginTransition(tokens);
+          (async () => {
+            const tokensString = JSON.stringify(tokens);
+            await setStoredAuthTokens(tokensString);
+            setters.setIsLoggedIn(true);
+            setAuthStateCache(true);
+            syncWebAuthSession(tokens);
+            applyPostLoginTransition(tokens);
+          })().catch(() => {});
         }
         return;
       }
@@ -167,6 +172,7 @@ export function useHybridShellMessageHandler({
         clearStoredAuthTokens();
         setters.setIsLoggedIn(false);
         setAuthStateCache(false);
+        syncWebAuthSession(null);
         updateHeaderCache({ walletBalance: 0 });
         setters.setWalletBalance(0);
         return;
@@ -177,9 +183,9 @@ export function useHybridShellMessageHandler({
         const walletBalance = toNumber(nextBalance);
         updateHeaderCache({ walletBalance });
         setters.setWalletBalance(walletBalance);
-        if (message?.payload?.isLoggedIn === false) {
-          setters.setIsLoggedIn(false);
-          setAuthStateCache(false);
+        if (message?.payload?.isLoggedIn === true) {
+          setters.setIsLoggedIn(true);
+          setAuthStateCache(true);
         }
         return;
       }
@@ -242,10 +248,11 @@ export function useHybridShellMessageHandler({
       refs,
       setters,
       shouldShowInlineAuthGuard,
-      state.isLoggedIn,
       state.nativeSheet?.requestId,
     ],
   );
 
   return { onMessage };
 }
+
+
