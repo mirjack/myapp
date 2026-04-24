@@ -173,8 +173,9 @@ export function useHybridShellMessageHandler({
         setters.setIsLoggedIn(false);
         setAuthStateCache(false);
         syncWebAuthSession(null);
-        updateHeaderCache({ walletBalance: 0 });
+        updateHeaderCache({ walletBalance: 0, cartCount: 0 });
         setters.setWalletBalance(0);
+        setters.setCartCount(0);
         return;
       }
 

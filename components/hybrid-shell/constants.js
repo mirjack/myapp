@@ -24,9 +24,6 @@ export const HEADER_VISIBLE_PATHS = [
   "/favorites",
   "/favorite",
   "/profile",
-  "/orders",
-  "/addresses",
-  "/user",
   "/loyalty",
   "/language",
 ];

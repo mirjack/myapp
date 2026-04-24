@@ -24,7 +24,13 @@ function AndroidTabIcon({ tabKey, color }) {
 
   if (tabKey === "catalog") {
     return (
-      <Svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <Svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="28"
+        height="28"
+        viewBox="0 0 28 28"
+        fill="none"
+      >
         <Path
           d="M4.375 7C4.375 6.30381 4.65156 5.63613 5.14384 5.14384C5.63613 4.65156 6.30381 4.375 7 4.375H9.625C10.3212 4.375 10.9889 4.65156 11.4812 5.14384C11.9734 5.63613 12.25 6.30381 12.25 7V9.625C12.25 10.3212 11.9734 10.9889 11.4812 11.4812C10.9889 11.9734 10.3212 12.25 9.625 12.25H7C6.30381 12.25 5.63613 11.9734 5.14384 11.4812C4.65156 10.9889 4.375 10.3212 4.375 9.625V7ZM4.375 18.375C4.375 17.6788 4.65156 17.0111 5.14384 16.5188C5.63613 16.0266 6.30381 15.75 7 15.75H9.625C10.3212 15.75 10.9889 16.0266 11.4812 16.5188C11.9734 17.0111 12.25 17.6788 12.25 18.375V21C12.25 21.6962 11.9734 22.3639 11.4812 22.8562C10.9889 23.3484 10.3212 23.625 9.625 23.625H7C6.30381 23.625 5.63613 23.3484 5.14384 22.8562C4.65156 22.3639 4.375 21.6962 4.375 21V18.375ZM15.75 7C15.75 6.30381 16.0266 5.63613 16.5188 5.14384C17.0111 4.65156 17.6788 4.375 18.375 4.375H21C21.6962 4.375 22.3639 4.65156 22.8562 5.14384C23.3484 5.63613 23.625 6.30381 23.625 7V9.625C23.625 10.3212 23.3484 10.9889 22.8562 11.4812C22.3639 11.9734 21.6962 12.25 21 12.25H18.375C17.6788 12.25 17.0111 11.9734 16.5188 11.4812C16.0266 10.9889 15.75 10.3212 15.75 9.625V7ZM15.75 18.375C15.75 17.6788 16.0266 17.0111 16.5188 16.5188C17.0111 16.0266 17.6788 15.75 18.375 15.75H21C21.6962 15.75 22.3639 16.0266 22.8562 16.5188C23.3484 17.0111 23.625 17.6788 23.625 18.375V21C23.625 21.6962 23.3484 22.3639 22.8562 22.8562C22.3639 23.3484 21.6962 23.625 21 23.625H18.375C17.6788 23.625 17.0111 23.3484 16.5188 22.8562C16.0266 22.3639 15.75 21.6962 15.75 21V18.375Z"
           fill={color}
@@ -46,10 +52,16 @@ function AndroidTabIcon({ tabKey, color }) {
 
   if (tabKey === "favorites") {
     return (
-      <Svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <Svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="28"
+        height="28"
+        viewBox="0 0 28 28"
+        fill="none"
+      >
         <Path
           d="M24.5 9.625C24.5 6.72583 22.0512 4.375 19.0307 4.375C16.7732 4.375 14.8342 5.68867 14 7.5635C13.1658 5.68867 11.2268 4.375 8.96817 4.375C5.95 4.375 3.5 6.72583 3.5 9.625C3.5 18.0483 14 23.625 14 23.625C14 23.625 24.5 18.0483 24.5 9.625Z"
-          fill="#747479"
+          fill={color}
         />
       </Svg>
     );
@@ -88,15 +100,25 @@ export function AndroidTabButton({ tab, isActive, cartCount, onPress }) {
     <Pressable onPress={onPress} style={styles.androidTabItem}>
       <Animated.View style={iconAnimatedStyle}>
         <View>
-          <AndroidTabIcon tabKey={tab.key} color={isActive ? "#FE946E" : "#757575"} />
+          <AndroidTabIcon
+            tabKey={tab.key}
+            color={isActive ? "#FE946E" : "#757575"}
+          />
           {tab.key === "cart" && cartCount > 0 ? (
             <View style={styles.androidCartBadge}>
-              <Text style={styles.androidCartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+              <Text style={styles.androidCartBadgeText}>
+                {cartCount > 99 ? "99+" : cartCount}
+              </Text>
             </View>
           ) : null}
         </View>
       </Animated.View>
-      <Text style={[styles.androidTabLabel, isActive ? styles.androidTabLabelActive : null]}>
+      <Text
+        style={[
+          styles.androidTabLabel,
+          isActive ? styles.androidTabLabelActive : null,
+        ]}
+      >
         {tab.label}
       </Text>
     </Pressable>

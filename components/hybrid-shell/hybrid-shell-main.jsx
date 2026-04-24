@@ -68,6 +68,13 @@ export function HybridShell({ routePath = "/" }) {
     isNativeSheetVisible && Boolean(core.state.nativeSheet);
   const shouldShowHeaderContent =
     forceShowHeaderForSheet || navigation.shouldRenderHeader;
+  const isUserRoute = core.state.currentPath.startsWith("/user");
+  const shouldUseHeaderOffset = shouldShowHeaderContent && !isUserRoute;
+  const statusBarBackgroundColor = useMemo(() => {
+    if (core.state.isWebFullscreen) return "#000000";
+    if (isUserRoute) return "#FFFFFF";
+    return "transparent";
+  }, [core.state.isWebFullscreen, isUserRoute]);
 
   const androidActiveBgStyle = useAnimatedStyle(() => ({
     width: androidItemWidth,
@@ -87,7 +94,12 @@ export function HybridShell({ routePath = "/" }) {
   }, [isNativeSheetVisible]);
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.safeArea,
+        { paddingTop: insets.top, backgroundColor: isUserRoute ? "#FFFFFF" : "#fff" },
+      ]}
+    >
       <StatusBar
         style={
           core.state.isWebFullscreen
@@ -96,7 +108,8 @@ export function HybridShell({ routePath = "/" }) {
               ? "dark"
               : "auto"
         }
-        backgroundColor={core.state.isWebFullscreen ? "#000000" : "transparent"}
+        translucent={false}
+        backgroundColor={statusBarBackgroundColor}
       />
       <View style={styles.mainContent}>
         <View
@@ -162,12 +175,23 @@ export function HybridShell({ routePath = "/" }) {
           ) : null}
         </View>
 
-        <View style={styles.webviewWrap}>
+        <View
+          style={[
+            styles.webviewWrap,
+            !shouldUseHeaderOffset
+              ? styles.webviewWrapNoHeaderOffset
+              : null,
+            isUserRoute ? styles.userWebviewWrap : null,
+          ]}
+        >
           <WebView
             ref={core.refs.webViewRef}
             source={{ uri: INITIAL_WEB_URL }}
-            style={styles.webview}
-            containerStyle={styles.webview}
+            style={[styles.webview, isUserRoute ? styles.userWebview : null]}
+            containerStyle={[
+              styles.webview,
+              isUserRoute ? styles.userWebview : null,
+            ]}
             originWhitelist={["http://*", "https://*", "about:blank"]}
             pullToRefreshEnabled
             showsVerticalScrollIndicator={false}

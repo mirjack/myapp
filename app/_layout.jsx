@@ -39,7 +39,11 @@ export default function RootLayout() {
           options={{ presentation: "modal", title: "Modal" }}
         />
       </Stack>
-      <StatusBar style={Platform.OS === "android" ? "dark" : "auto"} />
+      <StatusBar
+        style={Platform.OS === "android" ? "dark" : "auto"}
+        translucent={false}
+        backgroundColor="#FFFFFF"
+      />
     </ThemeProvider>
   );
 }

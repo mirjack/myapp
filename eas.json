@@ -7,9 +7,9 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "https://mirjeck.cmfrt.uz/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.3:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://stg-api.cmfrt.uz",
-        "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"
+        "EXPO_PUBLIC_TENANT_DOMAIN": "192.168.1.3:80"
       },
       "android": {
         "buildType": "apk"
@@ -18,9 +18,9 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "https://mirjeck.cmfrt.uz/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.3:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://stg-api.cmfrt.uz",
-        "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"
+        "EXPO_PUBLIC_TENANT_DOMAIN": "192.168.1.3:80"
       },
       "android": {
         "buildType": "apk"
@@ -29,9 +29,9 @@
     "production": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "https://mirjeck.cmfrt.uz/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.3:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://api.cmfrt.uz",
-        "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"
+        "EXPO_PUBLIC_TENANT_DOMAIN": "192.168.1.3:80"
       },
       "android": {
         "buildType": "app-bundle"

@@ -135,9 +135,11 @@ function LoginRequiredSheet({ payload, onAction }) {
 function LanguageSelectSheet({ payload, onAction }) {
   const options = Array.isArray(payload?.options) ? payload.options : [];
   return (
-    <View>
-      <Text style={styles.sectionTitle}>{payload?.title || "Language"}</Text>
-      <Text style={styles.sectionDescription}>
+    <View style={styles.languageSheetWrap}>
+      <Text style={styles.languageSheetTitle}>
+        {payload?.title || "Language"}
+      </Text>
+      <Text style={styles.languageSheetDescription}>
         {payload?.description || ""}
       </Text>
       <View style={styles.languageList}>
@@ -146,17 +148,16 @@ function LanguageSelectSheet({ payload, onAction }) {
           return (
             <Pressable
               key={option.code}
-              style={[
-                styles.languageRow,
-                isSelected ? styles.languageRowSelected : null,
-              ]}
+              style={styles.languageRow}
               onPress={() =>
                 onAction?.("select_language", { code: String(option.code) })
               }
             >
               <View
                 style={[styles.radio, isSelected ? styles.radioChecked : null]}
-              />
+              >
+                {isSelected ? <View style={styles.radioDot} /> : null}
+              </View>
               <Text style={styles.languageText}>{option.label}</Text>
             </Pressable>
           );
@@ -168,7 +169,7 @@ function LanguageSelectSheet({ payload, onAction }) {
 
 function ContactInfoSheet({ payload }) {
   return (
-    <View>
+    <View style={styles.compactInfoSheetWrap}>
       <Text style={styles.sectionTitle}>{payload?.title || "Contact"}</Text>
       <Text style={styles.sectionDescription}>
         {payload?.description || ""}
@@ -1057,8 +1058,8 @@ export function NativeBottomSheet({
   const isProductDetailSheet = sheet?.sheetKey === "product_detail";
   const isProductSheetHydrating = Boolean(
     isProductDetailSheet &&
-      ((sheet?.payload?.isLoading && !sheet?.payload?.product) ||
-        sheet?.payload?.isQuantityLoading),
+    ((sheet?.payload?.isLoading && !sheet?.payload?.product) ||
+      sheet?.payload?.isQuantityLoading),
   );
   const shouldShowProductSkeleton =
     isProductDetailSheet && (isOpening || isProductSheetHydrating);
@@ -1424,6 +1425,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#747479",
   },
+  compactInfoSheetWrap: {
+    paddingTop: 15,
+    paddingHorizontal: 13,
+    paddingBottom: 15,
+  },
+  languageSheetWrap: {
+    paddingTop: 15,
+    paddingHorizontal: 13,
+    paddingBottom: 15,
+  },
+  languageSheetTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "600",
+    color: "#131314",
+    marginBottom: 4,
+  },
+  languageSheetDescription: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#747479",
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     lineHeight: 24,
@@ -1437,7 +1461,6 @@ const styles = StyleSheet.create({
     color: "#747479",
   },
   languageList: {
-    marginTop: 12,
     gap: 8,
   },
   languageRow: {
@@ -1447,13 +1470,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#EEF0F5",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#fff",
-  },
-  languageRowSelected: {
-    backgroundColor: "#F8F8FA",
-    borderColor: "#D86F49",
   },
   radio: {
     width: 16,
@@ -1462,9 +1481,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
     backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   radioChecked: {
     borderColor: "#D86F49",
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
     backgroundColor: "#D86F49",
   },
   languageText: {
@@ -1480,7 +1506,7 @@ const styles = StyleSheet.create({
     borderColor: "#EEF0F5",
     backgroundColor: "#F8FAFF",
     paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingVertical: 18,
   },
   contactLabel: {
     fontSize: 11,

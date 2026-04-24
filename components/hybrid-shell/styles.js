@@ -21,8 +21,18 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
     backgroundColor: LOADING_BACKGROUND_COLOR,
   },
+  webviewWrapNoHeaderOffset: {
+    marginTop: 0,
+    paddingTop: 0,
+  },
+  userWebviewWrap: {
+    backgroundColor: "#FFFFFF",
+  },
   webview: {
     backgroundColor: LOADING_BACKGROUND_COLOR,
+  },
+  userWebview: {
+    backgroundColor: "#FFFFFF",
   },
   headerAnimatedWrap: {
     height: HEADER_CONTENT_HEIGHT,
