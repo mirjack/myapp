@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BlurView } from "expo-blur";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import Animated, {
@@ -24,6 +25,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+
+import { SUPPORT_REQUEST_SHEET_ART } from "@/components/support-chat/support-request-sheet-art";
 
 const WINDOW_SIZE = Dimensions.get("window");
 const SHEET_CLOSED_Y = WINDOW_SIZE.height;
@@ -253,6 +256,225 @@ function WalletInfoSheet({ payload }) {
           {payload?.howToSpendDescription ||
             "At checkout, select bonus payment and apply available balance."}
         </Text>
+      </View>
+    </View>
+  );
+}
+
+function SupportRequestCreateSheet({ payload, onAction }) {
+  const problemImageUrl =
+    payload?.problemImageUrl || SUPPORT_REQUEST_SHEET_ART.problem;
+  const questionImageUrl =
+    payload?.questionImageUrl || SUPPORT_REQUEST_SHEET_ART.question;
+  const activeKind = payload?.activeKind || null;
+
+  return (
+    <View style={styles.supportCreateSheetWrap}>
+      <Text style={styles.supportCreateSheetTitle}>
+        {payload?.title || "Мы рядом и готовы помочь"}
+      </Text>
+      <Text style={styles.supportCreateSheetDescription}>
+        {payload?.description ||
+          "Подскажите, пожалуйста, у вас вопрос или возникла проблема?"}
+      </Text>
+
+      <View style={styles.supportCreateCardRow}>
+        <Pressable
+          onPress={() => onAction?.("problem", null)}
+          style={[
+            styles.supportCreateCard,
+            styles.supportCreateProblemCard,
+            activeKind === "problem" ? styles.supportCreateCardPressed : null,
+          ]}
+        >
+          <Text
+            style={[
+              styles.supportCreateCardTitle,
+              styles.supportCreateProblemTitle,
+            ]}
+          >
+            {payload?.problemTitle || "Проблема"}
+          </Text>
+          <ExpoImage
+            source={{ uri: problemImageUrl }}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            style={styles.supportCreateProblemImage}
+          />
+        </Pressable>
+
+        <Pressable
+          onPress={() => onAction?.("question", null)}
+          style={[
+            styles.supportCreateCard,
+            styles.supportCreateQuestionCard,
+            activeKind === "question" ? styles.supportCreateCardPressed : null,
+          ]}
+        >
+          <Text
+            style={[
+              styles.supportCreateCardTitle,
+              styles.supportCreateQuestionTitle,
+            ]}
+          >
+            {payload?.questionTitle || "Вопрос"}
+          </Text>
+          <ExpoImage
+            source={{ uri: questionImageUrl }}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            style={styles.supportCreateQuestionImage}
+          />
+          {activeKind === "question" ? (
+            <Text style={styles.supportCreateLoadingText}>
+              {payload?.loadingLabel || "Создание..."}
+            </Text>
+          ) : null}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function SupportRequestCloseSheet({ payload, onAction }) {
+  const isPendingConfirmation = Boolean(payload?.isPendingConfirmation);
+  const isLoading = Boolean(payload?.isLoading);
+
+  return (
+    <View style={styles.supportDecisionSheetWrap}>
+      <Text style={styles.supportDecisionTitle}>
+        {payload?.title || "Close request"}
+      </Text>
+      <Text style={styles.supportDecisionDescription}>
+        {payload?.description ||
+          "Confirm that the issue is fully resolved before closing the request."}
+      </Text>
+
+      <View style={styles.supportDecisionActionStack}>
+        <Pressable
+          disabled={isLoading}
+          onPress={() => onAction?.("not_resolved", null)}
+          style={[
+            styles.supportDecisionSecondaryButton,
+            isLoading ? styles.supportDecisionButtonDisabled : null,
+          ]}
+        >
+          <Text style={styles.supportDecisionSecondaryText}>
+            {isPendingConfirmation
+              ? payload?.pendingSecondaryLabel || "Not solved yet"
+              : payload?.secondaryLabel || "Not solved yet"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          disabled={isLoading}
+          onPress={() => onAction?.("confirm_resolved", null)}
+          style={isLoading ? styles.supportDecisionButtonDisabled : null}
+        >
+          <LinearGradient
+            colors={["#FE946E", "#FE946E"]}
+            style={styles.supportDecisionPrimaryButton}
+          >
+            <Text style={styles.supportDecisionPrimaryText}>
+              {isLoading
+                ? payload?.loadingLabel || "Saving..."
+                : payload?.primaryLabel || "Yes, everything is solved"}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function SupportRequestRateSheet({ payload, onAction }) {
+  const [ratingValue, setRatingValue] = useState(payload?.ratingValue ?? 5);
+  const [comment, setComment] = useState(payload?.comment || "");
+
+  useEffect(() => {
+    setRatingValue(payload?.ratingValue ?? 5);
+    setComment(payload?.comment || "");
+  }, [payload?.comment, payload?.ratingValue]);
+
+  const isSubmitting = Boolean(payload?.isSubmitting);
+
+  return (
+    <View style={styles.supportDecisionSheetWrap}>
+      <Text style={styles.supportDecisionTitle}>
+        {payload?.title || "Rate service"}
+      </Text>
+      <Text style={styles.supportDecisionDescription}>
+        {payload?.description ||
+          "Share how the support experience went. A short comment is optional."}
+      </Text>
+
+      <View style={styles.supportRateCard}>
+        <Text style={styles.supportRateCardTitle}>
+          {payload?.ratingLabel || "Your rating"}
+        </Text>
+        <View style={styles.supportRateRow}>
+          {[1, 2, 3, 4, 5].map((value) => {
+            const isSelected = value <= ratingValue;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => setRatingValue(value)}
+                style={[
+                  styles.supportRateButton,
+                  isSelected ? styles.supportRateButtonActive : null,
+                ]}
+              >
+                <Ionicons
+                  name={isSelected ? "star" : "star-outline"}
+                  size={20}
+                  color={isSelected ? "#FE946E" : "#A0A0A0"}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <TextInput
+        value={comment}
+        onChangeText={setComment}
+        placeholder={payload?.commentPlaceholder || "Comment (optional)"}
+        placeholderTextColor="#A0A0A0"
+        multiline
+        textAlignVertical="top"
+        style={styles.supportRateInput}
+      />
+
+      <View style={styles.supportRateActionRow}>
+        <Pressable
+          onPress={() => onAction?.("skip_rating", null)}
+          style={styles.supportRateSkipButton}
+        >
+          <Text style={styles.supportRateSkipText}>
+            {payload?.skipLabel || "Skip"}
+          </Text>
+        </Pressable>
+        <Pressable
+          disabled={isSubmitting}
+          onPress={() =>
+            onAction?.("submit_rating", {
+              ratingValue,
+              comment,
+            })
+          }
+          style={[styles.supportRateSubmitWrap, isSubmitting ? styles.supportDecisionButtonDisabled : null]}
+        >
+          <LinearGradient
+            colors={["#FE946E", "#FE946E"]}
+            style={styles.supportDecisionPrimaryButton}
+          >
+            <Text style={styles.supportDecisionPrimaryText}>
+              {isSubmitting
+                ? payload?.loadingLabel || "Saving..."
+                : payload?.submitLabel || "Save rating"}
+            </Text>
+          </LinearGradient>
+        </Pressable>
       </View>
     </View>
   );
@@ -1017,6 +1239,21 @@ function renderSheetContent(sheet, onAction) {
   if (sheet.sheetKey === "wallet_info") {
     return <WalletInfoSheet payload={sheet.payload} />;
   }
+  if (sheet.sheetKey === "support_request_create") {
+    return (
+      <SupportRequestCreateSheet payload={sheet.payload} onAction={onAction} />
+    );
+  }
+  if (sheet.sheetKey === "support_request_close") {
+    return (
+      <SupportRequestCloseSheet payload={sheet.payload} onAction={onAction} />
+    );
+  }
+  if (sheet.sheetKey === "support_request_rate") {
+    return (
+      <SupportRequestRateSheet payload={sheet.payload} onAction={onAction} />
+    );
+  }
   if (sheet.sheetKey === "loyalty_progress") {
     return <LoyaltyProgressSheet payload={sheet.payload} onAction={onAction} />;
   }
@@ -1622,6 +1859,205 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#131314",
+  },
+  supportCreateSheetWrap: {
+    paddingTop: 15,
+    paddingHorizontal: 8,
+    paddingBottom: 4,
+  },
+  supportCreateSheetTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  supportCreateSheetDescription: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  supportCreateCardRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 16,
+  },
+  supportCreateCard: {
+    flex: 1,
+    minHeight: 138,
+    borderRadius: 28,
+    overflow: "hidden",
+    position: "relative",
+    justifyContent: "flex-start",
+  },
+  supportCreateProblemCard: {
+    backgroundColor: "#FDECEE",
+  },
+  supportCreateQuestionCard: {
+    backgroundColor: "#FFF4EB",
+  },
+  supportCreateCardPressed: {
+    opacity: 0.84,
+  },
+  supportCreateCardTitle: {
+    paddingTop: 16,
+    paddingLeft: 20,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "700",
+    zIndex: 2,
+  },
+  supportCreateProblemTitle: {
+    color: "#E73C50",
+  },
+  supportCreateQuestionTitle: {
+    color: "#FE946E",
+  },
+  supportDecisionSheetWrap: {
+    paddingTop: 15,
+    paddingHorizontal: 8,
+    paddingBottom: 4,
+  },
+  supportDecisionTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  supportDecisionDescription: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  supportDecisionActionStack: {
+    gap: 10,
+    marginTop: 18,
+  },
+  supportDecisionSecondaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  supportDecisionSecondaryText: {
+    color: "#131314",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  supportDecisionPrimaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  supportDecisionPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  supportDecisionButtonDisabled: {
+    opacity: 0.65,
+  },
+  supportRateCard: {
+    marginTop: 18,
+    borderRadius: 20,
+    backgroundColor: "#F8F8FA",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  supportRateCardTitle: {
+    color: "#131314",
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  supportRateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 14,
+  },
+  supportRateButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  supportRateButtonActive: {
+    borderColor: "#FE946E",
+    backgroundColor: "#FFF4EB",
+  },
+  supportRateInput: {
+    minHeight: 96,
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#131314",
+  },
+  supportRateActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+  supportRateSkipButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  supportRateSkipText: {
+    color: "#131314",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  supportRateSubmitWrap: {
+    flex: 1,
+  },
+  supportCreateProblemImage: {
+    position: "absolute",
+    right: -12,
+    bottom: -14,
+    width: 132,
+    height: 132,
+  },
+  supportCreateQuestionImage: {
+    position: "absolute",
+    right: -10,
+    bottom: -20,
+    width: 124,
+    height: 124,
+  },
+  supportCreateLoadingText: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    color: "#FE946E",
   },
   loyaltySheetWrap: {
     gap: 12,

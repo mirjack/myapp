@@ -93,6 +93,7 @@ export function buildBridgeScript(tokensString, nativePlatform) {
         window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'pathChange',
           path: window.location.pathname || '/',
+          state: window.history && window.history.state && window.history.state.usr ? window.history.state.usr : null,
         }));
       } catch (e) {}
     }

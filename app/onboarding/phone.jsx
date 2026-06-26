@@ -71,6 +71,7 @@ function normalizeUrl(url) {
 function normalizeNextPath(next) {
   const raw = Array.isArray(next) ? next[0] : next;
   if (typeof raw !== "string" || !raw.startsWith("/")) return "/";
+  if (raw.startsWith("/chat")) return "/chat";
   if (raw.startsWith("/cart")) return "/cart";
   if (raw.startsWith("/favorites")) return "/favorites";
   if (raw.startsWith("/profile")) return "/profile";
@@ -106,6 +107,7 @@ function isLoginFlowPath(pathname) {
 }
 
 function toNativeTabsPath(pathname) {
+  if (pathname === "/chat") return "/chat";
   if (pathname === "/catalog") return "/(tabs)/catalog";
   if (pathname === "/cart") return "/(tabs)/cart";
   if (pathname === "/favorites") return "/(tabs)/favorites";

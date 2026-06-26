@@ -10,6 +10,10 @@ import {
 } from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
+import {
+  buildNativeSupportRoute,
+  isSupportChatPath,
+} from "@/lib/support-chat-routes";
 
 import {
   ROUTE_GUARD_PATHS,
@@ -26,8 +30,10 @@ export function useHybridShellMessageHandler({
   closeNativeSheet,
   flushPendingAuthAction,
   goNativeTab,
+  interceptSupportChatLinks,
   navigateWebPath,
   openNativeProductSheet,
+  router,
   shouldShowInlineAuthGuard,
 }) {
   const { refs, state, setters } = core;
@@ -235,6 +241,16 @@ export function useHybridShellMessageHandler({
       if (message?.type === "pathChange") {
         const path = message?.path;
         if (typeof path === "string" && path.startsWith("/")) {
+          if (interceptSupportChatLinks && isSupportChatPath(path)) {
+            const previousPath =
+              state.currentPath && !isSupportChatPath(state.currentPath)
+                ? state.currentPath
+                : "/";
+            navigateWebPath(previousPath);
+            setCurrentWebPath(previousPath);
+            router.push(buildNativeSupportRoute(path, message?.state));
+            return;
+          }
           applyNativeInsetForPath(path);
           setters.setCurrentPath(path);
         }
@@ -244,12 +260,15 @@ export function useHybridShellMessageHandler({
       closeNativeSheet,
       flushPendingAuthAction,
       goNativeTab,
+      interceptSupportChatLinks,
       navigateWebPath,
       openNativeProductSheet,
       refs,
+      router,
       setters,
       shouldShowInlineAuthGuard,
       state.nativeSheet?.requestId,
+      state.currentPath,
     ],
   );
 

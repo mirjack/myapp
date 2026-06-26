@@ -7,6 +7,10 @@ import { openBrowserAsync } from "expo-web-browser";
 import { isTabBarVisiblePath, setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 import { isWebViewInternalUrl } from "@/lib/runtime-config";
 import { getStoredAuthTokens } from "@/lib/auth-storage";
+import {
+  buildNativeSupportRoute,
+  isSupportChatPath,
+} from "@/lib/support-chat-routes";
 
 import {
   ANDROID_TAB_ITEMS,
@@ -19,7 +23,13 @@ import {
 import { getPathFromUrl, isTabActive, normalizeToTabPath, startsWithAny, toNumber } from "./utils";
 import { goNativeTabImpl, goToNativeLoginScreenImpl, openNativeAuthGuardSheetImpl } from "./navigation-helpers";
 
-export function useHybridShellNavigation({ routePath, router, rootNavigationState, core }) {
+export function useHybridShellNavigation({
+  routePath,
+  router,
+  rootNavigationState,
+  core,
+  interceptSupportChatLinks = true,
+}) {
   const { refs, state, setters } = core;
   const androidActiveTabIndexAnim = useSharedValue(0);
   const fullscreenProgress = useSharedValue(0);
@@ -116,10 +126,28 @@ export function useHybridShellNavigation({ routePath, router, rootNavigationStat
 
   const onShouldStartLoadWithRequest = useCallback((request) => {
     const nextUrl = request?.url;
-    if (!nextUrl || isWebViewInternalUrl(nextUrl)) return true;
+    if (!nextUrl) return true;
+    if (isWebViewInternalUrl(nextUrl)) {
+      try {
+        const nextPath = new URL(nextUrl).pathname || "/";
+        if (interceptSupportChatLinks && isSupportChatPath(nextPath)) {
+          const fallbackPath =
+            state.currentPath && !isSupportChatPath(state.currentPath)
+              ? state.currentPath
+              : normalizeToTabPath(routePath || "/");
+          router.push(buildNativeSupportRoute(nextPath, null));
+          navigateWebPath(fallbackPath);
+          setCurrentWebPath(fallbackPath);
+          return false;
+        }
+      } catch {
+        return true;
+      }
+      return true;
+    }
     openBrowserAsync(nextUrl).catch(() => {});
     return false;
-  }, []);
+  }, [interceptSupportChatLinks, navigateWebPath, routePath, router, state.currentPath]);
 
   const onWebLoadEnd = useCallback(() => {
     setters.setCurrentWebReady(true);

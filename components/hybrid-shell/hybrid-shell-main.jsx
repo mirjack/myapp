@@ -26,13 +26,17 @@ import { useHybridShellNavigation } from "./use-hybrid-shell-navigation";
 import { useHybridShellSheets } from "./use-hybrid-shell-sheets";
 import { useHybridShellMessageHandler } from "./use-hybrid-shell-message-handler";
 
-export function HybridShell({ routePath = "/" }) {
+export function HybridShell({
+  routePath = "/",
+  interceptSupportChatLinks = true,
+}) {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const insets = useSafeAreaInsets();
   const core = useHybridShellState();
 
   const navigation = useHybridShellNavigation({
+    interceptSupportChatLinks,
     routePath,
     router,
     rootNavigationState,
@@ -52,8 +56,10 @@ export function HybridShell({ routePath = "/" }) {
     closeNativeSheet: sheets.closeNativeSheet,
     flushPendingAuthAction: sheets.flushPendingAuthAction,
     goNativeTab: navigation.goNativeTab,
+    interceptSupportChatLinks,
     navigateWebPath: navigation.navigateWebPath,
     openNativeProductSheet: sheets.openNativeProductSheet,
+    router,
     shouldShowInlineAuthGuard: navigation.shouldShowInlineAuthGuard,
   });
 
