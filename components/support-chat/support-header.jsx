@@ -25,15 +25,15 @@ export function SupportHeader({
         <View style={supportStyles.headerSide}>
           <Pressable
             onPress={() => {
+              if (fallbackHref) {
+                router.replace(fallbackHref);
+                return;
+              }
               if (
                 typeof router.canGoBack === "function" &&
                 router.canGoBack()
               ) {
                 router.back();
-                return;
-              }
-              if (fallbackHref) {
-                router.replace(fallbackHref);
               }
             }}
             style={supportStyles.headerBack}

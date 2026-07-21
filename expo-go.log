@@ -1,0 +1,45 @@
+  --non-interactive is not supported, use $CI=1 instead
+env: load .env
+env: export EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_STOREFRONT_DOMAIN EXPO_PUBLIC_TENANT_DOMAIN
+Starting project at D:\Projects\hybrid-application\myapp
+React Compiler enabled
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.3% (25/44)
+λ node_modules\expo-router\node\render.js ▓▓▓▓░░░░░░░░░░░░ 26.1% (204/399)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓░░░░░░░░░░ 38.3% (211/341)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 64.7% (542/687)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 52.2% (373/562)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 71.3% (715/847)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 55.2% (545/758)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.0% (868/953)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 74.2% (807/963)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.0% (1107/1201)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 92.8% (1215/1261)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 98.4% (1360/1371)
+λ Bundled 21403ms node_modules\expo-router\node\render.js (1371 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+"textShadow*" style props are deprecated. Use "textShadow".
+λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents 
+  console.warn (D:\Projects\hybrid-application\myapp\node_modules\expo\node_modules\@expo\cli\src\start\server\serverLogLikeMetro.ts:161:21)
+  warnOnce (D:\Projects\hybrid-application\myapp\node_modules\react-native-web\dist\modules\warnOnce\index.js:24:13)
+  createDOMProps (D:\Projects\hybrid-application\myapp\node_modules\react-native-web\dist\modules\createDOMProps\index.js:805:13)
+  createElement (D:\Projects\hybrid-application\myapp\node_modules\react-native-web\dist\exports\createElement\index.js:23:32)
+  Component (D:\Projects\hybrid-application\myapp\node_modules\react-native-web\dist\exports\View\index.js:111:23)
+  Object.callComponentInDEV [as react-stack-bottom-frame] (D:\Projects\hybrid-application\myapp\node_modules\react-dom\cjs\react-dom-server-legacy.node.development.js:8970:18)
+  renderWithHooks (D:\Projects\hybrid-application\myapp\node_modules\react-dom\cjs\react-dom-server-legacy.node.development.js:4699:19)
+  run (D:\Projects\hybrid-application\myapp\node_modules\react-dom\cjs\react-dom-server-legacy.node.development.js:5539:39)
+  retryNode (D:\Projects\hybrid-application\myapp\node_modules\react-dom\cjs\react-dom-server-legacy.node.development.js:5899:31)
+  renderNodeDestructive (D:\Projects\hybrid-application\myapp\node_modules\react-dom\cjs\react-dom-server-legacy.node.development.js:5849:11)
+Web Bundled 23896ms node_modules\expo-router\entry.js (1318 modules)
+Error: Cannot pipe to a closed or destroyed stream
+    at pipelineImpl (node:internal/streams/pipeline:264:15)
+    at node:stream/promises:31:5
+    at new Promise (<anonymous>)
+    at pipeline (node:stream/promises:20:10)
+    at respond (D:\Projects\hybrid-application\myapp\node_modules\expo-server\src\vendor\http.ts:138:19)
+    at D:\Projects\hybrid-application\myapp\node_modules\expo-server\src\vendor\http.ts:68:13
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)

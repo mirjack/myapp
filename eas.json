@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.6:80/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.29:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://stg-api.cmfrt.uz",
         "EXPO_PUBLIC_STOREFRONT_DOMAIN": "mirjeck.cmfrt.uz",
         "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"
@@ -19,7 +19,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.6:80/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.29:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://stg-api.cmfrt.uz",
         "EXPO_PUBLIC_STOREFRONT_DOMAIN": "mirjeck.cmfrt.uz",
         "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"
@@ -31,7 +31,7 @@
     "production": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.6:80/",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.1.29:80/",
         "EXPO_PUBLIC_API_BASE_URL": "https://api.cmfrt.uz",
         "EXPO_PUBLIC_STOREFRONT_DOMAIN": "mirjeck.cmfrt.uz",
         "EXPO_PUBLIC_TENANT_DOMAIN": "mirjeck.cmfrt.uz"

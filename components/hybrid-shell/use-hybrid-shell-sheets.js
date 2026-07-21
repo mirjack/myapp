@@ -2,7 +2,14 @@ import { useCallback } from "react";
 import { LayoutAnimation, Platform, UIManager } from "react-native";
 
 import { getPendingAuthAction, getStoredAuthTokens, setPendingAuthAction } from "@/lib/auth-storage";
-import { addFavorite, adjustCartItemByProduct, fetchProductById, getCartItems, mapProduct } from "@/lib/native-market-api";
+import {
+  addFavorite,
+  adjustCartItemByProduct,
+  fetchProductById,
+  getCartItems,
+  mapProduct,
+  removeFavoriteByProduct,
+} from "@/lib/native-market-api";
 import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { BOTTOM_SHEET_ACTION_EVENT, BOTTOM_SHEET_CLOSE_EVENT, NATIVE_SHEET_CLOSE_MS, PRODUCT_SHEET_KEY, PRODUCT_SHEET_REQUEST_ID } from "./constants";
@@ -16,19 +23,31 @@ if (Platform.OS === "android" && !isNewArchitectureEnabled) {
 
 function configureProductSheetLayout() {
   LayoutAnimation.configureNext({
-    duration: 180,
+    duration: 280,
     create: {
       type: LayoutAnimation.Types.easeInEaseOut,
       property: LayoutAnimation.Properties.opacity,
     },
     update: {
       type: LayoutAnimation.Types.easeInEaseOut,
+      springDamping: 0.9,
     },
     delete: {
       type: LayoutAnimation.Types.easeInEaseOut,
       property: LayoutAnimation.Properties.opacity,
     },
   });
+}
+
+function extractFavoriteState(product) {
+  return Boolean(
+    product?.is_favorite ??
+      product?.isFavorite ??
+      product?.favorite ??
+      product?.raw?.is_favorite ??
+      product?.raw?.isFavorite ??
+      product?.raw?.favorite,
+  );
 }
 
 export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openLogin, router }) {
@@ -116,14 +135,16 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
     }
 
     const initialProduct = product && typeof product === "object" ? mapProduct(product) : null;
+    const initialIsFavorite =
+      extractFavoriteState(product) || extractFavoriteState(initialProduct);
     setters.setNativeSheet({
       requestId,
       sheetKey: PRODUCT_SHEET_KEY,
       payload: {
         productId: String(resolvedId), product: initialProduct, fallbackProduct: initialProduct,
-        quantity: initialQuantity, isLoading: true, isQuantityLoading: initialQuantity <= 0, isCartPending: false, error: null,
+        quantity: initialQuantity, isLoading: true, isQuantityLoading: initialQuantity <= 0, isCartPending: false, isFavorite: initialIsFavorite, isFavoritePending: false, error: null,
       },
-      options: { hideClose: false },
+      options: { hideClose: true },
     });
     refs.nativeSheetMetaRef.current.set(requestId, { source: PRODUCT_SHEET_KEY });
     setters.setIsNativeSheetVisible(true);
@@ -135,6 +156,12 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       updateNativeProductSheetPayload((current) => ({
         product: data || current.product || current.fallbackProduct || initialProduct,
         isLoading: false,
+        isFavorite:
+          extractFavoriteState(data) ||
+          current.isFavorite ||
+          extractFavoriteState(current.product) ||
+          extractFavoriteState(current.fallbackProduct) ||
+          initialIsFavorite,
         error: data || current.product || current.fallbackProduct || initialProduct ? null : "Product not found.",
       }));
     } catch {
@@ -142,6 +169,11 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       updateNativeProductSheetPayload((current) => ({
         product: current.product || current.fallbackProduct || initialProduct,
         isLoading: false,
+        isFavorite:
+          current.isFavorite ||
+          extractFavoriteState(current.product) ||
+          extractFavoriteState(current.fallbackProduct) ||
+          initialIsFavorite,
         error: current.product || current.fallbackProduct || initialProduct ? null : "Failed to load product information.",
       }));
     }
@@ -214,6 +246,38 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       if (actionId === "catalog") {
         closeNativeSheet({ shouldNotify: false });
         setTimeout(() => goNativeTab("catalog"), NATIVE_SHEET_CLOSE_MS);
+        return;
+      }
+
+      if (actionId === "favorite_toggle") {
+        if (!productId) return;
+        const isFavorite = Boolean(state.nativeSheet?.payload?.isFavorite);
+        if (state.nativeSheet?.payload?.isFavoritePending) return;
+
+        const tokensString = await getStoredAuthTokens();
+        const tokens = parseTokensString(tokensString);
+        if (!tokens?.access) {
+          queuePendingAuthAction({ type: "favorite", productId });
+          closeNativeSheet({ shouldNotify: false });
+          openLogin();
+          return;
+        }
+
+        updateNativeProductSheetPayload({ isFavoritePending: true });
+        try {
+          if (isFavorite) {
+            await removeFavoriteByProduct(tokens.access, productId);
+          } else {
+            await addFavorite(tokens.access, productId);
+          }
+          updateNativeProductSheetPayload({
+            isFavorite: !isFavorite,
+            isFavoritePending: false,
+          });
+          emitToWeb("favorites:updated", { productId, isFavorite: !isFavorite });
+        } catch {
+          updateNativeProductSheetPayload({ isFavoritePending: false });
+        }
         return;
       }
 

@@ -3,12 +3,18 @@ import { Platform } from "react-native";
 
 import { getStoredAuthTokens } from "@/lib/auth-storage";
 import { getAuthStateCache, setAuthStateCache } from "@/lib/auth-guard-bridge";
+import { prefetchCurrentUserProfile } from "@/lib/native-account-api";
 import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { getHeaderCache } from "./header-cache";
 import { buildBridgeScript } from "./scripts";
 
-export function useHybridShellState() {
+function normalizeInitialPath(path) {
+  const value = String(path || "/");
+  return value.startsWith("/") ? value : "/";
+}
+
+export function useHybridShellState(initialPath = "/") {
   const cachedHeader = getHeaderCache();
   const webViewRef = useRef(null);
   const pendingPathRef = useRef(null);
@@ -21,7 +27,7 @@ export function useHybridShellState() {
   const productSheetLoadSeqRef = useRef(0);
   const pendingAuthActionRef = useRef(null);
 
-  const [currentPath, setCurrentPath] = useState("/");
+  const [currentPath, setCurrentPath] = useState(() => normalizeInitialPath(initialPath));
   const [canGoBack, setCanGoBack] = useState(false);
   const [isWebReady, setIsWebReady] = useState(false);
   const [bridgeScript, setBridgeScript] = useState(() => buildBridgeScript(null, Platform.OS));
@@ -47,6 +53,9 @@ export function useHybridShellState() {
       setIsLoggedIn(loggedIn);
       setIsAuthLoaded(true);
       setAuthStateCache(loggedIn);
+      if (loggedIn) {
+        prefetchCurrentUserProfile().catch(() => {});
+      }
     });
     return () => {
       mounted = false;

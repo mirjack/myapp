@@ -1,0 +1,30 @@
+
+> myapp@1.0.0 start:go
+> node ./scripts/start-expo-go.js
+
+Cleaning stale Expo and Metro processes...
+Removing cached .expo state...
+Starting Expo Go on LAN IP 192.168.1.10:8081 ...
+(node:4780) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+env: load .env
+env: export EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_STOREFRONT_DOMAIN EXPO_PUBLIC_TENANT_DOMAIN
+Starting project at D:\Projects\hybrid-application\myapp
+React Compiler enabled
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Android node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 93/266)
+Android node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 54.8% (492/690)
+Android node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.9% (811/934)
+Android node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.0% (1106/1218)
+Android node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86.0% (1371/1505)
+Android Bundled 19738ms node_modules\expo-router\entry.js (1713 modules)
+Android node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 94ms node_modules\expo-router\entry.js (1 module)
+Android node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 88ms node_modules\expo-router\entry.js (1 module)
+Android node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 119ms node_modules\expo-router\entry.js (1 module)

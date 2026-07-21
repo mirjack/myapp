@@ -1,0 +1,170 @@
+import { StyleSheet } from "react-native";
+
+import { styles as hybridStyles } from "@/components/hybrid-shell/styles";
+
+export const nativeProfileStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 112,
+    backgroundColor: "#F6F6F7",
+  },
+  inlineLoadingRow: {
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  inlineLoadingText: {
+    fontSize: 14,
+    color: "#58595E",
+  },
+  heroCard: {
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  heroAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: "#F0F8A8",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  heroAvatarText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  heroBody: {
+    flex: 1,
+  },
+  heroNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  heroName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  heroActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroActionText: {
+    fontSize: 14,
+    color: "#747479",
+  },
+  heroPhone: {
+    marginTop: 4,
+    fontSize: 14,
+    color: "#747479",
+  },
+  errorBox: {
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 16,
+    backgroundColor: "#FFEDEF",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#B72136",
+  },
+  menuWrap: {
+    marginHorizontal: 8,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 16,
+    color: "#131314",
+  },
+  menuLabelDanger: {
+    color: "#B72136",
+  },
+  menuValue: {
+    fontSize: 14,
+    color: "#747479",
+  },
+  loginPrompt: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#131314",
+    textAlign: "center",
+  },
+  loginText: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 21,
+    color: "#58595E",
+    textAlign: "center",
+  },
+  loginButton: {
+    marginTop: 18,
+    borderRadius: 58,
+    backgroundColor: "#FE946E",
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  androidTabSpacer: {
+    height: 98,
+  },
+  hybridHeader: hybridStyles.header,
+  hybridHeaderWrap: hybridStyles.headerAnimatedWrap,
+  brandPressable: hybridStyles.brandPressable,
+  brandLogo: hybridStyles.brandLogo,
+  brandText: hybridStyles.brandText,
+  walletBadge: hybridStyles.walletBadge,
+  walletText: hybridStyles.walletText,
+  loginTopButton: hybridStyles.loginButton,
+  loginTopButtonText: hybridStyles.loginButtonText,
+  androidTabBarAnimatedWrap: hybridStyles.androidTabBarAnimatedWrap,
+  androidTabBarWrap: hybridStyles.androidTabBarWrap,
+  androidTabBar: hybridStyles.androidTabBar,
+  androidTabActivePill: hybridStyles.androidTabActivePill,
+});

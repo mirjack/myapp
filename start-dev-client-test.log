@@ -1,0 +1,17 @@
+
+> myapp@1.0.0 start:dev-client
+> node ./scripts/start-expo.js --dev-client
+
+Cleaning stale Expo and Metro processes...
+Removing cached .expo state...
+Starting Expo dev-client on 192.168.1.10:8080 with WebView base http://192.168.1.10:80/
+(node:19924) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+env: load .env
+env: export EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_STOREFRONT_DOMAIN EXPO_PUBLIC_TENANT_DOMAIN
+Starting project at D:\Projects\hybrid-application\myapp
+React Compiler enabled
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8080
+Logs for your project will appear below.

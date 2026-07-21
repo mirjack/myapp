@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  BackHandler,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -10,6 +12,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { SupportHeader } from "@/components/support-chat/support-header";
@@ -80,6 +83,17 @@ export function SupportChatListScreen() {
       }
     },
     [],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        router.replace("/(tabs)/profile");
+        return true;
+      });
+      return () => sub.remove();
+    }, [router]),
   );
 
   const requests = useMemo(

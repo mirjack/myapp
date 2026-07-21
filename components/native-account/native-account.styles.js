@@ -1,0 +1,472 @@
+import { StyleSheet } from "react-native";
+
+export const nativeAccountStyles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    backgroundColor: "#FFFFFF",
+  },
+  ordersScreenContent: {
+    paddingTop: 10,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 10,
+    backgroundColor: "#FFFFFF",
+  },
+  headerSide: {
+    width: 40,
+    height: 40,
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#131314",
+    textAlign: "center",
+  },
+  centeredState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  stateText: {
+    marginTop: 14,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#747479",
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+  },
+  heroCard: {
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 12,
+    paddingVertical: 20,
+  },
+  profileHero: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 18,
+  },
+  avatarCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FE946E",
+  },
+  avatarText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  photoPickerText: {
+    marginTop: 14,
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#FE946E",
+  },
+  heroTitle: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  heroSubtitle: {
+    marginTop: 4,
+    fontSize: 14,
+    color: "#747479",
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#131314",
+  },
+  input: {
+    minHeight: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CDCDD4",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#131314",
+  },
+  inputDisabled: {
+    color: "#131314",
+    opacity: 1,
+  },
+  profileForm: {
+    paddingBottom: 24,
+  },
+  profileFooterAction: {
+    marginTop: 8,
+  },
+  textArea: {
+    minHeight: 92,
+    textAlignVertical: "top",
+  },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FE946E",
+  },
+  primaryButtonDisabled: {
+    opacity: 0.5,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  secondaryButton: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF1EB",
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FE946E",
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 13,
+    color: "#B72136",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#FFF1EB",
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FE946E",
+    textTransform: "capitalize",
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  summaryTile: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    padding: 14,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#747479",
+  },
+  summaryValue: {
+    marginTop: 6,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  segmented: {
+    flexDirection: "row",
+    padding: 4,
+    backgroundColor: "#F3F3F5",
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+  segmentedButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentedButtonActive: {
+    backgroundColor: "#FFFFFF",
+  },
+  segmentedButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  segmentedButtonTextActive: {
+    color: "#131314",
+  },
+  listGap: {
+    gap: 12,
+  },
+  orderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: "#131314",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  orderInfoList: {
+    marginTop: 12,
+    gap: 12,
+  },
+  orderInfoSection: {
+    gap: 4,
+  },
+  orderSectionLabel: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  orderSectionValue: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  orderStatusBadge: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  orderStatusText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+  orderStatusBadgeWarning: {
+    backgroundColor: "#FFF3E5",
+  },
+  orderStatusTextWarning: {
+    color: "#D07C2B",
+  },
+  orderStatusBadgeInfo: {
+    backgroundColor: "#E9F5FF",
+  },
+  orderStatusTextInfo: {
+    color: "#0F5CF2",
+  },
+  orderStatusBadgeSuccess: {
+    backgroundColor: "#DDF7E7",
+  },
+  orderStatusTextSuccess: {
+    color: "#22A861",
+  },
+  orderStatusBadgeNeutral: {
+    backgroundColor: "#F1F2F4",
+  },
+  orderStatusTextNeutral: {
+    color: "#3F4147",
+  },
+  orderStatusBadgeDanger: {
+    backgroundColor: "#FDEBF0",
+  },
+  orderStatusTextDanger: {
+    color: "#C82F4E",
+  },
+  orderTotals: {
+    marginTop: 12,
+  },
+  orderTotalsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  orderTotalsValue: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#131314",
+  },
+  orderTotalLabel: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  orderTotalValue: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#131314",
+  },
+  previewScroller: {
+    marginTop: 14,
+  },
+  previewItemsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  previewPressable: {
+    borderRadius: 8,
+  },
+  previewImageWrap: {
+    width: 64,
+    height: 74,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#F1F2F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  previewFallback: {
+    width: 54,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewQty: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    borderRadius: 999,
+    backgroundColor: "#131314",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  previewQtyText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  previewMore: {
+    minWidth: 54,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  previewMoreText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5C5D62",
+  },
+  orderNumber: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  mutedText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  ordersError: {
+    marginTop: 0,
+    marginBottom: 12,
+  },
+  addressCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#ECECEE",
+    padding: 16,
+    gap: 10,
+  },
+  addressCardSelected: {
+    borderColor: "#FE946E",
+    shadowColor: "#FE946E",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  addressTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(19, 19, 20, 0.36)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "88%",
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  modalHandle: {
+    alignSelf: "center",
+    width: 54,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "#D6D6DC",
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#131314",
+    marginBottom: 14,
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+    marginBottom: 14,
+  },
+  footerSpacer: {
+    height: 16,
+  },
+});

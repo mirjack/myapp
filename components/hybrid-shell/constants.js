@@ -12,7 +12,7 @@ export const ROUTE_GUARD_PATHS = new Set(["/cart", "/favorites", "/profile"]);
 export const LOGIN_PATH_PREFIXES = ["/login", "/register", "/onboarding"];
 export const LOADING_BACKGROUND_COLOR = "#F8F8F8";
 
-export const HEADER_CONTENT_HEIGHT = 67;
+export const HEADER_CONTENT_HEIGHT = 126;
 export const ANDROID_TAB_WRAP_HEIGHT = 98;
 
 export const ROOT_PATHS = new Set(["/", "/catalog", "/cart", "/favorites", "/profile"]);

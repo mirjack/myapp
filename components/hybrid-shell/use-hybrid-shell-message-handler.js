@@ -11,6 +11,10 @@ import {
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 import {
+  buildNativeAccountRoute,
+  isNativeAccountPath,
+} from "@/lib/native-account-routes";
+import {
   buildNativeSupportRoute,
   isSupportChatPath,
 } from "@/lib/support-chat-routes";
@@ -21,6 +25,7 @@ import {
 import { updateHeaderCache } from "./header-cache";
 import {
   normalizeStoriesPayload,
+  normalizeToTabPath,
   toNumber,
 } from "./utils";
 import { buildBridgeScript } from "./scripts";
@@ -33,6 +38,7 @@ export function useHybridShellMessageHandler({
   interceptSupportChatLinks,
   navigateWebPath,
   openNativeProductSheet,
+  routePath,
   router,
   shouldShowInlineAuthGuard,
 }) {
@@ -241,14 +247,25 @@ export function useHybridShellMessageHandler({
       if (message?.type === "pathChange") {
         const path = message?.path;
         if (typeof path === "string" && path.startsWith("/")) {
+          if (isNativeAccountPath(path)) {
+            router.push(buildNativeAccountRoute(path, message?.state));
+            setters.setCurrentPath("/profile");
+            setCurrentWebPath("/profile");
+            return;
+          }
           if (interceptSupportChatLinks && isSupportChatPath(path)) {
+            const tabRoutePath = normalizeToTabPath(routePath || "/");
             const previousPath =
-              state.currentPath && !isSupportChatPath(state.currentPath)
+              state.currentPath &&
+              !isSupportChatPath(state.currentPath) &&
+              normalizeToTabPath(state.currentPath) === tabRoutePath
                 ? state.currentPath
-                : "/";
-            navigateWebPath(previousPath);
-            setCurrentWebPath(previousPath);
+                : tabRoutePath;
             router.push(buildNativeSupportRoute(path, message?.state));
+            requestAnimationFrame(() => {
+              navigateWebPath(previousPath);
+              setCurrentWebPath(previousPath);
+            });
             return;
           }
           applyNativeInsetForPath(path);
@@ -265,6 +282,7 @@ export function useHybridShellMessageHandler({
       openNativeProductSheet,
       refs,
       router,
+      routePath,
       setters,
       shouldShowInlineAuthGuard,
       state.nativeSheet?.requestId,

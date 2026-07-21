@@ -3,6 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
+  BackHandler,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
@@ -282,6 +284,17 @@ export function SupportChatDetailScreen({
       isActive = false;
     };
   }, [isDraft, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        router.replace("/chat");
+        return true;
+      });
+      return () => sub.remove();
+    }, [router]),
+  );
 
   useEffect(() => {
     return () => {

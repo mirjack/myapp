@@ -54,6 +54,10 @@ export function goNativeTabImpl({ tabKey, isLoggedIn, navigateWebPath, openNativ
       openNativeAuthGuardSheet(`/${tabKey}`);
       return;
     }
+    if (tabKey === "profile") {
+      router.replace("/(tabs)/profile");
+      return;
+    }
     const nextWebPath = tabKey === "home" ? "/" : `/${tabKey}`;
     navigateWebPath(nextWebPath);
     return;

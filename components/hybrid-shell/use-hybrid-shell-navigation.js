@@ -8,6 +8,10 @@ import { isTabBarVisiblePath, setCurrentWebPath, setTabBarForcedHidden } from "@
 import { isWebViewInternalUrl } from "@/lib/runtime-config";
 import { getStoredAuthTokens } from "@/lib/auth-storage";
 import {
+  buildNativeAccountRoute,
+  isNativeAccountPath,
+} from "@/lib/native-account-routes";
+import {
   buildNativeSupportRoute,
   isSupportChatPath,
 } from "@/lib/support-chat-routes";
@@ -31,7 +35,6 @@ export function useHybridShellNavigation({
   interceptSupportChatLinks = true,
 }) {
   const { refs, state, setters } = core;
-  const androidActiveTabIndexAnim = useSharedValue(0);
   const fullscreenProgress = useSharedValue(0);
   const isChromeFullscreen = state.isWebFullscreen && !state.isNativeSheetVisible;
 
@@ -49,6 +52,7 @@ export function useHybridShellNavigation({
     const foundIndex = ANDROID_TAB_ITEMS.findIndex((tab) => isTabActive(state.currentPath, tab));
     return foundIndex >= 0 ? foundIndex : 0;
   }, [state.currentPath]);
+  const activeAndroidTabKey = ANDROID_TAB_ITEMS[activeAndroidTabIndex]?.key || "home";
 
   const formattedWalletBalance = useMemo(
     () => new Intl.NumberFormat("en-US", { useGrouping: true }).format(toNumber(state.walletBalance)).replace(/,/g, " "),
@@ -130,14 +134,25 @@ export function useHybridShellNavigation({
     if (isWebViewInternalUrl(nextUrl)) {
       try {
         const nextPath = new URL(nextUrl).pathname || "/";
+        if (isNativeAccountPath(nextPath)) {
+          router.push(buildNativeAccountRoute(nextPath, null));
+          setters.setCurrentPath("/profile");
+          setCurrentWebPath("/profile");
+          return false;
+        }
         if (interceptSupportChatLinks && isSupportChatPath(nextPath)) {
+          const tabRoutePath = normalizeToTabPath(routePath || "/");
           const fallbackPath =
-            state.currentPath && !isSupportChatPath(state.currentPath)
+            state.currentPath &&
+            !isSupportChatPath(state.currentPath) &&
+            normalizeToTabPath(state.currentPath) === tabRoutePath
               ? state.currentPath
-              : normalizeToTabPath(routePath || "/");
+              : tabRoutePath;
           router.push(buildNativeSupportRoute(nextPath, null));
-          navigateWebPath(fallbackPath);
-          setCurrentWebPath(fallbackPath);
+          requestAnimationFrame(() => {
+            navigateWebPath(fallbackPath);
+            setCurrentWebPath(fallbackPath);
+          });
           return false;
         }
       } catch {
@@ -147,7 +162,7 @@ export function useHybridShellNavigation({
     }
     openBrowserAsync(nextUrl).catch(() => {});
     return false;
-  }, [interceptSupportChatLinks, navigateWebPath, routePath, router, state.currentPath]);
+  }, [interceptSupportChatLinks, navigateWebPath, routePath, router, setters, state.currentPath]);
 
   const onWebLoadEnd = useCallback(() => {
     setters.setCurrentWebReady(true);
@@ -191,6 +206,11 @@ export function useHybridShellNavigation({
     }
     if (Platform.OS === "android") {
       if (startsWithAny(state.currentPath, LOGIN_PATH_PREFIXES)) {
+        navigateWebPath("/");
+        setCurrentWebPath("/");
+        return true;
+      }
+      if (state.currentPath !== "/" && ROOT_PATHS.has(state.currentPath)) {
         navigateWebPath("/");
         setCurrentWebPath("/");
         return true;
@@ -250,13 +270,6 @@ export function useHybridShellNavigation({
   ]);
 
   useEffect(() => {
-    androidActiveTabIndexAnim.value = withTiming(activeAndroidTabIndex, {
-      duration: 250,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [activeAndroidTabIndex, androidActiveTabIndexAnim]);
-
-  useEffect(() => {
     fullscreenProgress.value = withTiming(isChromeFullscreen ? 1 : 0, {
       duration: 220,
       easing: Easing.out(Easing.cubic),
@@ -264,8 +277,8 @@ export function useHybridShellNavigation({
   }, [fullscreenProgress, isChromeFullscreen]);
 
   return {
+    activeAndroidTabKey,
     activeAndroidTabIndex,
-    androidActiveTabIndexAnim,
     formattedWalletBalance,
     fullscreenProgress,
     goNativeTab,

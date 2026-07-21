@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "start:dev-client": "expo start --dev-client",
+    "start:go": "node ./scripts/start-expo.js",
+    "start:go:tunnel": "node ./scripts/start-expo.js --tunnel",
+    "start:dev-client": "node ./scripts/start-expo.js --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "android:dev": "expo run:android",

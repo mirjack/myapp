@@ -6,21 +6,17 @@ import { useRootNavigationState, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { NativeStoriesViewer } from "@/components/native-stories-viewer";
+import { toWebViewUrl } from "@/lib/runtime-config";
 
-import {
-  ANDROID_TAB_ITEMS,
-  ANDROID_TAB_WRAP_HEIGHT,
-  BASE_URL,
-  INITIAL_WEB_URL,
-} from "./constants";
-import { AndroidTabButton } from "./android-tab-button";
+import { ANDROID_TAB_WRAP_HEIGHT, BASE_URL } from "./constants";
+import { AndroidTabBar } from "./android-tab-bar";
 import { DISABLE_ZOOM_SCRIPT } from "./scripts";
 import { styles } from "./styles";
-import { isTabActive, authPromptDescription } from "./utils";
+import { authPromptDescription, normalizeToTabPath } from "./utils";
 import { useHybridShellState } from "./use-hybrid-shell-state";
 import { useHybridShellNavigation } from "./use-hybrid-shell-navigation";
 import { useHybridShellSheets } from "./use-hybrid-shell-sheets";
@@ -33,7 +29,7 @@ export function HybridShell({
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const insets = useSafeAreaInsets();
-  const core = useHybridShellState();
+  const core = useHybridShellState(routePath);
 
   const navigation = useHybridShellNavigation({
     interceptSupportChatLinks,
@@ -59,36 +55,31 @@ export function HybridShell({
     interceptSupportChatLinks,
     navigateWebPath: navigation.navigateWebPath,
     openNativeProductSheet: sheets.openNativeProductSheet,
+    routePath,
     router,
     shouldShowInlineAuthGuard: navigation.shouldShowInlineAuthGuard,
   });
 
-  const androidItemWidth = useMemo(() => {
-    const innerWidth = Math.max(0, core.state.androidTabBarWidth - 8);
-    return innerWidth / ANDROID_TAB_ITEMS.length;
-  }, [core.state.androidTabBarWidth]);
+  const initialRouteUrl = useMemo(() => toWebViewUrl(routePath), [routePath]);
   const isNativeSheetVisible = core.state.isNativeSheetVisible;
   const fullscreenProgress = navigation.fullscreenProgress;
-  const androidActiveTabIndexAnim = navigation.androidActiveTabIndexAnim;
   const forceShowHeaderForSheet =
     isNativeSheetVisible && Boolean(core.state.nativeSheet);
+  const activeTabPath = normalizeToTabPath(core.state.currentPath);
+  const isHomeRoute = activeTabPath === "/";
+  const shouldKeepProfileHeaderVisible = activeTabPath === "/profile";
   const shouldShowHeaderContent =
-    forceShowHeaderForSheet || navigation.shouldRenderHeader;
-  const isUserRoute = core.state.currentPath.startsWith("/user");
+    forceShowHeaderForSheet ||
+    navigation.shouldRenderHeader ||
+    shouldKeepProfileHeaderVisible;
+  const isUserRoute =
+    core.state.currentPath.startsWith("/user") && !shouldKeepProfileHeaderVisible;
   const shouldUseHeaderOffset = shouldShowHeaderContent && !isUserRoute;
   const statusBarBackgroundColor = useMemo(() => {
     if (core.state.isWebFullscreen) return "#000000";
     if (isUserRoute) return "#FFFFFF";
     return "transparent";
   }, [core.state.isWebFullscreen, isUserRoute]);
-
-  const androidActiveBgStyle = useAnimatedStyle(() => ({
-    width: androidItemWidth,
-    transform: [
-      { translateX: 4 + androidActiveTabIndexAnim.value * androidItemWidth },
-    ],
-    opacity: androidItemWidth > 0 ? 1 : 0,
-  }));
 
   const androidTabWrapAnimatedStyle = useAnimatedStyle(() => {
     const progress = isNativeSheetVisible ? 0 : fullscreenProgress.value;
@@ -98,6 +89,10 @@ export function HybridShell({
       transform: [{ translateY: ANDROID_TAB_WRAP_HEIGHT * progress }],
     };
   }, [isNativeSheetVisible]);
+
+  const handleSearchPress = () => {
+    navigation.navigateWebPath("/catalog");
+  };
 
   return (
     <View
@@ -121,27 +116,22 @@ export function HybridShell({
         <View
           style={[
             styles.headerAnimatedWrap,
+            isHomeRoute ? styles.headerAnimatedWrapCompact : null,
             shouldShowHeaderContent ? null : styles.headerHiddenWrap,
           ]}
         >
-          {shouldShowHeaderContent ? (
-            <View style={styles.header}>
+          <View
+            pointerEvents={shouldShowHeaderContent ? "auto" : "none"}
+            style={[styles.header, isHomeRoute ? styles.headerCompact : null]}
+          >
+            <View style={styles.headerTopRow}>
               <Pressable
                 onPress={() => navigation.goNativeTab("home")}
                 style={styles.brandPressable}
               >
-                {!core.state.logoBroken && core.state.brandLogo ? (
-                  <Image
-                    source={{ uri: core.state.brandLogo }}
-                    style={styles.brandLogo}
-                    resizeMode="contain"
-                    onError={() => core.setters.setLogoBroken(true)}
-                  />
-                ) : (
-                  <Text style={styles.brandText}>
-                    {core.state.brandTitle || "Comfort Market"}
-                  </Text>
-                )}
+                <View style={styles.brandCopy}>
+                  <Text style={styles.brandText}>MIO BEAUTY</Text>
+                </View>
               </Pressable>
 
               {core.state.isLoggedIn ? (
@@ -178,7 +168,32 @@ export function HybridShell({
                 </Pressable>
               )}
             </View>
-          ) : null}
+
+            {isHomeRoute ? null : (
+              <Pressable onPress={handleSearchPress} style={styles.searchBar}>
+                <View style={styles.searchIconWrap}>
+                  <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                    <Circle
+                      cx={9}
+                      cy={9}
+                      r={5.75}
+                      stroke="#8D8E94"
+                      strokeWidth={1.5}
+                    />
+                    <Path
+                      d="M13.5 13.5L17 17"
+                      stroke="#8D8E94"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                </View>
+                <Text style={styles.searchPlaceholder}>
+                  Search tickets by number, phone number
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         <View
@@ -187,15 +202,21 @@ export function HybridShell({
             !shouldUseHeaderOffset
               ? styles.webviewWrapNoHeaderOffset
               : null,
+            isHomeRoute ? styles.userWebviewWrap : null,
             isUserRoute ? styles.userWebviewWrap : null,
           ]}
         >
           <WebView
             ref={core.refs.webViewRef}
-            source={{ uri: INITIAL_WEB_URL }}
-            style={[styles.webview, isUserRoute ? styles.userWebview : null]}
+            source={{ uri: initialRouteUrl }}
+            style={[
+              styles.webview,
+              isHomeRoute ? styles.userWebview : null,
+              isUserRoute ? styles.userWebview : null,
+            ]}
             containerStyle={[
               styles.webview,
+              isHomeRoute ? styles.userWebview : null,
               isUserRoute ? styles.userWebview : null,
             ]}
             originWhitelist={["http://*", "https://*", "about:blank"]}
@@ -268,32 +289,11 @@ export function HybridShell({
             androidTabWrapAnimatedStyle,
           ]}
         >
-          <View style={styles.androidTabBarWrap}>
-            <View
-              style={styles.androidTabBar}
-              onLayout={(event) => {
-                core.setters.setAndroidTabBarWidth(
-                  event.nativeEvent.layout.width,
-                );
-              }}
-            >
-              <Animated.View
-                style={[styles.androidTabActivePill, androidActiveBgStyle]}
-              />
-              {ANDROID_TAB_ITEMS.map((tab) => {
-                const isActive = isTabActive(core.state.currentPath, tab);
-                return (
-                  <AndroidTabButton
-                    key={tab.key}
-                    tab={tab}
-                    isActive={isActive}
-                    cartCount={core.state.cartCount}
-                    onPress={() => navigation.goNativeTab(tab.key)}
-                  />
-                );
-              })}
-            </View>
-          </View>
+          <AndroidTabBar
+            activeTabKey={navigation.activeAndroidTabKey}
+            cartCount={core.state.cartCount}
+            onTabPress={navigation.goNativeTab}
+          />
         </Animated.View>
       ) : null}
 
