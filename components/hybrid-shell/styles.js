@@ -43,6 +43,9 @@ export const styles = StyleSheet.create({
   headerAnimatedWrapCompact: {
     height: 68,
   },
+  headerAnimatedWrapCatalog: {
+    height: 64,
+  },
   headerHiddenWrap: {
     height: 0,
   },
@@ -107,6 +110,11 @@ export const styles = StyleSheet.create({
     height: 68,
     paddingTop: 12,
     paddingBottom: 12,
+  },
+  headerCatalog: {
+    height: 64,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   headerTopRow: {
     flexDirection: "row",

@@ -63,15 +63,16 @@ export function HybridShell({
   const initialRouteUrl = useMemo(() => toWebViewUrl(routePath), [routePath]);
   const isNativeSheetVisible = core.state.isNativeSheetVisible;
   const fullscreenProgress = navigation.fullscreenProgress;
-  const forceShowHeaderForSheet =
-    isNativeSheetVisible && Boolean(core.state.nativeSheet);
   const activeTabPath = normalizeToTabPath(core.state.currentPath);
   const isHomeRoute = activeTabPath === "/";
+  const isCatalogRoute = activeTabPath === "/catalog";
+  const isCartRoute = activeTabPath === "/cart";
+  const isFavoritesRoute = activeTabPath === "/favorites";
+  const isPrimaryTabRoute =
+    isHomeRoute || isCatalogRoute || isCartRoute || isFavoritesRoute;
   const shouldKeepProfileHeaderVisible = activeTabPath === "/profile";
   const shouldShowHeaderContent =
-    forceShowHeaderForSheet ||
-    navigation.shouldRenderHeader ||
-    shouldKeepProfileHeaderVisible;
+    navigation.shouldRenderHeader || shouldKeepProfileHeaderVisible;
   const isUserRoute =
     core.state.currentPath.startsWith("/user") && !shouldKeepProfileHeaderVisible;
   const shouldUseHeaderOffset = shouldShowHeaderContent && !isUserRoute;
@@ -116,13 +117,16 @@ export function HybridShell({
         <View
           style={[
             styles.headerAnimatedWrap,
-            isHomeRoute ? styles.headerAnimatedWrapCompact : null,
+            isPrimaryTabRoute ? styles.headerAnimatedWrapCompact : null,
             shouldShowHeaderContent ? null : styles.headerHiddenWrap,
           ]}
         >
           <View
             pointerEvents={shouldShowHeaderContent ? "auto" : "none"}
-            style={[styles.header, isHomeRoute ? styles.headerCompact : null]}
+            style={[
+              styles.header,
+              isPrimaryTabRoute ? styles.headerCompact : null,
+            ]}
           >
             <View style={styles.headerTopRow}>
               <Pressable
@@ -169,7 +173,7 @@ export function HybridShell({
               )}
             </View>
 
-            {isHomeRoute ? null : (
+            {isHomeRoute || isCatalogRoute || isCartRoute || isFavoritesRoute ? null : (
               <Pressable onPress={handleSearchPress} style={styles.searchBar}>
                 <View style={styles.searchIconWrap}>
                   <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">

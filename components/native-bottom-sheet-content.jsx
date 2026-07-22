@@ -193,11 +193,11 @@ function SupportRequestCreateSheet({ payload, onAction }) {
   return (
     <View style={styles.supportCreateSheetWrap}>
       <Text style={styles.supportCreateSheetTitle}>
-        {payload?.title || "ÐœÑ‹ Ñ€ÑÐ´Ð¾Ð¼ Ð¸ Ð³Ð¾Ñ‚Ð¾Ð²Ñ‹ Ð¿Ð¾Ð¼Ð¾Ñ‡ÑŒ"}
+        {payload?.title || "ÃÅ“Ã‘â€¹ Ã‘â‚¬Ã‘ÂÃÂ´ÃÂ¾ÃÂ¼ ÃÂ¸ ÃÂ³ÃÂ¾Ã‘â€šÃÂ¾ÃÂ²Ã‘â€¹ ÃÂ¿ÃÂ¾ÃÂ¼ÃÂ¾Ã‘â€¡Ã‘Å’"}
       </Text>
       <Text style={styles.supportCreateSheetDescription}>
         {payload?.description ||
-          "ÐŸÐ¾Ð´ÑÐºÐ°Ð¶Ð¸Ñ‚Ðµ, Ð¿Ð¾Ð¶Ð°Ð»ÑƒÐ¹ÑÑ‚Ð°, Ñƒ Ð²Ð°Ñ Ð²Ð¾Ð¿Ñ€Ð¾Ñ Ð¸Ð»Ð¸ Ð²Ð¾Ð·Ð½Ð¸ÐºÐ»Ð° Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼Ð°?"}
+          "ÃÅ¸ÃÂ¾ÃÂ´Ã‘ÂÃÂºÃÂ°ÃÂ¶ÃÂ¸Ã‘â€šÃÂµ, ÃÂ¿ÃÂ¾ÃÂ¶ÃÂ°ÃÂ»Ã‘Æ’ÃÂ¹Ã‘ÂÃ‘â€šÃÂ°, Ã‘Æ’ ÃÂ²ÃÂ°Ã‘Â ÃÂ²ÃÂ¾ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘Â ÃÂ¸ÃÂ»ÃÂ¸ ÃÂ²ÃÂ¾ÃÂ·ÃÂ½ÃÂ¸ÃÂºÃÂ»ÃÂ° ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ±ÃÂ»ÃÂµÃÂ¼ÃÂ°?"}
       </Text>
 
       <View style={styles.supportCreateCardRow}>
@@ -215,7 +215,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
               styles.supportCreateProblemTitle,
             ]}
           >
-            {payload?.problemTitle || "ÐŸÑ€Ð¾Ð±Ð»ÐµÐ¼Ð°"}
+            {payload?.problemTitle || "ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ±ÃÂ»ÃÂµÃÂ¼ÃÂ°"}
           </Text>
           <ExpoImage
             source={{ uri: problemImageUrl }}
@@ -239,7 +239,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
               styles.supportCreateQuestionTitle,
             ]}
           >
-            {payload?.questionTitle || "Ð’Ð¾Ð¿Ñ€Ð¾Ñ"}
+            {payload?.questionTitle || "Ãâ€™ÃÂ¾ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘Â"}
           </Text>
           <ExpoImage
             source={{ uri: questionImageUrl }}
@@ -249,7 +249,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
           />
           {activeKind === "question" ? (
             <Text style={styles.supportCreateLoadingText}>
-              {payload?.loadingLabel || "Ð¡Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ..."}
+              {payload?.loadingLabel || "ÃÂ¡ÃÂ¾ÃÂ·ÃÂ´ÃÂ°ÃÂ½ÃÂ¸ÃÂµ..."}
             </Text>
           ) : null}
         </Pressable>
@@ -488,6 +488,11 @@ function CatalogFilterSheet({ payload, onAction }) {
     [minValue],
   );
 
+  const isApplyEnabled =
+    filterKey === "price"
+      ? minValue !== initialMinValue || maxValue !== initialMaxValue
+      : selectedValue !== initialSelectedValue;
+
   const applyFilter = () => {
     if (!isApplyEnabled) return;
     onAction?.("apply", {
@@ -498,20 +503,14 @@ function CatalogFilterSheet({ payload, onAction }) {
           : selectedValue,
     });
   };
-  const isApplyEnabled =
-    filterKey === "price"
-      ? minValue !== initialMinValue || maxValue !== initialMaxValue
-      : selectedValue !== initialSelectedValue;
 
   if (filterKey === "price") {
     return (
       <View style={styles.catalogFilterWrap}>
-        <Text style={styles.catalogFilterTitle}>
-          {payload?.title || "Ð¦ÐµÐ½Ð°"}
-        </Text>
+        <Text style={styles.catalogFilterTitle}>{payload?.title || "Price"}</Text>
         <View style={styles.priceInputRow}>
           <View style={styles.priceInputBox}>
-            <Text style={styles.priceInputPrefix}>Ð¾Ñ‚</Text>
+            <Text style={styles.priceInputPrefix}>from</Text>
             <TextInput
               value={minPrice}
               onChangeText={(text) => {
@@ -525,7 +524,7 @@ function CatalogFilterSheet({ payload, onAction }) {
             />
           </View>
           <View style={[styles.priceInputBox, styles.priceInputBoxMuted]}>
-            <Text style={styles.priceInputPrefix}>Ð´Ð¾</Text>
+            <Text style={styles.priceInputPrefix}>to</Text>
             <TextInput
               value={maxPrice}
               onChangeText={(text) => {
@@ -554,7 +553,7 @@ function CatalogFilterSheet({ payload, onAction }) {
               isApplyEnabled ? styles.catalogApplyButtonTextActive : null,
             ]}
           >
-            ÐŸÑ€Ð¸Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ
+            Apply
           </Text>
         </Pressable>
       </View>
@@ -563,9 +562,7 @@ function CatalogFilterSheet({ payload, onAction }) {
 
   return (
     <View style={styles.catalogFilterWrap}>
-      <Text style={styles.catalogFilterTitle}>
-        {payload?.title || "Ð¤Ð¸Ð»ÑŒÑ‚Ñ€"}
-      </Text>
+      <Text style={styles.catalogFilterTitle}>{payload?.title || "Filter"}</Text>
       <View style={styles.catalogOptionGrid}>
         {options.map((option) => {
           const value = String(option.value ?? option.label ?? "");
@@ -605,13 +602,12 @@ function CatalogFilterSheet({ payload, onAction }) {
             isApplyEnabled ? styles.catalogApplyButtonTextActive : null,
           ]}
         >
-          ÐŸÑ€Ð¸Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ
+          Apply
         </Text>
       </Pressable>
     </View>
   );
 }
-
 function CashbackPill({ children, style }) {
   return (
     <LinearGradient
@@ -1210,3 +1206,4 @@ export function renderSheetContent(sheet, onAction) {
     </View>
   );
 }
+

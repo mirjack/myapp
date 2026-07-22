@@ -1,6 +1,6 @@
 const headerCache = {
   brandLogo: null,
-  brandTitle: "Comfort Market",
+  brandTitle: "Mio Beauty",
   cartCount: 0,
   walletBalance: 0,
 };

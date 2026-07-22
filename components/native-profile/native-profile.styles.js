@@ -155,9 +155,13 @@ export const nativeProfileStyles = StyleSheet.create({
     height: 98,
   },
   hybridHeader: hybridStyles.header,
+  hybridHeaderCompact: hybridStyles.headerCompact,
   hybridHeaderWrap: hybridStyles.headerAnimatedWrap,
+  hybridHeaderWrapCompact: hybridStyles.headerAnimatedWrapCompact,
+  headerTopRow: hybridStyles.headerTopRow,
   brandPressable: hybridStyles.brandPressable,
   brandLogo: hybridStyles.brandLogo,
+  brandCopy: hybridStyles.brandCopy,
   brandText: hybridStyles.brandText,
   walletBadge: hybridStyles.walletBadge,
   walletText: hybridStyles.walletText,
@@ -167,4 +171,13 @@ export const nativeProfileStyles = StyleSheet.create({
   androidTabBarWrap: hybridStyles.androidTabBarWrap,
   androidTabBar: hybridStyles.androidTabBar,
   androidTabActivePill: hybridStyles.androidTabActivePill,
+  profileWalletBadge: {
+    minHeight: 26,
+    paddingHorizontal: 8,
+    gap: 3,
+  },
+  profileWalletText: {
+    fontSize: 14,
+    lineHeight: 16,
+  },
 });

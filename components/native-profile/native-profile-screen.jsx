@@ -83,7 +83,7 @@ function WalletBadge({ amount }) {
       colors={["#FAF56C", "#7EFDEC"]}
       start={{ x: 0, y: 0.434 }}
       end={{ x: 1, y: 0.566 }}
-      style={styles.walletBadge}
+      style={[styles.walletBadge, styles.profileWalletBadge]}
     >
       <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
         <Path
@@ -91,7 +91,7 @@ function WalletBadge({ amount }) {
           fill="#0B0B0B"
         />
       </Svg>
-      <Text style={styles.walletText}>{amount}</Text>
+      <Text style={[styles.walletText, styles.profileWalletText]}>{amount}</Text>
     </LinearGradient>
   );
 }
@@ -288,18 +288,22 @@ export function NativeProfileScreen() {
   return (
     <SafeAreaView edges={["top"]} style={styles.screen}>
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-      <View style={styles.hybridHeaderWrap}>
-        <View style={styles.hybridHeader}>
-          <Pressable onPress={() => goToTab("home")} style={styles.brandPressable}>
-            <Text style={styles.brandText}>{headerCache.brandTitle || "Comfort Market"}</Text>
-          </Pressable>
-          {isLoggedIn ? (
-            <WalletBadge amount={walletAmount} />
-          ) : (
-            <Pressable onPress={openLogin} style={styles.loginTopButton}>
-              <Text style={styles.loginTopButtonText}>Login</Text>
+      <View style={[styles.hybridHeaderWrap, styles.hybridHeaderWrapCompact]}>
+        <View style={[styles.hybridHeader, styles.hybridHeaderCompact]}>
+          <View style={styles.headerTopRow}>
+            <Pressable onPress={() => goToTab("home")} style={styles.brandPressable}>
+              <View style={styles.brandCopy}>
+                <Text style={styles.brandText}>MIO BEAUTY</Text>
+              </View>
             </Pressable>
-          )}
+            {isLoggedIn ? (
+              <WalletBadge amount={walletAmount} />
+            ) : (
+              <Pressable onPress={openLogin} style={styles.loginTopButton}>
+                <Text style={styles.loginTopButtonText}>Login</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
 
@@ -313,12 +317,6 @@ export function NativeProfileScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
-          {isLoading ? (
-            <View style={styles.inlineLoadingRow}>
-              <ActivityIndicator color="#FE946E" size="small" />
-              <Text style={styles.inlineLoadingText}>Updating profile...</Text>
-            </View>
-          ) : null}
           <Pressable onPress={() => router.push("/(tabs)/profile/me")} style={styles.heroCard}>
             <View style={styles.heroRow}>
               <View style={styles.heroAvatar}>
