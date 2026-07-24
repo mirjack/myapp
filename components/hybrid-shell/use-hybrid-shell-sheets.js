@@ -343,6 +343,13 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
     }
 
     emitToWeb(BOTTOM_SHEET_ACTION_EVENT, { requestId: state.nativeSheet.requestId, actionId, payload: payload ?? null });
+    if (state.nativeSheet.sheetKey === "loyalty_progress" && actionId === "loyalty_info") {
+      closeNativeSheet({ shouldNotify: false });
+      setTimeout(() => {
+        router.push("/loyalty-info");
+      }, NATIVE_SHEET_CLOSE_MS);
+      return;
+    }
     if (state.nativeSheet.sheetKey === "catalog_filter" && actionId === "apply") {
       closeNativeSheet({ shouldNotify: false });
     }

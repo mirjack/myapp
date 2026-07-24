@@ -4,7 +4,7 @@
     "slug": "myapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -26,10 +26,10 @@
     "android": {
       "package": "uz.miobeauty.webview",
       "versionCode": 1,
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/images/logo.png",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/logo.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [

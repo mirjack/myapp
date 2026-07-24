@@ -55,7 +55,10 @@ export function useHybridShellNavigation({
   const activeAndroidTabKey = ANDROID_TAB_ITEMS[activeAndroidTabIndex]?.key || "home";
 
   const formattedWalletBalance = useMemo(
-    () => new Intl.NumberFormat("en-US", { useGrouping: true }).format(toNumber(state.walletBalance)).replace(/,/g, " "),
+    () =>
+      new Intl.NumberFormat("en-US", { useGrouping: true })
+        .format(Math.trunc(toNumber(state.walletBalance)))
+        .replace(/,/g, " "),
     [state.walletBalance],
   );
 

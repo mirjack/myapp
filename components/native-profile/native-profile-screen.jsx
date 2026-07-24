@@ -116,7 +116,7 @@ export function NativeProfileScreen() {
   const walletAmount = useMemo(
     () =>
       new Intl.NumberFormat("en-US", { useGrouping: true })
-        .format(Number(headerCache.walletBalance || 0))
+        .format(Math.trunc(Number(headerCache.walletBalance || 0)))
         .replace(/,/g, " "),
     [headerCache.walletBalance],
   );
