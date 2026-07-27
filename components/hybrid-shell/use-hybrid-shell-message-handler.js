@@ -11,7 +11,11 @@ import {
 } from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { applyAppLanguage } from "@/lib/i18n";
-import { setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
+import {
+  getLastNonProductWebPath,
+  setCurrentWebPath,
+  setTabBarForcedHidden,
+} from "@/lib/tab-bar-visibility";
 import {
   buildNativeAccountRoute,
   isNativeAccountPath,
@@ -41,6 +45,7 @@ export function useHybridShellMessageHandler({
   interceptSupportChatLinks,
   navigateWebPath,
   openNativeProductSheet,
+  productScreenMode = false,
   routePath,
   router,
   shouldShowInlineAuthGuard,
@@ -154,6 +159,35 @@ export function useHybridShellMessageHandler({
         return;
       }
 
+      if (message?.type === "OPEN_PRODUCT_SCREEN") {
+        const productPath = message?.payload?.productPath;
+        if (typeof productPath === "string" && productPath.startsWith("/products/")) {
+          router.push({
+            pathname: "/product",
+            params: { productPath },
+          });
+          return;
+        }
+      }
+
+      if (message?.type === "OPEN_CHECKOUT_SCREEN") {
+        setCurrentWebPath("/checkout");
+        setters.setCurrentPath("/checkout");
+        requestAnimationFrame(() => {
+          router.replace("/checkout");
+        });
+        return;
+      }
+
+      if (message?.type === "OPEN_CART_SCREEN") {
+        setCurrentWebPath("/cart");
+        setters.setCurrentPath("/cart");
+        requestAnimationFrame(() => {
+          router.replace(toNativeTabsRoute("/cart"));
+        });
+        return;
+      }
+
       if (message?.type === "OPEN_STORIES") {
         const storiesPayload = normalizeStoriesPayload(message?.payload);
         if (storiesPayload.items.length > 0) {
@@ -172,6 +206,12 @@ export function useHybridShellMessageHandler({
       if (message?.type === "SET_TAB_BAR_HIDDEN") {
         const hidden = Boolean(message?.payload?.hidden);
         setTabBarForcedHidden(hidden || shouldShowInlineAuthGuard);
+        return;
+      }
+
+      if (message?.type === "CLOSE_PRODUCT_SCREEN" && productScreenMode) {
+        setCurrentWebPath(getLastNonProductWebPath());
+        router.back();
         return;
       }
 
@@ -288,6 +328,13 @@ export function useHybridShellMessageHandler({
         if (typeof path !== "string" || !path.startsWith("/")) return;
         applyNativeInsetForPath(path);
         setCurrentWebPath(path);
+        if (productScreenMode) {
+          const nextNativeRoute = path.startsWith("/checkout")
+            ? "/checkout"
+            : toNativeTabsRoute(path);
+          router.replace(nextNativeRoute);
+          return;
+        }
         router.navigate(toNativeTabsRoute(path));
         return;
       }
@@ -295,6 +342,16 @@ export function useHybridShellMessageHandler({
       if (message?.type === "pathChange") {
         const path = message?.path;
         if (typeof path === "string" && path.startsWith("/")) {
+          if (productScreenMode && !path.startsWith("/products/")) {
+            applyNativeInsetForPath(path);
+            setters.setCurrentPath(path);
+            setCurrentWebPath(path);
+            const nextNativeRoute = path.startsWith("/checkout")
+              ? "/checkout"
+              : toNativeTabsRoute(path);
+            router.replace(nextNativeRoute);
+            return;
+          }
           if (
             Platform.OS === "ios" &&
             path.startsWith("/checkout") &&
@@ -355,6 +412,7 @@ export function useHybridShellMessageHandler({
       router,
       routePath,
       setters,
+      productScreenMode,
       shouldShowInlineAuthGuard,
       state.languageCode,
       state.nativeSheet?.requestId,

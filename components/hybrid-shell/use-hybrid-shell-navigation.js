@@ -6,6 +6,7 @@ import { openBrowserAsync } from "expo-web-browser";
 
 import {
   getCurrentWebPath,
+  getLastNonProductWebPath,
   isTabBarVisiblePath,
   setCurrentWebPath,
   setTabBarForcedHidden,
@@ -214,6 +215,24 @@ export function useHybridShellNavigation({
   }, [refs.pendingPathRef, refs.webViewRef, setters]);
 
   const handleBackPress = useCallback(() => {
+    if (
+      Platform.OS === "android" &&
+      routePath.startsWith("/products/") &&
+      state.currentPath.startsWith("/products/")
+    ) {
+      const previousPath = getLastNonProductWebPath() || "/catalog";
+      setters.setCurrentPath(previousPath);
+      setCurrentWebPath(previousPath);
+      router.back();
+      return true;
+    }
+    if (Platform.OS === "android" && state.currentPath.startsWith("/products/")) {
+      const previousPath = getLastNonProductWebPath() || "/catalog";
+      navigateWebPath(previousPath);
+      setters.setCurrentPath(previousPath);
+      setCurrentWebPath(previousPath);
+      return true;
+    }
     if (state.canGoBack && !ROOT_PATHS.has(state.currentPath)) {
       refs.webViewRef.current?.goBack();
       return true;
@@ -233,7 +252,7 @@ export function useHybridShellNavigation({
       return true;
     }
     return true;
-  }, [navigateWebPath, refs.webViewRef, state.canGoBack, state.currentPath]);
+  }, [navigateWebPath, refs.webViewRef, routePath, router, setters, state.canGoBack, state.currentPath]);
 
   useFocusEffect(
     useCallback(() => {

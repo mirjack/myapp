@@ -24,10 +24,93 @@ import { useHybridShellNavigation } from "./use-hybrid-shell-navigation";
 import { useHybridShellSheets } from "./use-hybrid-shell-sheets";
 import { useHybridShellMessageHandler } from "./use-hybrid-shell-message-handler";
 
+function ProductScreenLoading() {
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        ...styles.webviewLoadingOverlay,
+        backgroundColor: "#FBFBFB",
+        paddingTop: 8,
+      }}
+    >
+      <View style={{ gap: 4 }}>
+        <View
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderRadius: 24,
+            height: 320,
+            overflow: "hidden",
+          }}
+        />
+        <View
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderRadius: 24,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ width: 52, height: 24, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+            <View style={{ width: 62, height: 24, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+          </View>
+          <View style={{ gap: 8, alignItems: "flex-end" }}>
+            <View style={{ width: 54, height: 12, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+            <View style={{ width: 88, height: 20, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+          </View>
+        </View>
+        <View
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderRadius: 24,
+            paddingHorizontal: 16,
+            paddingVertical: 24,
+            gap: 12,
+          }}
+        >
+          <View style={{ width: "72%", height: 22, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+          <View style={{ width: "100%", height: 14, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+          <View style={{ width: "88%", height: 14, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+        </View>
+      </View>
+
+      <View
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "#FFFFFF",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 16,
+          flexDirection: "row",
+          gap: 12,
+          shadowColor: "#000000",
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 12,
+        }}
+      >
+        <View style={{ flex: 1, height: 40, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+        <View style={{ flex: 1, height: 40, borderRadius: 999, backgroundColor: "#F1F1F3" }} />
+      </View>
+    </View>
+  );
+}
+
 export function HybridShell({
   routePath = "/",
   interceptSupportChatLinks = true,
   preferSharedPath = true,
+  productScreenMode = false,
 }) {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
@@ -66,6 +149,7 @@ export function HybridShell({
     interceptSupportChatLinks,
     navigateWebPath: navigation.navigateWebPath,
     openNativeProductSheet: sheets.openNativeProductSheet,
+    productScreenMode,
     routePath,
     router,
     shouldShowInlineAuthGuard: navigation.shouldShowInlineAuthGuard,
@@ -73,6 +157,7 @@ export function HybridShell({
 
   const initialRouteUrl = useMemo(() => toWebViewUrl(initialPath), [initialPath]);
   const isNativeSheetVisible = core.state.isNativeSheetVisible;
+  const isProductLoading = productScreenMode && !core.state.isWebReady;
   const fullscreenProgress = navigation.fullscreenProgress;
   const activeTabPath = normalizeToTabPath(core.state.currentPath);
   const isHomeRoute = activeTabPath === "/";
@@ -89,9 +174,8 @@ export function HybridShell({
   const shouldUseHeaderOffset = shouldShowHeaderContent && !isUserRoute;
   const statusBarBackgroundColor = useMemo(() => {
     if (core.state.isWebFullscreen) return "#000000";
-    if (isUserRoute) return "#FFFFFF";
-    return "transparent";
-  }, [core.state.isWebFullscreen, isUserRoute]);
+    return "#FFFFFF";
+  }, [core.state.isWebFullscreen]);
 
   const androidTabWrapAnimatedStyle = useAnimatedStyle(() => {
     const progress = isNativeSheetVisible ? 0 : fullscreenProgress.value;
@@ -266,6 +350,8 @@ export function HybridShell({
             scalesPageToFit={false}
             setSupportMultipleWindows={false}
           />
+
+          {isProductLoading ? <ProductScreenLoading /> : null}
 
           {navigation.shouldShowInlineAuthGuard ? (
             <View style={styles.inlineGuardOverlay}>

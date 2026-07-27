@@ -68,6 +68,17 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="product"
+          options={{
+            headerShown: false,
+            animation: Platform.OS === "android" ? "none" : "slide_from_right",
+            gestureEnabled: Platform.OS !== "android",
+            fullScreenGestureEnabled: false,
+            gestureDirection: "horizontal",
+            gestureResponseDistance: Platform.OS === "ios" ? 24 : undefined,
+          }}
+        />
+        <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
