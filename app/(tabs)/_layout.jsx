@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
-import { Slot, Tabs } from "expo-router";
+import { Slot, Tabs, useSegments } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useTranslation } from "react-i18next";
 import {
   Icon,
   Label,
@@ -20,6 +21,14 @@ function getIosMajorVersion() {
 
 export default function TabsLayout() {
   const isTabBarVisible = useIsTabBarVisible();
+  const segments = useSegments();
+  const { t } = useTranslation();
+  const isNestedProfileRoute =
+    segments[0] === "(tabs)" &&
+    segments[1] === "profile" &&
+    segments[2] &&
+    segments[2] !== "index";
+  const shouldShowTabBar = isTabBarVisible && !isNestedProfileRoute;
 
   if (Platform.OS === "android") {
     return <Slot />;
@@ -35,7 +44,7 @@ export default function TabsLayout() {
           tabBarStyle: {
             backgroundColor: "#FFFFFF",
             borderTopColor: "rgba(17, 24, 39, 0.10)",
-            display: isTabBarVisible ? "flex" : "none",
+            display: shouldShowTabBar ? "flex" : "none",
           },
           tabBarLabelStyle: {
             fontSize: 11,
@@ -46,7 +55,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Home",
+            title: t("tabs.home"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "home" : "home-outline"}
@@ -59,7 +68,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="catalog"
           options={{
-            title: "Catalog",
+            title: t("tabs.catalog"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "grid" : "grid-outline"}
@@ -72,7 +81,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="cart"
           options={{
-            title: "Cart",
+            title: t("tabs.cart"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "bag" : "bag-outline"}
@@ -85,7 +94,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="favorites"
           options={{
-            title: "Favorites",
+            title: t("tabs.favorites"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "heart" : "heart-outline"}
@@ -98,7 +107,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: "Profile",
+            title: t("tabs.profile"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "person" : "person-outline"}
@@ -114,7 +123,7 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs
-      hidden={!isTabBarVisible}
+      hidden={!shouldShowTabBar}
       disableTransparentOnScrollEdge
       blurEffect="none"
       backgroundColor="#FFFFFF"
@@ -132,7 +141,7 @@ export default function TabsLayout() {
             selected: <VectorIcon family={Ionicons} name="home" />,
           }}
         />
-        <Label>Home</Label>
+        <Label>{t("tabs.home")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="catalog">
         <Icon
@@ -141,7 +150,7 @@ export default function TabsLayout() {
             selected: <VectorIcon family={Ionicons} name="grid" />,
           }}
         />
-        <Label>Catalog</Label>
+        <Label>{t("tabs.catalog")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cart">
         <Icon
@@ -150,7 +159,7 @@ export default function TabsLayout() {
             selected: <VectorIcon family={Ionicons} name="bag" />,
           }}
         />
-        <Label>Cart</Label>
+        <Label>{t("tabs.cart")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="favorites">
         <Icon
@@ -159,7 +168,7 @@ export default function TabsLayout() {
             selected: <VectorIcon family={Ionicons} name="heart" />,
           }}
         />
-        <Label>Favorites</Label>
+        <Label>{t("tabs.favorites")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon
@@ -168,7 +177,7 @@ export default function TabsLayout() {
             selected: <VectorIcon family={Ionicons} name="person" />,
           }}
         />
-        <Label>Profile</Label>
+        <Label>{t("tabs.profile")}</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

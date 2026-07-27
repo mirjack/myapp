@@ -11,8 +11,11 @@ export const nativeProfileStyles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 4,
     paddingTop: 8,
-    paddingBottom: 112,
+    paddingBottom: 24,
     backgroundColor: "#F6F6F7",
+  },
+  contentWithAndroidTabBar: {
+    paddingBottom: 112,
   },
   inlineLoadingRow: {
     marginHorizontal: 8,

@@ -17,14 +17,16 @@ export const DISABLE_ZOOM_SCRIPT = `
 true;
 `;
 
-export function buildBridgeScript(tokensString, nativePlatform) {
+export function buildBridgeScript(tokensString, nativePlatform, languageCode) {
   return `
 (function () {
   try {
     window.__NATIVE_APP__ = true;
     window.__NATIVE_PLATFORM__ = ${JSON.stringify(nativePlatform)};
+    window.__NATIVE_LANGUAGE__ = ${JSON.stringify(languageCode)};
     document.documentElement.dataset.nativeApp = 'true';
     document.documentElement.dataset.nativePlatform = ${JSON.stringify(nativePlatform)};
+    document.documentElement.lang = ${JSON.stringify(languageCode)};
 
     var nativeHeaderInsetStyleId = 'native-header-inset-style';
 
@@ -76,7 +78,28 @@ export function buildBridgeScript(tokensString, nativePlatform) {
       } catch (e) {}
     }
 
+    function applyNativeLanguage(nextLanguageCode) {
+      try {
+        if (!nextLanguageCode) return;
+        window.__NATIVE_LANGUAGE__ = nextLanguageCode;
+        document.documentElement.lang = nextLanguageCode;
+        try { window.localStorage.setItem('i18nextLng', nextLanguageCode); } catch (e) {}
+
+        if (window.i18next && typeof window.i18next.changeLanguage === 'function') {
+          window.i18next.changeLanguage(nextLanguageCode);
+        } else if (window.__APP_I18N__ && typeof window.__APP_I18N__.changeLanguage === 'function') {
+          window.__APP_I18N__.changeLanguage(nextLanguageCode);
+        }
+
+        window.dispatchEvent(new CustomEvent('native:language-change', {
+          detail: { language: nextLanguageCode }
+        }));
+      } catch (e) {}
+    }
+
+    window.__applyNativeLanguage = applyNativeLanguage;
     applyNativeAuthSession(nativeTokens);
+    applyNativeLanguage(${JSON.stringify(languageCode)});
 
     function postPendingAuthAction() {
       try {
@@ -144,6 +167,10 @@ export function buildBridgeScript(tokensString, nativePlatform) {
 
         if (payload.type === 'AUTH_SESSION' && payload.payload) {
           applyNativeAuthSession(payload.payload);
+        }
+
+        if (payload.type === 'LANGUAGE_CHANGE' && payload.payload && payload.payload.language) {
+          applyNativeLanguage(payload.payload.language);
         }
       } catch (e) {}
     };

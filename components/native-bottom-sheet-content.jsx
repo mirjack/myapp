@@ -110,6 +110,53 @@ function ContactInfoSheet({ payload }) {
   );
 }
 
+function LogoutConfirmSheet({ payload, onAction }) {
+  const isLoading = Boolean(payload?.isLoading);
+
+  return (
+    <View style={styles.supportDecisionSheetWrap}>
+      <Text style={styles.supportDecisionTitle}>
+        {payload?.title || "Logout"}
+      </Text>
+      <Text style={styles.supportDecisionDescription}>
+        {payload?.description || "Are you sure you want to log out?"}
+      </Text>
+
+      <View style={styles.supportDecisionActionStack}>
+        <Pressable
+          disabled={isLoading}
+          onPress={() => onAction?.("cancel_logout", null)}
+          style={[
+            styles.supportDecisionSecondaryButton,
+            isLoading ? styles.supportDecisionButtonDisabled : null,
+          ]}
+        >
+          <Text style={styles.supportDecisionSecondaryText}>
+            {payload?.secondaryLabel || "No, stay here"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          disabled={isLoading}
+          onPress={() => onAction?.("confirm_logout", null)}
+          style={isLoading ? styles.supportDecisionButtonDisabled : null}
+        >
+          <LinearGradient
+            colors={["#FE946E", "#FE946E"]}
+            style={styles.supportDecisionPrimaryButton}
+          >
+            <Text style={styles.supportDecisionPrimaryText}>
+              {isLoading
+                ? payload?.loadingLabel || "Logging out..."
+                : payload?.primaryLabel || "Yes, log out"}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function WalletInfoSheet({ payload }) {
   const amount = Number(payload?.amount ?? 0);
   const formattedValue = currencyFormatter.format(
@@ -1168,6 +1215,9 @@ export function renderSheetContent(sheet, onAction) {
   }
   if (sheet.sheetKey === "contact_info") {
     return <ContactInfoSheet payload={sheet.payload} />;
+  }
+  if (sheet.sheetKey === "logout_confirm") {
+    return <LogoutConfirmSheet payload={sheet.payload} onAction={onAction} />;
   }
   if (sheet.sheetKey === "wallet_info") {
     return <WalletInfoSheet payload={sheet.payload} />;

@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 import { LayoutAnimation, Platform, UIManager } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { getPendingAuthAction, getStoredAuthTokens, setPendingAuthAction } from "@/lib/auth-storage";
+import { applyAppLanguage } from "@/lib/i18n";
 import {
   addFavorite,
   adjustCartItemByProduct,
@@ -13,6 +15,7 @@ import {
 import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { BOTTOM_SHEET_ACTION_EVENT, BOTTOM_SHEET_CLOSE_EVENT, NATIVE_SHEET_CLOSE_MS, PRODUCT_SHEET_KEY, PRODUCT_SHEET_REQUEST_ID } from "./constants";
+import { buildBridgeScript } from "./scripts";
 import { parseTokensString } from "./utils";
 
 const isNewArchitectureEnabled = Boolean(global?.nativeFabricUIManager);
@@ -52,6 +55,7 @@ function extractFavoriteState(product) {
 
 export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openLogin, router }) {
   const { refs, state, setters } = core;
+  const { t } = useTranslation();
 
   const queuePendingAuthAction = useCallback((action) => {
     if (!action?.type || action.productId == null) return;
@@ -64,6 +68,24 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
     const payload = JSON.stringify(detail || {});
     refs.webViewRef.current.injectJavaScript(`(function(){try{window.dispatchEvent(new CustomEvent(${JSON.stringify(eventName)}, { detail: ${payload} }));}catch(e){}true;})();`);
   }, [refs.webViewRef]);
+
+  const syncWebLanguage = useCallback(async (nextLanguageCode) => {
+    const tokensString = await getStoredAuthTokens();
+    setters.setBridgeScript(buildBridgeScript(tokensString, Platform.OS, nextLanguageCode));
+    refs.webViewRef.current?.injectJavaScript(`
+      (function () {
+        try {
+          if (typeof window.__handleNativeMessage === "function") {
+            window.__handleNativeMessage(${JSON.stringify(JSON.stringify({
+              type: "LANGUAGE_CHANGE",
+              payload: { language: nextLanguageCode },
+            }))});
+          }
+        } catch (e) {}
+        true;
+      })();
+    `);
+  }, [refs.webViewRef, setters]);
 
   const flushPendingAuthAction = useCallback(async (tokens) => {
     if (!tokens?.access) return;
@@ -191,19 +213,18 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       requestId,
       sheetKey: "wallet_info",
       payload: {
-        title: "Cashback balance",
-        description: "Bonuses for your orders",
-        youHaveLabel: "You have",
-        conversionNote: "1 bonus = 1 sum",
-        howToSpendTitle: "How to spend bonuses",
-        howToSpendDescription:
-          "Apply bonuses during checkout and pay part of your order with them.",
+        title: t("wallet.title"),
+        description: t("wallet.description"),
+        youHaveLabel: t("wallet.youHave"),
+        conversionNote: t("wallet.conversionNote"),
+        howToSpendTitle: t("wallet.howToSpendTitle"),
+        howToSpendDescription: t("wallet.howToSpendDescription"),
         amount: Number(state.walletBalance || 0),
       },
       options: {},
     });
     setters.setIsNativeSheetVisible(true);
-  }, [refs, setters, state.walletBalance]);
+  }, [refs, setters, state.walletBalance, t]);
 
   const closeNativeSheet = useCallback(({ shouldNotify = true } = {}) => {
     setters.setIsNativeSheetVisible(false);
@@ -240,6 +261,18 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
   const handleNativeSheetAction = useCallback(async (actionId, payload) => {
     if (!state.nativeSheet?.requestId || !actionId) return;
     const meta = refs.nativeSheetMetaRef.current.get(state.nativeSheet.requestId);
+    if (actionId === "select_language" && payload?.code) {
+      const nextLanguageCode = await applyAppLanguage(String(payload.code));
+      setters.setLanguageCode(nextLanguageCode);
+      await syncWebLanguage(nextLanguageCode);
+      emitToWeb(BOTTOM_SHEET_ACTION_EVENT, {
+        requestId: state.nativeSheet.requestId,
+        actionId,
+        payload: { code: nextLanguageCode },
+      });
+      closeNativeSheet({ shouldNotify: false });
+      return;
+    }
 
     if (meta?.source === PRODUCT_SHEET_KEY) {
       const productId = state.nativeSheet?.payload?.productId;
@@ -353,7 +386,7 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
     if (state.nativeSheet.sheetKey === "catalog_filter" && actionId === "apply") {
       closeNativeSheet({ shouldNotify: false });
     }
-  }, [closeNativeSheet, emitToWeb, goNativeTab, navigateWebPath, openLogin, queuePendingAuthAction, refs, setters, state.nativeSheet, updateNativeProductSheetPayload]);
+  }, [closeNativeSheet, emitToWeb, goNativeTab, navigateWebPath, openLogin, queuePendingAuthAction, refs, router, setters, state.nativeSheet, syncWebLanguage, updateNativeProductSheetPayload]);
 
   return {
     closeNativeSheet,

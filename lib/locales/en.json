@@ -1,0 +1,71 @@
+{
+  "common": {
+    "login": "Login",
+    "back": "Back",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "tabs": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "cart": "Cart",
+    "favorites": "Favorites",
+    "profile": "Profile"
+  },
+  "hybrid": {
+    "searchPlaceholder": "Search tickets by number, phone number",
+    "authRequiredTitle": "Authorize",
+    "authRequiredDescription": "To open this section, please sign in to your account.",
+    "authRequiredButton": "Login"
+  },
+  "profile": {
+    "details": "My details",
+    "orders": "Order history",
+    "addresses": "Delivery addresses",
+    "support": "Support",
+    "language": "Language",
+    "contact": "Contact",
+    "logout": "Logout",
+    "chooseLanguage": "Choose language",
+    "chooseLanguageDescription": "Select the language for the app and webview.",
+    "contactTitle": "Contact",
+    "contactDescription": "If you have any questions, contact us.",
+    "authorizeTitle": "Authorize",
+    "authorizeDescription": "To open profile, please sign in.",
+    "configure": "Configure",
+    "logoutConfirmTitle": "Log out",
+    "logoutConfirmDescription": "Are you sure you want to log out of your account?",
+    "logoutConfirmPrimary": "Yes, log out",
+    "logoutConfirmSecondary": "No, stay here",
+    "logoutConfirmLoading": "Logging out..."
+  },
+  "profileDetails": {
+    "title": "My details",
+    "loadErrorAuth": "Please sign in to view your details.",
+    "loadError": "Failed to load profile.",
+    "saveErrorAuth": "Please sign in again.",
+    "saveError": "Failed to update profile.",
+    "loading": "Loading your profile...",
+    "pickPhoto": "Choose photo",
+    "firstName": "First name",
+    "firstNamePlaceholder": "Enter your first name",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Enter your last name",
+    "phone": "Phone",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "languageNames": {
+    "ru": "Russian",
+    "uz": "O'zbekcha",
+    "en": "English"
+  },
+  "wallet": {
+    "title": "Cashback balance",
+    "description": "Bonuses for your orders",
+    "youHave": "YOU HAVE",
+    "conversionNote": "1 bonus = 1 sum",
+    "howToSpendTitle": "How to spend bonuses",
+    "howToSpendDescription": "Apply bonuses during checkout and pay part of your order with them."
+  }
+}

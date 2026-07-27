@@ -1,0 +1,71 @@
+{
+  "common": {
+    "login": "Kirish",
+    "back": "Ortga",
+    "save": "Saqlash",
+    "saving": "Saqlanmoqda..."
+  },
+  "tabs": {
+    "home": "Bosh sahifa",
+    "catalog": "Katalog",
+    "cart": "Savat",
+    "favorites": "Saralanganlar",
+    "profile": "Profil"
+  },
+  "hybrid": {
+    "searchPlaceholder": "Chipta raqami yoki telefon raqami bo'yicha qidirish",
+    "authRequiredTitle": "Tizimga kiring",
+    "authRequiredDescription": "Bu bo'limni ochish uchun akkauntingizga kiring.",
+    "authRequiredButton": "Kirish"
+  },
+  "profile": {
+    "details": "Mening ma'lumotlarim",
+    "orders": "Buyurtmalar tarixi",
+    "addresses": "Yetkazib berish manzillari",
+    "support": "Yordam",
+    "language": "Til",
+    "contact": "Kontaktlar",
+    "logout": "Chiqish",
+    "chooseLanguage": "Tilni tanlang",
+    "chooseLanguageDescription": "Ilova va webview uchun tilni tanlang.",
+    "contactTitle": "Kontaktlar",
+    "contactDescription": "Savollaringiz bo'lsa, biz bilan bog'laning.",
+    "authorizeTitle": "Tizimga kiring",
+    "authorizeDescription": "Profilni ochish uchun akkauntingizga kiring.",
+    "configure": "Sozlash",
+    "logoutConfirmTitle": "Akkauntdan chiqish",
+    "logoutConfirmDescription": "Rostdan ham akkauntingizdan chiqmoqchimisiz?",
+    "logoutConfirmPrimary": "Ha, chiqaman",
+    "logoutConfirmSecondary": "Yo'q, qolaman",
+    "logoutConfirmLoading": "Chiqilmoqda..."
+  },
+  "profileDetails": {
+    "title": "Mening ma'lumotlarim",
+    "loadErrorAuth": "Ma'lumotlaringizni ko'rish uchun tizimga kiring.",
+    "loadError": "Profilni yuklab bo'lmadi.",
+    "saveErrorAuth": "Iltimos, qayta tizimga kiring.",
+    "saveError": "Profilni yangilab bo'lmadi.",
+    "loading": "Profilingiz yuklanmoqda...",
+    "pickPhoto": "Rasm tanlash",
+    "firstName": "Ism",
+    "firstNamePlaceholder": "Ismingizni kiriting",
+    "lastName": "Familiya",
+    "lastNamePlaceholder": "Familiyangizni kiriting",
+    "phone": "Telefon",
+    "save": "Saqlash",
+    "saving": "Saqlanmoqda..."
+  },
+  "languageNames": {
+    "ru": "Русский",
+    "uz": "O'zbekcha",
+    "en": "English"
+  },
+  "wallet": {
+    "title": "Keshbek balansi",
+    "description": "Buyurtmalaringiz uchun bonuslar",
+    "youHave": "SIZDA BOR",
+    "conversionNote": "1 bonus = 1 so'm",
+    "howToSpendTitle": "Bonuslarni qanday ishlatish mumkin",
+    "howToSpendDescription": "Checkout vaqtida bonuslarni qo'llab, buyurtmaning bir qismini ular bilan to'lang."
+  }
+}

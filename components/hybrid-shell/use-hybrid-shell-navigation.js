@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { BackHandler, Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
 import { openBrowserAsync } from "expo-web-browser";
 
-import { isTabBarVisiblePath, setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
+import {
+  getCurrentWebPath,
+  isTabBarVisiblePath,
+  setCurrentWebPath,
+  setTabBarForcedHidden,
+} from "@/lib/tab-bar-visibility";
 import { isWebViewInternalUrl } from "@/lib/runtime-config";
 import { getStoredAuthTokens } from "@/lib/auth-storage";
 import {
@@ -25,7 +30,11 @@ import {
   ROUTE_GUARD_PATHS,
 } from "./constants";
 import { getPathFromUrl, isTabActive, normalizeToTabPath, startsWithAny, toNumber } from "./utils";
-import { goNativeTabImpl, goToNativeLoginScreenImpl, openNativeAuthGuardSheetImpl } from "./navigation-helpers";
+import {
+  goNativeTabImpl,
+  goToNativeLoginScreenImpl,
+  openNativeAuthGuardSheetImpl,
+} from "./navigation-helpers";
 
 export function useHybridShellNavigation({
   routePath,
@@ -35,6 +44,8 @@ export function useHybridShellNavigation({
   interceptSupportChatLinks = true,
 }) {
   const { refs, state, setters } = core;
+  const initialRoutePathRef = useRef(state.currentPath);
+  const lastFocusSyncedPathRef = useRef(null);
   const fullscreenProgress = useSharedValue(0);
   const isChromeFullscreen = state.isWebFullscreen && !state.isNativeSheetVisible;
 
@@ -232,6 +243,25 @@ export function useHybridShellNavigation({
     }, [handleBackPress]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      const sharedPath = getCurrentWebPath();
+      const targetTabPath = normalizeToTabPath(routePath || "/");
+      if (normalizeToTabPath(sharedPath) !== targetTabPath) {
+        lastFocusSyncedPathRef.current = null;
+        return undefined;
+      }
+      if (lastFocusSyncedPathRef.current === sharedPath) return undefined;
+
+      lastFocusSyncedPathRef.current = sharedPath;
+      navigateWebPath(sharedPath);
+
+      return () => {
+        lastFocusSyncedPathRef.current = null;
+      };
+    }, [navigateWebPath, routePath]),
+  );
+
   useEffect(() => {
     if (Platform.OS !== "ios") return;
     setTabBarForcedHidden(isChromeFullscreen || shouldShowInlineAuthGuard);
@@ -255,6 +285,13 @@ export function useHybridShellNavigation({
   useEffect(() => {
     if (!state.isAuthLoaded) return;
     const targetPath = normalizeToTabPath(routePath || "/");
+    const sharedPath = getCurrentWebPath();
+    const desiredPath =
+      normalizeToTabPath(sharedPath) === targetPath
+        ? sharedPath
+        : normalizeToTabPath(initialRoutePathRef.current) === targetPath
+        ? initialRoutePathRef.current
+        : routePath;
 
     if (!state.isLoggedIn && ROUTE_GUARD_PATHS.has(targetPath)) {
       if (Platform.OS === "android") {
@@ -263,7 +300,7 @@ export function useHybridShellNavigation({
       return;
     }
 
-    navigateWebPath(routePath);
+    navigateWebPath(desiredPath);
   }, [
     navigateWebPath,
     openNativeAuthGuardSheet,

@@ -7,12 +7,21 @@ import { BASE_URL, ROUTE_GUARD_PATHS } from "./constants";
 import { authPromptDescription, normalizeToTabPath } from "./utils";
 
 const TAB_NATIVE_ROUTES = {
-  home: "/(tabs)",
-  catalog: "/(tabs)/catalog",
-  cart: "/(tabs)/cart",
-  favorites: "/(tabs)/favorites",
-  profile: "/(tabs)/profile",
+  home: "/",
+  catalog: "/catalog",
+  cart: "/cart",
+  favorites: "/favorites",
+  profile: "/profile",
 };
+
+export function toNativeTabsRoute(pathname) {
+  const normalized = normalizeToTabPath(pathname || "/");
+  if (normalized === "/catalog") return TAB_NATIVE_ROUTES.catalog;
+  if (normalized === "/cart") return TAB_NATIVE_ROUTES.cart;
+  if (normalized === "/favorites") return TAB_NATIVE_ROUTES.favorites;
+  if (normalized === "/profile") return TAB_NATIVE_ROUTES.profile;
+  return TAB_NATIVE_ROUTES.home;
+}
 
 export function openNativeAuthGuardSheetImpl({ refs, setters, navigateWebPath, targetPath }) {
   if (refs.nativeGuardOpenRef.current) return;
@@ -55,7 +64,7 @@ export function goNativeTabImpl({ tabKey, isLoggedIn, navigateWebPath, openNativ
       return;
     }
     if (tabKey === "profile") {
-      router.replace("/(tabs)/profile");
+      router.navigate(TAB_NATIVE_ROUTES.profile);
       return;
     }
     const nextWebPath = tabKey === "home" ? "/" : `/${tabKey}`;
@@ -64,7 +73,7 @@ export function goNativeTabImpl({ tabKey, isLoggedIn, navigateWebPath, openNativ
   }
 
   const nextRoute = TAB_NATIVE_ROUTES[tabKey];
-  if (nextRoute) router.replace(nextRoute);
+  if (nextRoute) router.navigate(nextRoute);
 }
 
 export function goToNativeLoginScreenImpl({ refs, rootNavigationState, router, targetPath }) {

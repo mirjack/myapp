@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Image, Platform, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRootNavigationState, useRouter } from "expo-router";
@@ -11,12 +12,13 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { NativeStoriesViewer } from "@/components/native-stories-viewer";
 import { toWebViewUrl } from "@/lib/runtime-config";
+import { getCurrentWebPath } from "@/lib/tab-bar-visibility";
 
 import { ANDROID_TAB_WRAP_HEIGHT, BASE_URL } from "./constants";
 import { AndroidTabBar } from "./android-tab-bar";
 import { DISABLE_ZOOM_SCRIPT } from "./scripts";
 import { styles } from "./styles";
-import { authPromptDescription, normalizeToTabPath } from "./utils";
+import { normalizeToTabPath } from "./utils";
 import { useHybridShellState } from "./use-hybrid-shell-state";
 import { useHybridShellNavigation } from "./use-hybrid-shell-navigation";
 import { useHybridShellSheets } from "./use-hybrid-shell-sheets";
@@ -25,11 +27,20 @@ import { useHybridShellMessageHandler } from "./use-hybrid-shell-message-handler
 export function HybridShell({
   routePath = "/",
   interceptSupportChatLinks = true,
+  preferSharedPath = true,
 }) {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const insets = useSafeAreaInsets();
-  const core = useHybridShellState(routePath);
+  const { t } = useTranslation();
+  const initialPath = useMemo(() => {
+    const sharedPath = getCurrentWebPath();
+    return preferSharedPath &&
+      normalizeToTabPath(sharedPath) === normalizeToTabPath(routePath)
+      ? sharedPath
+      : routePath;
+  }, [preferSharedPath, routePath]);
+  const core = useHybridShellState(initialPath);
 
   const navigation = useHybridShellNavigation({
     interceptSupportChatLinks,
@@ -60,7 +71,7 @@ export function HybridShell({
     shouldShowInlineAuthGuard: navigation.shouldShowInlineAuthGuard,
   });
 
-  const initialRouteUrl = useMemo(() => toWebViewUrl(routePath), [routePath]);
+  const initialRouteUrl = useMemo(() => toWebViewUrl(initialPath), [initialPath]);
   const isNativeSheetVisible = core.state.isNativeSheetVisible;
   const fullscreenProgress = navigation.fullscreenProgress;
   const activeTabPath = normalizeToTabPath(core.state.currentPath);
@@ -168,7 +179,7 @@ export function HybridShell({
                   onPress={navigation.openLogin}
                   style={styles.loginButton}
                 >
-                  <Text style={styles.loginButtonText}>Login</Text>
+                  <Text style={styles.loginButtonText}>{t("common.login")}</Text>
                 </Pressable>
               )}
             </View>
@@ -193,7 +204,7 @@ export function HybridShell({
                   </Svg>
                 </View>
                 <Text style={styles.searchPlaceholder}>
-                  Search tickets by number, phone number
+                  {t("hybrid.searchPlaceholder")}
                 </Text>
               </Pressable>
             )}
@@ -224,6 +235,10 @@ export function HybridShell({
               isUserRoute ? styles.userWebview : null,
             ]}
             originWhitelist={["http://*", "https://*", "about:blank"]}
+            automaticallyAdjustContentInsets={false}
+            contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
+            contentInsetAdjustmentBehavior="never"
+            scrollIndicatorInsets={{ top: 0, left: 0, bottom: 0, right: 0 }}
             pullToRefreshEnabled
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
@@ -260,16 +275,18 @@ export function HybridShell({
                   style={styles.inlineGuardImage}
                   resizeMode="contain"
                 />
-                <Text style={styles.inlineGuardTitle}>Авторизуйтесь</Text>
+                <Text style={styles.inlineGuardTitle}>
+                  {t("hybrid.authRequiredTitle")}
+                </Text>
                 <Text style={styles.inlineGuardText}>
-                  {authPromptDescription(routePath || "/")}
+                  {t("hybrid.authRequiredDescription")}
                 </Text>
                 <Pressable
                   style={styles.inlineGuardButton}
                   onPress={navigation.openLogin}
                 >
                   <Text style={styles.inlineGuardButtonText}>
-                    Авторизоваться
+                    {t("hybrid.authRequiredButton")}
                   </Text>
                 </Pressable>
               </View>

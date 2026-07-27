@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import {
   fetchCurrentUserProfile,
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
 };
 
 export function ProfileDetailsScreen() {
+  const { t } = useTranslation();
   const [form, setForm] = useState(EMPTY_FORM);
   const [initialForm, setInitialForm] = useState(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +44,11 @@ export function ProfileDetailsScreen() {
       })
       .catch((loadError) => {
         if (!isMounted) return;
-        setError(loadError?.status === 401 ? "Please sign in to view your details." : "Failed to load profile.");
+        setError(
+          loadError?.status === 401
+            ? t("profileDetails.loadErrorAuth")
+            : t("profileDetails.loadError"),
+        );
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -51,15 +57,21 @@ export function ProfileDetailsScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
-  const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initialForm), [form, initialForm]);
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(initialForm),
+    [form, initialForm],
+  );
 
   const setField = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const initials = `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`.trim().toUpperCase() || "U";
+  const initials =
+    `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`
+      .trim()
+      .toUpperCase() || "U";
 
   const handleSave = async () => {
     if (!isDirty || isSaving) return;
@@ -71,50 +83,65 @@ export function ProfileDetailsScreen() {
       setForm(saved);
       setInitialForm(saved);
     } catch (saveError) {
-      setError(saveError?.status === 401 ? "Please sign in again." : "Failed to update profile.");
+      setError(
+        saveError?.status === 401
+          ? t("profileDetails.saveErrorAuth")
+          : t("profileDetails.saveError"),
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <NativeAccountScreenShell title="My details">
+    <NativeAccountScreenShell title={t("profileDetails.title")}>
       {isLoading ? (
         <View style={styles.centeredState}>
           <ActivityIndicator color="#FE946E" size="small" />
-          <Text style={styles.stateText}>Loading your profile...</Text>
+          <Text style={styles.stateText}>{t("profileDetails.loading")}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.profileHero}>
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
-            <Text style={styles.photoPickerText}>Выбрать фотографию</Text>
+            <Text style={styles.photoPickerText}>
+              {t("profileDetails.pickPhoto")}
+            </Text>
           </View>
           <View style={styles.profileForm}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Имя</Text>
+              <Text style={styles.inputLabel}>
+                {t("profileDetails.firstName")}
+              </Text>
               <TextInput
                 onChangeText={(value) => setField("firstName", value)}
-                placeholder="Введите ваше имя"
+                placeholder={t("profileDetails.firstNamePlaceholder")}
                 placeholderTextColor="#9A9AA1"
                 style={styles.input}
                 value={form.firstName}
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Фамилия</Text>
+              <Text style={styles.inputLabel}>
+                {t("profileDetails.lastName")}
+              </Text>
               <TextInput
                 onChangeText={(value) => setField("lastName", value)}
-                placeholder="Введите вашу фамилию"
+                placeholder={t("profileDetails.lastNamePlaceholder")}
                 placeholderTextColor="#9A9AA1"
                 style={styles.input}
                 value={form.lastName}
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Телефон</Text>
+              <Text style={styles.inputLabel}>
+                {t("profileDetails.phone")}
+              </Text>
               <TextInput
                 editable={false}
                 keyboardType="phone-pad"
@@ -128,9 +155,15 @@ export function ProfileDetailsScreen() {
             <Pressable
               disabled={!isDirty || isSaving}
               onPress={handleSave}
-              style={[styles.primaryButton, styles.profileFooterAction, (!isDirty || isSaving) && styles.primaryButtonDisabled]}
+              style={[
+                styles.primaryButton,
+                styles.profileFooterAction,
+                (!isDirty || isSaving) && styles.primaryButtonDisabled,
+              ]}
             >
-              <Text style={styles.primaryButtonText}>{isSaving ? "Saving..." : "Save"}</Text>
+              <Text style={styles.primaryButtonText}>
+                {isSaving ? t("profileDetails.saving") : t("profileDetails.save")}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

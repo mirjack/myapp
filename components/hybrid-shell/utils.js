@@ -23,7 +23,7 @@ export function authPromptDescription(path) {
 export function normalizeToTabPath(path) {
   if (!path || path === "/home") return "/";
   if (path.startsWith("/catalog")) return "/catalog";
-  if (path.startsWith("/cart")) return "/cart";
+  if (path.startsWith("/cart") || path.startsWith("/checkout")) return "/cart";
   if (path.startsWith("/favorites")) return "/favorites";
   if (path.startsWith("/profile")) return "/profile";
   return "/";

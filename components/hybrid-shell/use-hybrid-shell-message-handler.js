@@ -5,10 +5,12 @@ import { openBrowserAsync } from "expo-web-browser";
 
 import {
   clearStoredAuthTokens,
+  getStoredAuthTokens,
   setPendingAuthAction,
   setStoredAuthTokens,
 } from "@/lib/auth-storage";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
+import { applyAppLanguage } from "@/lib/i18n";
 import { setCurrentWebPath, setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 import {
   buildNativeAccountRoute,
@@ -29,6 +31,7 @@ import {
   toNumber,
 } from "./utils";
 import { buildBridgeScript } from "./scripts";
+import { toNativeTabsRoute } from "./navigation-helpers";
 
 export function useHybridShellMessageHandler({
   core,
@@ -77,12 +80,30 @@ export function useHybridShellMessageHandler({
           ? { type: "AUTH_SESSION", payload: nextTokens }
           : { type: "AUTH_LOGOUT" };
 
-        setters.setBridgeScript(buildBridgeScript(tokensString, Platform.OS));
+        setters.setBridgeScript(buildBridgeScript(tokensString, Platform.OS, state.languageCode));
         refs.webViewRef.current?.injectJavaScript(`
           (function () {
             try {
               if (typeof window.__handleNativeMessage === "function") {
                 window.__handleNativeMessage(${JSON.stringify(JSON.stringify(nativeMessage))});
+              }
+            } catch (e) {}
+            true;
+          })();
+        `);
+      };
+
+      const syncWebLanguage = async (nextLanguageCode) => {
+        const tokensString = await getStoredAuthTokens();
+        setters.setBridgeScript(buildBridgeScript(tokensString, Platform.OS, nextLanguageCode));
+        refs.webViewRef.current?.injectJavaScript(`
+          (function () {
+            try {
+              if (typeof window.__handleNativeMessage === "function") {
+                window.__handleNativeMessage(${JSON.stringify(JSON.stringify({
+                  type: "LANGUAGE_CHANGE",
+                  payload: { language: nextLanguageCode },
+                }))});
               }
             } catch (e) {}
             true;
@@ -148,6 +169,12 @@ export function useHybridShellMessageHandler({
         return;
       }
 
+      if (message?.type === "SET_TAB_BAR_HIDDEN") {
+        const hidden = Boolean(message?.payload?.hidden);
+        setTabBarForcedHidden(hidden || shouldShowInlineAuthGuard);
+        return;
+      }
+
       if (message?.type === "pendingAuthAction") {
         if (!message?.action) {
           refs.pendingAuthActionRef.current = null;
@@ -177,6 +204,18 @@ export function useHybridShellMessageHandler({
             applyPostLoginTransition(tokens);
           })().catch(() => {});
         }
+        return;
+      }
+
+      if (message?.type === "SET_LANGUAGE") {
+        const requestedLanguageCode = message?.payload?.language;
+        if (!requestedLanguageCode) return;
+        applyAppLanguage(requestedLanguageCode)
+          .then((nextLanguageCode) => {
+            setters.setLanguageCode(nextLanguageCode);
+            syncWebLanguage(nextLanguageCode).catch(() => {});
+          })
+          .catch(() => {});
         return;
       }
 
@@ -244,9 +283,33 @@ export function useHybridShellMessageHandler({
         return;
       }
 
+      if (message?.type === "OPEN_TAB_PATH") {
+        const path = message?.payload?.path;
+        if (typeof path !== "string" || !path.startsWith("/")) return;
+        applyNativeInsetForPath(path);
+        setCurrentWebPath(path);
+        router.navigate(toNativeTabsRoute(path));
+        return;
+      }
+
       if (message?.type === "pathChange") {
         const path = message?.path;
         if (typeof path === "string" && path.startsWith("/")) {
+          if (
+            Platform.OS === "ios" &&
+            path.startsWith("/checkout") &&
+            routePath !== "/checkout"
+          ) {
+            router.push("/checkout");
+            requestAnimationFrame(() => {
+              navigateWebPath("/cart");
+              setters.setCurrentPath("/cart");
+              setCurrentWebPath("/cart");
+            });
+            return;
+          }
+          const nextTabPath = normalizeToTabPath(path);
+          const currentTabPath = normalizeToTabPath(routePath || "/");
           if (isNativeAccountPath(path)) {
             router.push(buildNativeAccountRoute(path, message?.state));
             setters.setCurrentPath("/profile");
@@ -268,8 +331,16 @@ export function useHybridShellMessageHandler({
             });
             return;
           }
+          if (nextTabPath !== currentTabPath) {
+            applyNativeInsetForPath(path);
+            setters.setCurrentPath(path);
+            setCurrentWebPath(path);
+            router.navigate(toNativeTabsRoute(path));
+            return;
+          }
           applyNativeInsetForPath(path);
           setters.setCurrentPath(path);
+          setCurrentWebPath(path);
         }
       }
     },
@@ -285,6 +356,7 @@ export function useHybridShellMessageHandler({
       routePath,
       setters,
       shouldShowInlineAuthGuard,
+      state.languageCode,
       state.nativeSheet?.requestId,
       state.currentPath,
     ],

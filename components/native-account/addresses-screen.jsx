@@ -32,6 +32,7 @@ import {
   setNativeDefaultAddress,
 } from "@/lib/native-account-api";
 import { onSubmitAddress } from "@/lib/address-submit-service";
+import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { AddressBottomSheet } from "@/components/native-account/address/address-bottom-sheet";
 import { AddressDetailsForm } from "@/components/native-account/address/address-details-form";
@@ -280,9 +281,24 @@ export function AddressesScreen() {
       return true;
     }
 
+    if (router.canGoBack()) {
+      router.back();
+      return true;
+    }
+
     router.replace("/(tabs)/profile");
     return true;
   }, [isExpanded, mode, resetComposer, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setTabBarForcedHidden(true);
+
+      return () => {
+        setTabBarForcedHidden(false);
+      };
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {

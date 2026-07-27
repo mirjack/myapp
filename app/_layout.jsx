@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import "@/lib/i18n";
 
 // Custom themani yaratamiz - DefaultTheme'dan meros olib
 export const AppTheme = {
@@ -31,6 +32,16 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="account"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            gestureDirection: "horizontal",
+          }}
+        />
+        <Stack.Screen
           name="onboarding/phone"
           options={{ headerShown: false }}
         />
@@ -45,6 +56,16 @@ export default function RootLayout() {
         <Stack.Screen
           name="loyalty-info"
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="checkout"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            gestureDirection: "horizontal",
+          }}
         />
         <Stack.Screen
           name="modal"

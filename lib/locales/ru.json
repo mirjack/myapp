@@ -1,0 +1,71 @@
+{
+  "common": {
+    "login": "Войти",
+    "back": "Назад",
+    "save": "Сохранить",
+    "saving": "Сохранение..."
+  },
+  "tabs": {
+    "home": "Главная",
+    "catalog": "Каталог",
+    "cart": "Корзина",
+    "favorites": "Избранное",
+    "profile": "Профиль"
+  },
+  "hybrid": {
+    "searchPlaceholder": "Искать билеты по номеру, номеру телефона",
+    "authRequiredTitle": "Авторизуйтесь",
+    "authRequiredDescription": "Чтобы открыть этот раздел, пожалуйста, войдите в аккаунт.",
+    "authRequiredButton": "Авторизоваться"
+  },
+  "profile": {
+    "details": "Мои данные",
+    "orders": "История заказов",
+    "addresses": "Адреса доставки",
+    "support": "Поддержка",
+    "language": "Язык",
+    "contact": "Контакты",
+    "logout": "Выйти",
+    "chooseLanguage": "Выберите язык",
+    "chooseLanguageDescription": "Выберите язык для приложения и webview.",
+    "contactTitle": "Контакты",
+    "contactDescription": "Если у вас есть вопросы, свяжитесь с нами.",
+    "authorizeTitle": "Авторизуйтесь",
+    "authorizeDescription": "Чтобы открыть профиль, пожалуйста, войдите.",
+    "configure": "Настроить",
+    "logoutConfirmTitle": "Выйти из аккаунта",
+    "logoutConfirmDescription": "Вы уверены, что хотите выйти из аккаунта?",
+    "logoutConfirmPrimary": "Да, выйти",
+    "logoutConfirmSecondary": "Нет, остаться",
+    "logoutConfirmLoading": "Выход..."
+  },
+  "profileDetails": {
+    "title": "Мои данные",
+    "loadErrorAuth": "Пожалуйста, войдите, чтобы посмотреть свои данные.",
+    "loadError": "Не удалось загрузить профиль.",
+    "saveErrorAuth": "Пожалуйста, войдите снова.",
+    "saveError": "Не удалось обновить профиль.",
+    "loading": "Загружаем ваш профиль...",
+    "pickPhoto": "Выбрать фотографию",
+    "firstName": "Имя",
+    "firstNamePlaceholder": "Введите ваше имя",
+    "lastName": "Фамилия",
+    "lastNamePlaceholder": "Введите вашу фамилию",
+    "phone": "Телефон",
+    "save": "Сохранить",
+    "saving": "Сохранение..."
+  },
+  "languageNames": {
+    "ru": "Русский",
+    "uz": "O'zbekcha",
+    "en": "English"
+  },
+  "wallet": {
+    "title": "Баланс кешбэка",
+    "description": "Бонусы за ваши заказы",
+    "youHave": "У ВАС ЕСТЬ",
+    "conversionNote": "1 бонус = 1 сум",
+    "howToSpendTitle": "Как потратить бонусы",
+    "howToSpendDescription": "Во время оформления заказа примените бонусы и оплатите ими часть покупки."
+  }
+}

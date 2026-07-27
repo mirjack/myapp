@@ -29,14 +29,14 @@ export const HEADER_VISIBLE_PATHS = [
 ];
 
 export const ANDROID_TAB_ITEMS = [
-  { key: "home", label: "Home", path: "/" },
-  { key: "catalog", label: "Catalog", path: "/catalog" },
-  { key: "cart", label: "Cart", path: "/cart" },
+  { key: "home", labelKey: "tabs.home", path: "/" },
+  { key: "catalog", labelKey: "tabs.catalog", path: "/catalog" },
+  { key: "cart", labelKey: "tabs.cart", path: "/cart", match: ["/checkout"] },
   {
     key: "favorites",
-    label: "Favorites",
+    labelKey: "tabs.favorites",
     path: "/favorites",
     match: ["/favorite"],
   },
-  { key: "profile", label: "Profile", path: "/profile" },
+  { key: "profile", labelKey: "tabs.profile", path: "/profile" },
 ];

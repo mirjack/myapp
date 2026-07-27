@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -23,6 +24,7 @@ export function AndroidTabBar({
   cartCount = 0,
   onTabPress,
 }) {
+  const { t } = useTranslation();
   const [androidTabBarWidth, setAndroidTabBarWidth] = useState(0);
   const initialTabIndex = getTabIndex(lastActiveAndroidTabKey);
   const activeTabIndexAnim = useSharedValue(initialTabIndex);
@@ -62,7 +64,7 @@ export function AndroidTabBar({
         {ANDROID_TAB_ITEMS.map((tab) => (
           <AndroidTabButton
             key={tab.key}
-            tab={tab}
+            tab={{ ...tab, label: t(tab.labelKey) }}
             isActive={tab.key === activeTabKey}
             cartCount={Number(cartCount || 0)}
             onPress={() => onTabPress?.(tab.key)}

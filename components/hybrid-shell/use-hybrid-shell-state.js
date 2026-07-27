@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 
 import { getStoredAuthTokens } from "@/lib/auth-storage";
 import { getAuthStateCache, setAuthStateCache } from "@/lib/auth-guard-bridge";
+import { getStoredLanguageCode } from "@/lib/app-preferences";
+import { detectDeviceLanguageCode } from "@/lib/language";
 import { prefetchCurrentUserProfile } from "@/lib/native-account-api";
 import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
@@ -30,7 +32,10 @@ export function useHybridShellState(initialPath = "/") {
   const [currentPath, setCurrentPath] = useState(() => normalizeInitialPath(initialPath));
   const [canGoBack, setCanGoBack] = useState(false);
   const [isWebReady, setIsWebReady] = useState(false);
-  const [bridgeScript, setBridgeScript] = useState(() => buildBridgeScript(null, Platform.OS));
+  const [languageCode, setLanguageCode] = useState(() => detectDeviceLanguageCode());
+  const [bridgeScript, setBridgeScript] = useState(() =>
+    buildBridgeScript(null, Platform.OS, detectDeviceLanguageCode()),
+  );
   const [isAuthLoaded, setIsAuthLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getAuthStateCache());
   const [walletBalance, setWalletBalance] = useState(cachedHeader.walletBalance);
@@ -46,10 +51,11 @@ export function useHybridShellState(initialPath = "/") {
 
   useEffect(() => {
     let mounted = true;
-    getStoredAuthTokens().then((tokensString) => {
+    Promise.all([getStoredAuthTokens(), getStoredLanguageCode()]).then(([tokensString, storedLanguageCode]) => {
       if (!mounted) return;
       const loggedIn = Boolean(tokensString);
-      setBridgeScript(buildBridgeScript(tokensString, Platform.OS));
+      setLanguageCode(storedLanguageCode);
+      setBridgeScript(buildBridgeScript(tokensString, Platform.OS, storedLanguageCode));
       setIsLoggedIn(loggedIn);
       setIsAuthLoaded(true);
       setAuthStateCache(loggedIn);
@@ -96,6 +102,7 @@ export function useHybridShellState(initialPath = "/") {
       canGoBack,
       cartCount,
       currentPath,
+      languageCode,
       isLoggedIn,
       isAuthLoaded,
       isNativeSheetVisible,
@@ -115,6 +122,7 @@ export function useHybridShellState(initialPath = "/") {
       setCartCount,
       setCurrentPath,
       setCurrentWebReady: setIsWebReady,
+      setLanguageCode,
       setIsLoggedIn,
       setIsNativeSheetVisible,
       setIsWebFullscreen,

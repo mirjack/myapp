@@ -1,12 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -31,26 +25,11 @@ import { setCurrentWebPath } from "@/lib/tab-bar-visibility";
 import { getHeaderCache, updateHeaderCache } from "@/components/hybrid-shell/header-cache";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { AndroidTabBar } from "@/components/hybrid-shell/android-tab-bar";
+import { applyAppLanguage } from "@/lib/i18n";
 import { fetchCurrentUserProfile } from "@/lib/native-account-api";
-import { getStoredLanguageCode, setStoredLanguageCode } from "@/lib/app-preferences";
+import { getStoredLanguageCode } from "@/lib/app-preferences";
 
 import { nativeProfileStyles as styles } from "./native-profile.styles";
-
-const MENU_ITEMS = [
-  { key: "details", label: "My details", icon: "settings-outline", route: "/(tabs)/profile/me" },
-  { key: "orders", label: "Order history", icon: "bag-outline", route: "/(tabs)/profile/orders" },
-  { key: "addresses", label: "Delivery addresses", icon: "location-outline", route: "/(tabs)/profile/addresses" },
-  { key: "support", label: "Support", icon: "chatbubble-ellipses-outline", route: "/chat" },
-  { key: "language", label: "Language", icon: "language-outline", action: "language", hasValue: true },
-  { key: "contact", label: "Contact", icon: "mail-outline", action: "contact" },
-  { key: "logout", label: "Logout", icon: "log-out-outline", action: "logout", danger: true },
-];
-
-const LANGUAGE_OPTIONS = [
-  { code: "ru", label: "Russian" },
-  { code: "uz", label: "O'zbekcha" },
-  { code: "en", label: "English" },
-];
 
 function parseTokensString(tokensString) {
   if (!tokensString) return null;
@@ -71,10 +50,6 @@ function extractInitials(user) {
     .trim()
     .toUpperCase();
   return value || "CC";
-}
-
-function formatLanguageLabel(code) {
-  return LANGUAGE_OPTIONS.find((item) => item.code === code)?.label || "Russian";
 }
 
 function WalletBadge({ amount }) {
@@ -99,19 +74,21 @@ function WalletBadge({ amount }) {
 export function NativeProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const logoutRedirectTimerRef = useRef(null);
   const initialTokens = parseTokensString(getStoredAuthTokensSync());
   const initialCachedProfileEntry = readCachedNativeProfileSync(initialTokens?.access || null);
   const initialCachedProfile = initialCachedProfileEntry?.profile || null;
-  const [isLoading, setIsLoading] = useState(
-    Boolean(initialTokens?.access) && !initialCachedProfile,
-  );
   const [user, setUser] = useState(initialCachedProfile);
   const [error, setError] = useState("");
   const [languageCode, setLanguageCode] = useState("ru");
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(initialTokens?.access));
   const [sheet, setSheet] = useState(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeTabKey, setActiveTabKey] = useState("profile");
+  const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
+  const [scrollContentHeight, setScrollContentHeight] = useState(0);
   const headerCache = getHeaderCache();
   const walletAmount = useMemo(
     () =>
@@ -120,6 +97,32 @@ export function NativeProfileScreen() {
         .replace(/,/g, " "),
     [headerCache.walletBalance],
   );
+  const languageOptions = useMemo(
+    () => [
+      { code: "ru", label: t("languageNames.ru") },
+      { code: "uz", label: t("languageNames.uz") },
+      { code: "en", label: t("languageNames.en") },
+    ],
+    [t],
+  );
+  const menuItems = useMemo(
+    () => [
+      { key: "details", label: t("profile.details"), icon: "settings-outline", route: "/account/me" },
+      { key: "orders", label: t("profile.orders"), icon: "bag-outline", route: "/account/orders" },
+      { key: "addresses", label: t("profile.addresses"), icon: "location-outline", route: "/account/addresses" },
+      { key: "support", label: t("profile.support"), icon: "chatbubble-ellipses-outline", route: "/chat" },
+      { key: "language", label: t("profile.language"), icon: "language-outline", action: "language", hasValue: true },
+      { key: "contact", label: t("profile.contact"), icon: "mail-outline", action: "contact" },
+      { key: "logout", label: t("profile.logout"), icon: "log-out-outline", action: "logout", danger: true },
+    ],
+    [t],
+  );
+  const formatLanguageLabel = useMemo(
+    () => (code) => languageOptions.find((item) => item.code === code)?.label || t("languageNames.ru"),
+    [languageOptions, t],
+  );
+  const isProfileScrollEnabled =
+    Platform.OS === "android" || scrollContentHeight > scrollViewportHeight + 4;
 
   useEffect(() => {
     let isMounted = true;
@@ -134,7 +137,6 @@ export function NativeProfileScreen() {
         setIsLoggedIn(hasAccessToken);
 
         if (!hasAccessToken) {
-          setIsLoading(false);
           return;
         }
 
@@ -142,7 +144,6 @@ export function NativeProfileScreen() {
         if (!isMounted) return;
         if (cached?.profile) {
           setUser(cached.profile);
-          setIsLoading(false);
           if (isNativeProfileCacheFresh(cached)) {
             setError("");
             return;
@@ -163,15 +164,11 @@ export function NativeProfileScreen() {
             } else {
               setError("Failed to load profile.");
             }
-          })
-          .finally(() => {
-            if (isMounted) setIsLoading(false);
           });
       })
       .catch(() => {
         if (!isMounted) return;
         setIsLoggedIn(false);
-        setIsLoading(false);
       });
 
     getStoredLanguageCode().then((code) => {
@@ -180,6 +177,9 @@ export function NativeProfileScreen() {
 
     return () => {
       isMounted = false;
+      if (logoutRedirectTimerRef.current) {
+        clearTimeout(logoutRedirectTimerRef.current);
+      }
     };
   }, []);
 
@@ -207,14 +207,47 @@ export function NativeProfileScreen() {
   };
 
   const handleLogout = async () => {
-    const tokensString = await getStoredAuthTokens();
-    const tokens = parseTokensString(tokensString);
-    await clearCachedNativeProfile(tokens?.access || null);
-    await clearStoredAuthTokens();
-    setAuthStateCache(false);
-    updateHeaderCache({ walletBalance: 0, cartCount: 0 });
-    setCurrentWebPath("/");
-    router.replace("/(tabs)");
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      const tokensString = await getStoredAuthTokens();
+      const tokens = parseTokensString(tokensString);
+      await clearCachedNativeProfile(tokens?.access || null);
+      await clearStoredAuthTokens();
+      setAuthStateCache(false);
+      updateHeaderCache({ walletBalance: 0, cartCount: 0 });
+      setUser(null);
+      setError("");
+      setIsLoggedIn(false);
+      setActiveTabKey("home");
+      setCurrentWebPath("/");
+      closeSheet();
+
+      let attempts = 0;
+      const tryGoHome = () => {
+        attempts += 1;
+        setCurrentWebPath("/");
+        setActiveTabKey("home");
+
+        try {
+          router.replace("/(tabs)");
+        } catch {
+          if (attempts < 12) {
+            logoutRedirectTimerRef.current = setTimeout(tryGoHome, 80);
+          }
+          return;
+        }
+
+        if (attempts < 4) {
+          logoutRedirectTimerRef.current = setTimeout(tryGoHome, 80);
+        }
+      };
+
+      requestAnimationFrame(tryGoHome);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const handleMenuPress = async (item) => {
@@ -228,10 +261,10 @@ export function NativeProfileScreen() {
         requestId: `profile-language-${Date.now()}`,
         sheetKey: "language_select",
         payload: {
-          title: "Choose language",
-          description: "Select the language for native profile screens.",
+          title: t("profile.chooseLanguage"),
+          description: t("profile.chooseLanguageDescription"),
           selectedLang: languageCode,
-          options: LANGUAGE_OPTIONS,
+          options: languageOptions,
         },
         options: {},
       });
@@ -244,8 +277,8 @@ export function NativeProfileScreen() {
         requestId: `profile-contact-${Date.now()}`,
         sheetKey: "contact_info",
         payload: {
-          title: "Contact",
-          description: "If you have any questions, contact us.",
+          title: t("profile.contactTitle"),
+          description: t("profile.contactDescription"),
           phoneLabel: "Phone",
           phoneNumber: "+998 55 500 05 05",
           workHours: "Mon-Sun, 09:00 - 21:00",
@@ -257,13 +290,27 @@ export function NativeProfileScreen() {
     }
 
     if (item.action === "logout") {
-      await handleLogout();
+      setSheet({
+        requestId: `profile-logout-${Date.now()}`,
+        sheetKey: "logout_confirm",
+        payload: {
+          title: t("profile.logoutConfirmTitle"),
+          description: t("profile.logoutConfirmDescription"),
+          primaryLabel: t("profile.logoutConfirmPrimary"),
+          secondaryLabel: t("profile.logoutConfirmSecondary"),
+          loadingLabel: t("profile.logoutConfirmLoading"),
+          isLoading: false,
+        },
+        options: {},
+      });
+      setIsSheetVisible(true);
+      return;
     }
   };
 
   const handleLanguageSelect = async (code) => {
-    setLanguageCode(code);
-    await setStoredLanguageCode(code);
+    const nextLanguageCode = await applyAppLanguage(code);
+    setLanguageCode(nextLanguageCode);
     setIsSheetVisible(false);
   };
 
@@ -278,6 +325,26 @@ export function NativeProfileScreen() {
     if (actionId === "select_language" && payload?.code) {
       await handleLanguageSelect(String(payload.code));
       return;
+    }
+
+    if (actionId === "cancel_logout") {
+      closeSheet();
+      return;
+    }
+
+    if (actionId === "confirm_logout") {
+      setSheet((current) =>
+        current?.sheetKey === "logout_confirm"
+          ? {
+              ...current,
+              payload: {
+                ...(current.payload || {}),
+                isLoading: true,
+              },
+            }
+          : current,
+      );
+      await handleLogout();
     }
   };
 
@@ -300,7 +367,7 @@ export function NativeProfileScreen() {
               <WalletBadge amount={walletAmount} />
             ) : (
               <Pressable onPress={openLogin} style={styles.loginTopButton}>
-                <Text style={styles.loginTopButtonText}>Login</Text>
+                <Text style={styles.loginTopButtonText}>{t("common.login")}</Text>
               </Pressable>
             )}
           </View>
@@ -309,15 +376,30 @@ export function NativeProfileScreen() {
 
       {!isLoggedIn ? (
         <View style={styles.loginPrompt}>
-          <Text style={styles.loginTitle}>Authorize</Text>
-          <Text style={styles.loginText}>To open profile, please sign in.</Text>
+          <Text style={styles.loginTitle}>{t("profile.authorizeTitle")}</Text>
+          <Text style={styles.loginText}>{t("profile.authorizeDescription")}</Text>
           <Pressable onPress={openLogin} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
+            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
           </Pressable>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
-          <Pressable onPress={() => router.push("/(tabs)/profile/me")} style={styles.heroCard}>
+        <ScrollView
+          scrollEnabled={isProfileScrollEnabled}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+          onLayout={(event) => {
+            setScrollViewportHeight(event.nativeEvent.layout.height);
+          }}
+          onContentSizeChange={(_, height) => {
+            setScrollContentHeight(height);
+          }}
+          contentContainerStyle={[
+            styles.content,
+            Platform.OS === "android" ? styles.contentWithAndroidTabBar : null,
+          ]}
+        >
+          <Pressable onPress={() => router.push("/account/me")} style={styles.heroCard}>
             <View style={styles.heroRow}>
               <View style={styles.heroAvatar}>
                 <Text style={styles.heroAvatarText}>{extractInitials(user)}</Text>
@@ -328,7 +410,7 @@ export function NativeProfileScreen() {
                     {formatFullName(user)}
                   </Text>
                   <View style={styles.heroActionRow}>
-                    <Text style={styles.heroActionText}>Configure</Text>
+                    <Text style={styles.heroActionText}>{t("profile.configure")}</Text>
                     <Ionicons color="#747479" name="chevron-forward" size={16} />
                   </View>
                 </View>
@@ -344,7 +426,7 @@ export function NativeProfileScreen() {
           ) : null}
 
           <View style={styles.menuWrap}>
-            {MENU_ITEMS.map((item) => (
+            {menuItems.map((item) => (
               <Pressable key={item.key} onPress={() => handleMenuPress(item)} style={styles.menuRow}>
                 <Ionicons color={item.danger ? "#B72136" : "#131314"} name={item.icon} size={22} />
                 <Text style={[styles.menuLabel, item.danger ? styles.menuLabelDanger : null]}>{item.label}</Text>

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback } from "react";
+import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { nativeAccountStyles as styles } from "./native-account.styles";
 
@@ -11,6 +12,10 @@ export function useBackToProfile() {
   const router = useRouter();
 
   return useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return true;
+    }
     router.replace("/(tabs)/profile");
     return true;
   }, [router]);
@@ -18,6 +23,16 @@ export function useBackToProfile() {
 
 export function NativeAccountScreenShell({ title, children }) {
   const handleBack = useBackToProfile();
+
+  useFocusEffect(
+    useCallback(() => {
+      setTabBarForcedHidden(true);
+
+      return () => {
+        setTabBarForcedHidden(false);
+      };
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {
