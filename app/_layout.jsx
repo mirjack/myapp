@@ -78,10 +78,6 @@ export default function RootLayout() {
             gestureResponseDistance: Platform.OS === "ios" ? 24 : undefined,
           }}
         />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
       </Stack>
       <StatusBar
         style={Platform.OS === "android" ? "dark" : "auto"}

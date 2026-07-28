@@ -2,6 +2,10 @@ const googleMapsApiKey =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   process.env.GOOGLE_MAPS_API_KEY ||
   "";
+const yandexMapsApiKey =
+  process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY ||
+  process.env.YANDEX_MAPS_API_KEY ||
+  "";
 
 module.exports = ({ config }) => {
   const resolvedConfig = config || require("./app.json").expo || {};
@@ -59,6 +63,7 @@ module.exports = ({ config }) => {
     extra: {
       ...extra,
       googleMapsApiKey,
+      yandexMapsApiKey,
     },
   };
 };

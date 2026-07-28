@@ -325,6 +325,10 @@ export const AddressMap = memo(function AddressMap({
         originWhitelist={["*"]}
         overScrollMode="never"
         scrollEnabled={false}
+        allowFileAccess={false}
+        allowUniversalAccessFromFileURLs={false}
+        mixedContentMode="never"
+        javaScriptCanOpenWindowsAutomatically={false}
         setSupportMultipleWindows={false}
         startInLoadingState
         renderLoading={() => (

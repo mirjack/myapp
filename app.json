@@ -77,7 +77,6 @@
     },
     "extra": {
       "router": {},
-      "yandexMapsApiKey": "b82151fe-a079-4e62-8392-b4cd2c014088",
       "eas": {
         "projectId": "eefe2988-ec8e-4e41-a047-c061e6b94c51"
       }

@@ -1,8 +1,0 @@
-env: load .env
-env: export EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_STOREFRONT_DOMAIN EXPO_PUBLIC_TENANT_DOMAIN
-Starting project at D:\Projects\hybrid-application\myapp
-› Port 8082 is being used by another process
-Input is required, but 'npx expo' is in non-interactive mode.
-Required input:
-> Use port 8083 instead?
-› Skipping dev server

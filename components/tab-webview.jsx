@@ -121,6 +121,10 @@ export function TabWebView({ url }) {
       injectedJavaScriptBeforeContentLoaded={WEBVIEW_BRIDGE_SCRIPT}
       injectedJavaScript={DISABLE_ZOOM_SCRIPT}
       scalesPageToFit={false}
+      allowFileAccess={false}
+      allowUniversalAccessFromFileURLs={false}
+      mixedContentMode="never"
+      javaScriptCanOpenWindowsAutomatically={false}
       setSupportMultipleWindows={false}
       startInLoadingState
       renderLoading={() => (

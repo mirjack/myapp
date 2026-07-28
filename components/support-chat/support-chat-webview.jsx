@@ -187,6 +187,10 @@ export function SupportChatWebView({ path = "/chat" }) {
           .catch(() => {});
       }}
       scalesPageToFit={false}
+      allowFileAccess={false}
+      allowUniversalAccessFromFileURLs={false}
+      mixedContentMode="never"
+      javaScriptCanOpenWindowsAutomatically={false}
       setSupportMultipleWindows={false}
       startInLoadingState
       renderLoading={() => (

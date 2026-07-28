@@ -348,6 +348,10 @@ export function HybridShell({
             injectedJavaScriptBeforeContentLoaded={core.state.bridgeScript}
             injectedJavaScript={DISABLE_ZOOM_SCRIPT}
             scalesPageToFit={false}
+            allowFileAccess={false}
+            allowUniversalAccessFromFileURLs={false}
+            mixedContentMode="never"
+            javaScriptCanOpenWindowsAutomatically={false}
             setSupportMultipleWindows={false}
           />
 
