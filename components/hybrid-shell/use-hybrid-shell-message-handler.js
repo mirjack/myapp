@@ -4,7 +4,6 @@ import * as Haptics from "expo-haptics";
 import { openBrowserAsync } from "expo-web-browser";
 
 import {
-  clearStoredAuthTokens,
   getStoredAuthTokens,
   setPendingAuthAction,
   setStoredAuthTokens,
@@ -191,7 +190,10 @@ export function useHybridShellMessageHandler({
       if (message?.type === "OPEN_STORIES") {
         const storiesPayload = normalizeStoriesPayload(message?.payload);
         if (storiesPayload.items.length > 0) {
-          setters.setNativeStories(storiesPayload);
+          setters.setNativeStories({
+            ...storiesPayload,
+            viewerKey: `stories_${Date.now()}_${storiesPayload.startIndex}`,
+          });
         }
         return;
       }
@@ -260,13 +262,7 @@ export function useHybridShellMessageHandler({
       }
 
       if (message?.type === "AUTH_LOGOUT") {
-        clearStoredAuthTokens();
-        setters.setIsLoggedIn(false);
-        setAuthStateCache(false);
         syncWebAuthSession(null);
-        updateHeaderCache({ walletBalance: 0, cartCount: 0 });
-        setters.setWalletBalance(0);
-        setters.setCartCount(0);
         return;
       }
 
@@ -327,6 +323,12 @@ export function useHybridShellMessageHandler({
         const path = message?.payload?.path;
         if (typeof path !== "string" || !path.startsWith("/")) return;
         applyNativeInsetForPath(path);
+        if (isNativeAccountPath(path)) {
+          router.push(buildNativeAccountRoute(path, message?.state));
+          setters.setCurrentPath("/profile");
+          setCurrentWebPath("/profile");
+          return;
+        }
         setCurrentWebPath(path);
         if (productScreenMode) {
           const nextNativeRoute = path.startsWith("/checkout")

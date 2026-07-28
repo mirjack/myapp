@@ -19,6 +19,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 import { BrandColors } from "@/constants/theme";
 import {
@@ -82,6 +83,14 @@ function readAddressValue(item, keys) {
   return "";
 }
 
+function buildAddressLineFromParts(parts) {
+  return parts
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(", ")
+    .trim();
+}
+
 function normalizeAddressItem(item = {}, index = 0) {
   const title = readAddressValue(item, [
     "title",
@@ -95,13 +104,29 @@ function normalizeAddressItem(item = {}, index = 0) {
   const address = readAddressValue(item, [
     "formatted_address",
     "formattedAddress",
+    "formatted",
     "full_address",
     "fullAddress",
+    "address_line",
+    "addressLine",
+    "address_text",
+    "addressText",
+    "display_address",
+    "displayAddress",
+    "display_name",
+    "displayName",
+    "full_text",
+    "fullText",
+    "text",
+    "description",
     "address",
     "street",
     "line1",
+    "line_1",
   ]);
+  const region = readAddressValue(item, ["region", "province", "state"]);
   const city = readAddressValue(item, ["city", "district", "town"]);
+  const area = readAddressValue(item, ["area", "neighborhood", "mahalla"]);
   const street = readAddressValue(item, ["street", "line1"]);
   const house = readAddressValue(item, ["house", "house_number", "building"]);
 
@@ -153,12 +178,18 @@ function normalizeAddressItem(item = {}, index = 0) {
     readAddressValue(item, ["longitude", "lng", "lon", "x", "location_lng"]),
   );
 
+  const fallbackAddress = buildAddressLineFromParts([
+    region,
+    city,
+    area,
+    street,
+    house,
+  ]);
+
   return {
     id: String(item.id ?? item.uuid ?? `address-${index}`),
     title: String(title).trim() || `Address ${index + 1}`,
-    address:
-      String(address).trim() ||
-      [city, street, house].filter(Boolean).join(", ").trim(),
+    address: String(address).trim() || fallbackAddress,
     apartment: String(apartment || "").trim(),
     entrance: String(entrance || "").trim(),
     floor: String(floor || "").trim(),
@@ -171,6 +202,7 @@ function normalizeAddressItem(item = {}, index = 0) {
 }
 
 export function AddressesScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const mapRef = useRef(null);
@@ -214,14 +246,14 @@ export function AddressesScreen() {
     } catch (loadError) {
       setListError(
         loadError?.status === 401
-          ? "Please sign in to view your addresses."
-          : "Saved addresses could not be loaded.",
+          ? t("addresses.loadErrorAuth")
+          : t("addresses.loadError"),
       );
     } finally {
       setIsLoadingList(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadAddresses();
@@ -327,13 +359,13 @@ export function AddressesScreen() {
       } catch (_geocodeError) {
         if (controller.signal.aborted) return;
         setAddressError(
-          "We could not determine the address. Please search manually.",
+          t("addresses.reverseGeocodeError"),
         );
       } finally {
         if (!controller.signal.aborted) setIsReverseGeocoding(false);
       }
     }, 420);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (mode !== "picker") {
@@ -400,13 +432,13 @@ export function AddressesScreen() {
     } catch (locationRequestError) {
       setLocationError(
         locationRequestError?.code === "LOCATION_PERMISSION_DENIED"
-          ? "Location access was denied."
-          : "Current location could not be retrieved.",
+          ? t("addresses.locationDenied")
+          : t("addresses.locationUnavailable"),
       );
     } finally {
       setIsLocating(false);
     }
-  }, [applySelectedLocation, formattedAddress, runReverseGeocode]);
+  }, [applySelectedLocation, formattedAddress, runReverseGeocode, t]);
 
   const handleRegionChangeComplete = useCallback((region) => {
     setSelectedCoordinates({
@@ -427,11 +459,11 @@ export function AddressesScreen() {
 
   const handleExpand = useCallback(() => {
     if (!formattedAddress.trim()) {
-      setAddressError("Please select an address first.");
+      setAddressError(t("addresses.selectAddressFirst"));
       return;
     }
     setIsExpanded(true);
-  }, [formattedAddress]);
+  }, [formattedAddress, t]);
 
   const handleSheetBack = useCallback(() => {
     if (isExpanded) {
@@ -481,7 +513,7 @@ export function AddressesScreen() {
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) return;
     if (!formattedAddress.trim()) {
-      setAddressError("Address is required.");
+      setAddressError(t("addresses.addressRequired"));
       return;
     }
 
@@ -490,7 +522,7 @@ export function AddressesScreen() {
 
     try {
       const savedAddress = await onSubmitAddress({
-        title: form.title.trim() || "Home",
+        title: form.title.trim() || t("addresses.defaultTitle"),
         formattedAddress: formattedAddress.trim(),
         latitude: selectedCoordinates.latitude,
         longitude: selectedCoordinates.longitude,
@@ -513,8 +545,8 @@ export function AddressesScreen() {
     } catch (submitError) {
       setAddressError(
         submitError?.status === 401
-          ? "Please sign in again."
-          : "Address could not be saved.",
+          ? t("addresses.saveErrorAuth")
+          : t("addresses.saveError"),
       );
     } finally {
       setIsSubmitting(false);
@@ -528,19 +560,20 @@ export function AddressesScreen() {
     resetComposer,
     selectedCoordinates.latitude,
     selectedCoordinates.longitude,
+    t,
   ]);
 
   const handleDeleteEditingAddress = useCallback(() => {
     if (!editingAddressId || isSubmitting) return;
 
-    Alert.alert("Delete address", "Are you sure you want to delete this address?", [
+    Alert.alert(t("addresses.deleteTitle"), t("addresses.deleteDescription"), [
       {
         style: "cancel",
-        text: "Cancel",
+        text: t("common.cancel"),
       },
       {
         style: "destructive",
-        text: "Delete",
+        text: t("common.delete"),
         onPress: async () => {
           try {
             setIsSubmitting(true);
@@ -549,13 +582,13 @@ export function AddressesScreen() {
             setMode("list");
             await loadAddresses({ silent: true });
           } catch (_deleteError) {
-            setAddressError("Address could not be deleted.");
+            setAddressError(t("addresses.deleteError"));
             setIsSubmitting(false);
           }
         },
       },
     ]);
-  }, [editingAddressId, isSubmitting, loadAddresses, resetComposer]);
+  }, [editingAddressId, isSubmitting, loadAddresses, resetComposer, t]);
 
   const handleSetDefaultFromList = useCallback(
     async (addressId) => {
@@ -563,10 +596,10 @@ export function AddressesScreen() {
         await setNativeDefaultAddress(addressId);
         await loadAddresses({ silent: true });
       } catch (_error) {
-        setListError("Default address could not be updated.");
+        setListError(t("addresses.defaultUpdateError"));
       }
     },
-    [loadAddresses],
+    [loadAddresses, t],
   );
 
   const handleStartAdding = useCallback(() => {
@@ -577,16 +610,16 @@ export function AddressesScreen() {
   const headerTitle =
     mode === "picker"
       ? isExpanded
-        ? "Address details"
-        : "Delivery address"
-      : "Delivery addresses";
+        ? t("addresses.headerDetails")
+        : t("addresses.headerDeliveryAddress")
+      : t("addresses.headerDeliveryAddresses");
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable hitSlop={12} onPress={handleBack} style={styles.headerBack}>
           <Ionicons color={BrandColors.primary} name="chevron-back" size={28} />
-          <Text style={styles.headerBackText}>Back</Text>
+          <Text style={styles.headerBackText}>{t("common.back")}</Text>
         </Pressable>
         <Text numberOfLines={1} style={styles.headerTitle}>
           {headerTitle}
@@ -605,7 +638,7 @@ export function AddressesScreen() {
             onPress={handleDeleteEditingAddress}
             style={styles.headerDeleteAction}
           >
-            <Text style={styles.headerDeleteText}>Delete</Text>
+            <Text style={styles.headerDeleteText}>{t("common.delete")}</Text>
           </Pressable>
         ) : (
           <View style={styles.headerSpacer} />
@@ -617,7 +650,7 @@ export function AddressesScreen() {
           {isLoadingList ? (
             <View style={styles.centeredState}>
               <ActivityIndicator color="#FE946E" size="small" />
-              <Text style={styles.stateText}>Loading saved addresses...</Text>
+              <Text style={styles.stateText}>{t("addresses.loadingSaved")}</Text>
             </View>
           ) : (
             <ScrollView
@@ -644,16 +677,16 @@ export function AddressesScreen() {
                       size={28}
                     />
                     <Text style={styles.emptyTitle}>
-                      No saved addresses yet
+                      {t("addresses.emptyTitle")}
                     </Text>
                     <Text style={styles.emptyText}>
-                      Add your first delivery address and it will show up here.
+                      {t("addresses.emptyText")}
                     </Text>
                     <Pressable
                       onPress={handleStartAdding}
                       style={styles.emptyButton}
                     >
-                      <Text style={styles.emptyButtonText}>Add address</Text>
+                      <Text style={styles.emptyButtonText}>{t("addresses.addAddress")}</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -676,14 +709,14 @@ export function AddressesScreen() {
                             {address.isDefault ? (
                               <View style={styles.defaultBadge}>
                                 <Text style={styles.defaultBadgeText}>
-                                  Default
+                                  {t("addresses.defaultBadge")}
                                 </Text>
                               </View>
                             ) : null}
                           </View>
 
                           <Text numberOfLines={2} style={styles.addressMainText}>
-                            {address.address || "Address not specified"}
+                            {address.address || t("addresses.addressNotSpecified")}
                           </Text>
                         </View>
 
@@ -731,10 +764,10 @@ export function AddressesScreen() {
                     style={styles.summaryCard}
                   >
                     <Text numberOfLines={2} style={styles.summaryAddress}>
-                      {formattedAddress || "Select an address"}
+                      {formattedAddress || t("addresses.selectAddress")}
                     </Text>
                     <Text numberOfLines={1} style={styles.summaryHint}>
-                      Tap to change location
+                      {t("addresses.tapToChangeLocation")}
                     </Text>
                   </Pressable>
                 </View>
@@ -752,7 +785,7 @@ export function AddressesScreen() {
                 />
 
                 <Text style={styles.mapSectionTitle}>
-                  Where is the entrance?
+                  {t("addresses.entranceQuestion")}
                 </Text>
                 <View style={styles.mapPreviewCard}>
                   <View pointerEvents="none" style={styles.staticMapWrap}>
@@ -795,7 +828,7 @@ export function AddressesScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.detailsSubmitText}>Save address</Text>
+                    <Text style={styles.detailsSubmitText}>{t("addresses.saveAddress")}</Text>
                   )}
                 </Pressable>
               </View>
@@ -823,7 +856,7 @@ export function AddressesScreen() {
                 ) : null}
                 {!mapStatus.hasApiKey ? (
                   <Text style={styles.locationError}>
-                    Yandex API key is missing.
+                    {t("addresses.missingApiKey")}
                   </Text>
                 ) : null}
                 {locationError ? (

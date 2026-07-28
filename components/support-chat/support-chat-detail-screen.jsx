@@ -16,11 +16,16 @@ import {
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { SupportHeader } from "@/components/support-chat/support-header";
 import { supportColors, supportStyles } from "@/components/support-chat/styles";
-import { getRequestAgentProfile } from "@/components/support-chat/support-chat-view-model";
+import {
+  getLocalizedProblemTypeLabel,
+  getRequestAgentProfile,
+  getSupportCategoryKey,
+} from "@/components/support-chat/support-chat-view-model";
 import {
   supportChatService,
   useSupportChatSnapshot,
@@ -83,63 +88,26 @@ function normalizeRequestKind(value) {
     : "QUESTION";
 }
 
-function getProblemTypeLabel(problemType) {
-  const rawLabel =
-    problemType?.nameRu ||
-    problemType?.nameUz ||
-    problemType?.nameEn ||
-    problemType?.name ||
-    `Type #${problemType?.id ?? ""}`;
-
-  return String(rawLabel)
-    .replace(/\s+(ru|uz|en)\b/gi, "")
-    .replace(/\b(ru|uz|en)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+function getProblemTypeLabel(problemType, t, language) {
+  return getLocalizedProblemTypeLabel(problemType, t, language);
 }
 
-function getProblemTileStyle(problemType, index) {
-  const label = getProblemTypeLabel(problemType).toLowerCase();
+function getProblemTileStyle(problemType, index, t, language) {
+  const category = getSupportCategoryKey(
+    getProblemTypeLabel(problemType, t, language),
+  );
 
-  if (
-    label.includes("проду") ||
-    label.includes("mahs") ||
-    label.includes("товар") ||
-    label.includes("product")
-  ) {
-    return TILE_STYLES[0];
-  }
-
-  if (
-    label.includes("достав") ||
-    label.includes("yetkaz") ||
-    label.includes("delivery")
-  ) {
-    return TILE_STYLES[1];
-  }
-
-  if (
-    label.includes("сервис") ||
-    label.includes("xizmat") ||
-    label.includes("service")
-  ) {
-    return TILE_STYLES[2];
-  }
-
-  if (
-    label.includes("дру") ||
-    label.includes("boshqa") ||
-    label.includes("other")
-  ) {
-    return TILE_STYLES[3];
-  }
+  if (category === "product") return TILE_STYLES[0];
+  if (category === "delivery") return TILE_STYLES[1];
+  if (category === "service") return TILE_STYLES[2];
+  if (category === "other") return TILE_STYLES[3];
 
   return TILE_STYLES[index % TILE_STYLES.length];
 }
 
-function getRequestBadgeLabel(request, requestType) {
+function getRequestBadgeLabel(request, requestType, t, language) {
   const problemLabel = request?.problemType
-    ? getProblemTypeLabel(request.problemType)
+    ? getProblemTypeLabel(request.problemType, t, language)
     : "";
 
   if (problemLabel) {
@@ -149,8 +117,8 @@ function getRequestBadgeLabel(request, requestType) {
   return String(requestType || "")
     .trim()
     .toUpperCase() === "PROBLEM"
-    ? "\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0430"
-    : "\u0412\u043e\u043f\u0440\u043e\u0441";
+    ? t("support.problem")
+    : t("support.question");
 }
 
 function MessageBubble({
@@ -160,6 +128,7 @@ function MessageBubble({
   sendStatus,
   deliveryStatus,
   onRetry,
+  retryLabel,
 }) {
   return (
     <View
@@ -205,7 +174,7 @@ function MessageBubble({
       </View>
       {sendStatus === "failed" ? (
         <Pressable onPress={onRetry} style={supportStyles.messageRetryButton}>
-          <Text style={supportStyles.messageRetryText}>Retry</Text>
+          <Text style={supportStyles.messageRetryText}>{retryLabel}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -219,6 +188,7 @@ export function SupportChatDetailScreen({
   isDraft,
 }) {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const ScreenKeyboardContainer =
     Platform.OS === "ios" ? KeyboardAvoidingView : View;
@@ -376,8 +346,8 @@ export function SupportChatDetailScreen({
     currentRequest?.rate?.description ||
     "";
   const supportAgentProfile = useMemo(
-    () => getRequestAgentProfile(currentRequest, customerId),
-    [currentRequest, customerId],
+    () => getRequestAgentProfile(currentRequest, customerId, t),
+    [currentRequest, customerId, t],
   );
   const scrollToBottom = useCallback((animated = true) => {
     requestAnimationFrame(() => {
@@ -390,9 +360,11 @@ export function SupportChatDetailScreen({
         ? getRequestBadgeLabel(
             currentRequest,
             currentRequest?.requestType || normalizedRequestType,
+            t,
+            i18n.language,
           )
         : "",
-    [currentRequest, normalizedRequestType, shouldShowTypePicker],
+    [currentRequest, i18n.language, normalizedRequestType, shouldShowTypePicker, t],
   );
 
   useEffect(() => {
@@ -450,6 +422,27 @@ export function SupportChatDetailScreen({
       }
     }
   };
+
+  const handleOpenSheet = useCallback((sheetKey) => {
+    if (sheetCloseTimerRef.current) {
+      clearTimeout(sheetCloseTimerRef.current);
+      sheetCloseTimerRef.current = null;
+    }
+    setIsSheetMounted(true);
+    setActiveSheetKey(sheetKey);
+  }, []);
+
+  const handleCloseActiveSheet = useCallback(() => {
+    setActiveSheetKey(null);
+    if (sheetCloseTimerRef.current) {
+      clearTimeout(sheetCloseTimerRef.current);
+    }
+    sheetCloseTimerRef.current = setTimeout(() => {
+      setIsSheetMounted(false);
+      setRenderedSheet(null);
+      sheetCloseTimerRef.current = null;
+    }, 320);
+  }, []);
 
   const handleConfirmResolved = useCallback(async () => {
     if (!currentRequest?.id || isClosingRequest) return;
@@ -511,43 +504,22 @@ export function SupportChatDetailScreen({
     isPendingConfirmation,
   ]);
 
-  const handleOpenSheet = useCallback((sheetKey) => {
-    if (sheetCloseTimerRef.current) {
-      clearTimeout(sheetCloseTimerRef.current);
-      sheetCloseTimerRef.current = null;
-    }
-    setIsSheetMounted(true);
-    setActiveSheetKey(sheetKey);
-  }, []);
-
-  const handleCloseActiveSheet = useCallback(() => {
-    setActiveSheetKey(null);
-    if (sheetCloseTimerRef.current) {
-      clearTimeout(sheetCloseTimerRef.current);
-    }
-    sheetCloseTimerRef.current = setTimeout(() => {
-      setIsSheetMounted(false);
-      setRenderedSheet(null);
-      sheetCloseTimerRef.current = null;
-    }, 320);
-  }, []);
-
   const activeSheet = useMemo(() => {
     if (activeSheetKey === "support_request_close") {
       return {
         requestId: `support-close-${currentRequest?.id ?? "draft"}`,
         sheetKey: "support_request_close",
         payload: {
-          title: "Close request",
+          title: t("support.closeRequest"),
           description: isPendingConfirmation
-            ? "If the issue is still not solved, the request will go back to the operator."
-            : "Confirm that the issue is fully resolved before closing the request.",
+            ? t("support.closeRequestPendingDescription")
+            : t("support.closeRequestDescription"),
           isPendingConfirmation,
           isLoading: isClosingRequest,
-          primaryLabel: "Yes, everything is solved",
-          secondaryLabel: "Not solved yet",
-          pendingSecondaryLabel: "Not solved yet",
-          loadingLabel: "Saving...",
+          primaryLabel: t("support.yesSolved"),
+          secondaryLabel: t("support.notSolvedYet"),
+          pendingSecondaryLabel: t("support.notSolvedYet"),
+          loadingLabel: t("support.saving"),
         },
         options: {},
       };
@@ -558,17 +530,16 @@ export function SupportChatDetailScreen({
         requestId: `support-rate-${currentRequest?.id ?? "draft"}`,
         sheetKey: "support_request_rate",
         payload: {
-          title: "Rate service",
-          description:
-            "Share how the support experience went. A short comment is optional.",
-          ratingLabel: "Your rating",
+          title: t("support.rateService"),
+          description: t("support.rateDescription"),
+          ratingLabel: t("support.yourRating"),
           ratingValue,
           comment: ratingComment,
           isSubmitting: isSubmittingRating,
-          commentPlaceholder: "Comment (optional)",
-          skipLabel: "Skip",
-          submitLabel: "Save rating",
-          loadingLabel: "Saving...",
+          commentPlaceholder: t("support.commentOptional"),
+          skipLabel: t("support.skip"),
+          submitLabel: t("support.saveRating"),
+          loadingLabel: t("support.saving"),
         },
         options: {},
       };
@@ -583,6 +554,7 @@ export function SupportChatDetailScreen({
     isSubmittingRating,
     ratingComment,
     ratingValue,
+    t,
   ]);
 
   useEffect(() => {
@@ -592,27 +564,27 @@ export function SupportChatDetailScreen({
   }, [activeSheet]);
 
   const headerMetaText = useMemo(() => {
-    if (isDraft) return "ID: —";
+    if (isDraft) return t("support.idEmpty");
     if (requestNumber) {
       const normalized = String(requestNumber).startsWith("#")
         ? String(requestNumber).slice(1)
         : String(requestNumber);
-      return `ID: ${String(normalized).padStart(6, "0")}`;
+      return `${t("support.idLabel")} ${String(normalized).padStart(6, "0")}`;
     }
-    return `ID: ${String(requestId ?? "").padStart(6, "0")}`;
-  }, [isDraft, requestId, requestNumber]);
+    return `${t("support.idLabel")} ${String(requestId ?? "").padStart(6, "0")}`;
+  }, [isDraft, requestId, requestNumber, t]);
 
   if (loading && !bootstrapData) {
     return (
       <View style={supportStyles.screen}>
         <SupportHeader
-          title="Менеджер"
+          title={t("support.managerTitle")}
           metaText={headerMetaText}
           fallbackHref="/chat"
         />
         <View style={supportStyles.centerMessageWrap}>
           <Text style={supportStyles.centerMessage}>
-            Loading support chat...
+            {t("support.loadingChat")}
           </Text>
         </View>
       </View>
@@ -624,7 +596,7 @@ export function SupportChatDetailScreen({
       <SupportHeader
         title={
           shouldShowTypePicker
-            ? "\u041d\u043e\u0432\u044b\u0439 \u0437\u0430\u043f\u0440\u043e\u0441"
+            ? t("support.newRequest")
             : supportAgentProfile.name
         }
         metaText={shouldShowTypePicker ? "" : headerMetaText}
@@ -651,7 +623,9 @@ export function SupportChatDetailScreen({
               }
               style={supportStyles.retryInlineButton}
             >
-              <Text style={supportStyles.retryInlineButtonText}>Retry</Text>
+              <Text style={supportStyles.retryInlineButtonText}>
+                {t("support.retry")}
+              </Text>
             </Pressable>
             {isSupportAuthError(error) ? (
               <Pressable
@@ -663,7 +637,9 @@ export function SupportChatDetailScreen({
                 }
                 style={supportStyles.retryInlineButton}
               >
-                <Text style={supportStyles.retryInlineButtonText}>Log in</Text>
+                <Text style={supportStyles.retryInlineButtonText}>
+                  {t("support.logIn")}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -671,7 +647,9 @@ export function SupportChatDetailScreen({
 
         {loading ? (
           <View style={supportStyles.centerMessageWrap}>
-            <Text style={supportStyles.centerMessage}>Updating chat...</Text>
+            <Text style={supportStyles.centerMessage}>
+              {t("support.updatingChat")}
+            </Text>
           </View>
         ) : null}
 
@@ -682,9 +660,7 @@ export function SupportChatDetailScreen({
           >
             <View style={supportStyles.actionCardTextWrap}>
               <Text style={supportStyles.actionCardTitle}>
-                {
-                  "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c \u043e\u0431\u0440\u0430\u0449\u0435\u043d\u0438\u0435"
-                }
+                {t("support.finishRequest")}
               </Text>
             </View>
           </Pressable>
@@ -712,15 +688,20 @@ export function SupportChatDetailScreen({
             <View style={supportStyles.problemPickerSection}>
               <View style={supportStyles.problemHelpBubble}>
                 <Text style={supportStyles.problemHelpText}>
-                  {
-                    "\u2639\uFE0F \u041d\u0435\u043f\u0440\u0438\u044f\u0442\u043d\u043e\u0441\u0442\u044c? \u041c\u044b \u0440\u044f\u0434\u043e\u043c, \u0447\u0442\u043e\u0431\u044b \u0432\u0441\u0451 \u0431\u044b\u0441\u0442\u0440\u043e \u0438\u0441\u043f\u0440\u0430\u0432\u0438\u0442\u044c!\n\u0421 \u0447\u0435\u043c \u0441\u0432\u044f\u0437\u0430\u043d\u0430 \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430? \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044e, \u0438 \u043c\u044b \u043f\u043e\u043c\u043e\u0436\u0435\u043c \u0440\u0430\u0437\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f."
-                  }
+                  {t("support.problemHelp")}
                 </Text>
-                <Text style={supportStyles.problemHelpTime}>11:27</Text>
+                <Text style={supportStyles.problemHelpTime}>
+                  {t("support.nowLabel")}
+                </Text>
               </View>
               <View style={supportStyles.problemGrid}>
                 {problemTypes.map((problemType, index) => {
-                  const tileStyle = getProblemTileStyle(problemType, index);
+                  const tileStyle = getProblemTileStyle(
+                    problemType,
+                    index,
+                    t,
+                    i18n.language,
+                  );
                   return (
                     <Pressable
                       key={problemType.id ?? index}
@@ -741,80 +722,45 @@ export function SupportChatDetailScreen({
                           { color: tileStyle.color },
                         ]}
                       >
-                        {getProblemTypeLabel(problemType)}
+                        {getProblemTypeLabel(problemType, t, i18n.language)}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
-              {false ? (
-                <>
-                  <View style={supportStyles.problemHelpBubble}>
-                    <Text style={supportStyles.problemHelpText}>
-                      Неприятность? Мы рядом, чтобы всё быстро исправить!
-                      Выберите категорию, и мы поможем разобраться.
-                    </Text>
-                  </View>
-                  <View style={supportStyles.problemGrid}>
-                    {problemTypes.map((problemType, index) => {
-                      const tileStyle = TILE_STYLES[index % TILE_STYLES.length];
-                      return (
-                        <Pressable
-                          key={problemType.id ?? index}
-                          onPress={() => setSelectedProblemType(problemType)}
-                          style={[
-                            supportStyles.problemTile,
-                            { backgroundColor: tileStyle.bg },
-                          ]}
-                        >
-                          <Ionicons
-                            name={tileStyle.icon}
-                            size={20}
-                            color={tileStyle.color}
-                          />
-                          <Text
-                            style={[
-                              supportStyles.problemTileText,
-                              { color: tileStyle.color },
-                            ]}
-                          >
-                            {getProblemTypeLabel(problemType)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </>
-              ) : null}
             </View>
           ) : null}
 
           {selectedProblemType ? (
             <View style={supportStyles.selectedProblemPill}>
               <Text style={supportStyles.selectedProblemText}>
-                Вы выбрали: {getProblemTypeLabel(selectedProblemType)}
+                {t("support.selectedProblem")}{" "}
+                {getProblemTypeLabel(selectedProblemType, t, i18n.language)}
               </Text>
             </View>
           ) : null}
 
           {messages.length > 0 ? (
             <View style={supportStyles.messagesDateWrap}>
-              <Text style={supportStyles.messagesDateBadge}>Today</Text>
+              <Text style={supportStyles.messagesDateBadge}>
+                {t("support.today")}
+              </Text>
             </View>
           ) : null}
 
           <View style={supportStyles.messagesColumn}>
             {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              text={message.text}
-              time={formatSupportTime(message.time)}
-              isOwnMessage={message.from === "me"}
-              sendStatus={message.sendStatus}
-              deliveryStatus={message.deliveryStatus}
-              onRetry={
-                message.sendStatus === "failed"
-                  ? () =>
+              <MessageBubble
+                key={message.id}
+                text={message.text}
+                time={formatSupportTime(message.time)}
+                isOwnMessage={message.from === "me"}
+                sendStatus={message.sendStatus}
+                deliveryStatus={message.deliveryStatus}
+                retryLabel={t("support.retry")}
+                onRetry={
+                  message.sendStatus === "failed"
+                    ? () =>
                         void supportChatService.retryMessage({
                           requestId: currentRequest?.id ?? numericRequestId,
                           messageId: message.id,
@@ -828,11 +774,10 @@ export function SupportChatDetailScreen({
           {isPendingConfirmation ? (
             <View style={supportStyles.footerCard}>
               <Text style={supportStyles.footerCardTitle}>
-                Resolved your issue?
+                {t("support.resolvedQuestion")}
               </Text>
               <Text style={supportStyles.footerCardText}>
-                If yes, close the request. You will not be able to return to
-                this chat later.
+                {t("support.resolvedDescription")}
               </Text>
               <View style={supportStyles.doubleButtonRow}>
                 <Pressable
@@ -849,7 +794,7 @@ export function SupportChatDetailScreen({
                       { color: "#FFA182" },
                     ]}
                   >
-                    Not yet
+                    {t("support.notYet")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -867,7 +812,9 @@ export function SupportChatDetailScreen({
                         { color: "#FFFFFF" },
                       ]}
                     >
-                      {isClosingRequest ? "Saving..." : "Yes, solved"}
+                      {isClosingRequest
+                        ? t("support.saving")
+                        : t("support.yesSolvedShort")}
                     </Text>
                   </LinearGradient>
                 </Pressable>
@@ -892,7 +839,7 @@ export function SupportChatDetailScreen({
                       { color: "#FF946F" },
                     ]}
                   >
-                    Rate service
+                    {t("support.rateService")}
                   </Text>
                 </View>
               </Pressable>
@@ -965,7 +912,7 @@ export function SupportChatDetailScreen({
               ]}
             >
               <Text style={supportStyles.disabledComposerText}>
-                The chat is not active because the chat was closed
+                {t("support.chatClosed")}
               </Text>
             </View>
           )
@@ -999,7 +946,9 @@ export function SupportChatDetailScreen({
                 value={input}
                 onChangeText={setInput}
                 placeholder={
-                  isDraft ? "Describe your issue..." : "Type your message..."
+                  isDraft
+                    ? t("support.describeIssue")
+                    : t("support.typeMessage")
                 }
                 placeholderTextColor="#7A7A80"
                 multiline
@@ -1030,7 +979,9 @@ export function SupportChatDetailScreen({
               </Pressable>
             </View>
             {isDraft && sending ? (
-              <Text style={supportStyles.composerHint}>Sending...</Text>
+              <Text style={supportStyles.composerHint}>
+                {t("support.sending")}
+              </Text>
             ) : null}
           </View>
         )}

@@ -405,7 +405,9 @@ export function HybridShell({
       ) : null}
 
       <NativeStoriesViewer
+        key={core.state.nativeStories?.viewerKey ?? "stories-viewer"}
         items={core.state.nativeStories?.items ?? []}
+        originFrame={core.state.nativeStories?.originFrame ?? null}
         startIndex={core.state.nativeStories?.startIndex ?? 0}
         visible={Boolean(core.state.nativeStories)}
         onClose={() => {

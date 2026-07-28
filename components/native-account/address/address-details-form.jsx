@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useTranslation } from "react-i18next";
 
 import { addressPalette } from "./address-theme";
 
@@ -35,13 +36,13 @@ function Field({
   );
 }
 
-function AddressSelector({ address, onPress }) {
+function AddressSelector({ address, onPress, t }) {
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.label}>Address</Text>
+      <Text style={styles.label}>{t("addresses.fields.address")}</Text>
       <Pressable onPress={onPress} style={styles.addressPicker}>
         <Text numberOfLines={3} style={[styles.inputText, !address && styles.inputPlaceholder]}>
-          {address || "Select an address"}
+          {address || t("addresses.selectAddress")}
         </Text>
         <Ionicons color={addressPalette.secondaryText} name="search-outline" size={20} />
       </Pressable>
@@ -60,53 +61,45 @@ export function AddressDetailsForm({
   onSubmit,
   showSubmitButton = true,
 }) {
+  const { t } = useTranslation();
   const isDetailsLayout = layout === "details";
 
   return (
     <View style={isDetailsLayout ? styles.detailsForm : null}>
       {!isDetailsLayout ? (
-        <AddressSelector address={address} onPress={onAddressPress} />
+        <AddressSelector address={address} onPress={onAddressPress} t={t} />
       ) : null}
 
-      {isDetailsLayout ? (
-        <Field
-          label="Address name"
-          onChangeText={(value) => onChangeField("title", value)}
-          placeholder="Home, Office, Mom's place"
-          value={form.title}
-        />
-      ) : (
-        <Field
-          label="Address name"
-          onChangeText={(value) => onChangeField("title", value)}
-          placeholder="Home, Office, Mom's place"
-          value={form.title}
-        />
-      )}
+      <Field
+        label={t("addresses.fields.title")}
+        onChangeText={(value) => onChangeField("title", value)}
+        placeholder={t("addresses.placeholders.title")}
+        value={form.title}
+      />
 
       <View style={[styles.row, isDetailsLayout && styles.detailsTripleRow]}>
         <View style={isDetailsLayout ? styles.thirdField : styles.halfField}>
           <Field
-            label="Apartment / office"
+            label={t("addresses.fields.apartment")}
             onChangeText={(value) => onChangeField("apartment", value)}
-            placeholder="Apartment"
+            placeholder={t("addresses.placeholders.apartment")}
             value={form.apartment}
           />
         </View>
         <View style={isDetailsLayout ? styles.thirdField : styles.halfField}>
           <Field
-            label="Entrance"
+            label={t("addresses.fields.entrance")}
             onChangeText={(value) => onChangeField("entrance", value)}
-            placeholder="Entrance"
+            placeholder={t("addresses.placeholders.entrance")}
             value={form.entrance}
           />
         </View>
         {isDetailsLayout ? (
           <View style={styles.thirdField}>
             <Field
-              label="Floor"
+              label={t("addresses.fields.floor")}
               onChangeText={(value) => onChangeField("floor", value)}
-              placeholder="Floor"
+              placeholder={t("addresses.placeholders.floor")}
               value={form.floor}
             />
           </View>
@@ -116,10 +109,10 @@ export function AddressDetailsForm({
       {!isDetailsLayout ? (
         <View style={styles.row}>
           <View style={styles.halfField}>
-            <Field
-              label="Floor"
+          <Field
+              label={t("addresses.fields.floor")}
               onChangeText={(value) => onChangeField("floor", value)}
-              placeholder="Floor"
+              placeholder={t("addresses.placeholders.floor")}
               value={form.floor}
             />
           </View>
@@ -127,22 +120,22 @@ export function AddressDetailsForm({
       ) : null}
 
       <Field
-        label="Courier instructions"
+        label={t("addresses.fields.courierComment")}
         multiline
         onChangeText={(value) => onChangeField("courierComment", value)}
-        placeholder="Add a note for the courier"
+        placeholder={t("addresses.placeholders.courierComment")}
         value={form.courierComment}
       />
 
       {isDetailsLayout ? (
         <Text style={styles.helperText}>
-          This helps the courier find you faster.
+          {t("addresses.helperText")}
         </Text>
       ) : null}
 
       {isDetailsLayout ? (
         <View style={styles.defaultRow}>
-          <Text style={styles.defaultLabel}>Set default</Text>
+          <Text style={styles.defaultLabel}>{t("addresses.setDefault")}</Text>
           <Switch
             onValueChange={(value) => onChangeField("isDefault", value)}
             thumbColor="#FFFFFF"
@@ -159,7 +152,7 @@ export function AddressDetailsForm({
           {isSubmitting ? (
             <ActivityIndicator color="#131314" size="small" />
           ) : (
-            <Text style={styles.submitButtonText}>Deliver here</Text>
+            <Text style={styles.submitButtonText}>{t("addresses.deliverHere")}</Text>
           )}
         </Pressable>
       ) : null}

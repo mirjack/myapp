@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated from "react-native-reanimated";
@@ -22,7 +25,10 @@ import {
   readCachedNativeProfileSync,
 } from "@/lib/native-profile-cache";
 import { setCurrentWebPath } from "@/lib/tab-bar-visibility";
-import { getHeaderCache, updateHeaderCache } from "@/components/hybrid-shell/header-cache";
+import {
+  getHeaderCache,
+  updateHeaderCache,
+} from "@/components/hybrid-shell/header-cache";
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { AndroidTabBar } from "@/components/hybrid-shell/android-tab-bar";
 import { applyAppLanguage } from "@/lib/i18n";
@@ -42,14 +48,14 @@ function parseTokensString(tokensString) {
 
 function formatFullName(user) {
   const parts = [user?.firstName, user?.lastName].filter(Boolean);
-  return parts.length > 0 ? parts.join(" ") : "Comfort Client";
+  return parts.length > 0 ? parts.join(" ") : "";
 }
 
 function extractInitials(user) {
   const value = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`
     .trim()
     .toUpperCase();
-  return value || "CC";
+  return value || "+";
 }
 
 function WalletBadge({ amount }) {
@@ -66,7 +72,9 @@ function WalletBadge({ amount }) {
           fill="#0B0B0B"
         />
       </Svg>
-      <Text style={[styles.walletText, styles.profileWalletText]}>{amount}</Text>
+      <Text style={[styles.walletText, styles.profileWalletText]}>
+        {amount}
+      </Text>
     </LinearGradient>
   );
 }
@@ -77,7 +85,9 @@ export function NativeProfileScreen() {
   const { t } = useTranslation();
   const logoutRedirectTimerRef = useRef(null);
   const initialTokens = parseTokensString(getStoredAuthTokensSync());
-  const initialCachedProfileEntry = readCachedNativeProfileSync(initialTokens?.access || null);
+  const initialCachedProfileEntry = readCachedNativeProfileSync(
+    initialTokens?.access || null,
+  );
   const initialCachedProfile = initialCachedProfileEntry?.profile || null;
   const [user, setUser] = useState(initialCachedProfile);
   const [error, setError] = useState("");
@@ -107,20 +117,61 @@ export function NativeProfileScreen() {
   );
   const menuItems = useMemo(
     () => [
-      { key: "details", label: t("profile.details"), icon: "settings-outline", route: "/account/me" },
-      { key: "orders", label: t("profile.orders"), icon: "bag-outline", route: "/account/orders" },
-      { key: "addresses", label: t("profile.addresses"), icon: "location-outline", route: "/account/addresses" },
-      { key: "support", label: t("profile.support"), icon: "chatbubble-ellipses-outline", route: "/chat" },
-      { key: "language", label: t("profile.language"), icon: "language-outline", action: "language", hasValue: true },
-      { key: "contact", label: t("profile.contact"), icon: "mail-outline", action: "contact" },
-      { key: "logout", label: t("profile.logout"), icon: "log-out-outline", action: "logout", danger: true },
+      {
+        key: "details",
+        label: t("profile.details"),
+        icon: "settings-outline",
+        route: "/account/me",
+      },
+      {
+        key: "orders",
+        label: t("profile.orders"),
+        icon: "bag-outline",
+        route: "/account/orders",
+      },
+      {
+        key: "addresses",
+        label: t("profile.addresses"),
+        icon: "location-outline",
+        route: "/account/addresses",
+      },
+      {
+        key: "support",
+        label: t("profile.support"),
+        icon: "chatbubble-ellipses-outline",
+        route: "/chat",
+      },
+      {
+        key: "language",
+        label: t("profile.language"),
+        icon: "language-outline",
+        action: "language",
+        hasValue: true,
+      },
+      {
+        key: "contact",
+        label: t("profile.contact"),
+        icon: "mail-outline",
+        action: "contact",
+      },
+      {
+        key: "logout",
+        label: t("profile.logout"),
+        icon: "log-out-outline",
+        action: "logout",
+        danger: true,
+      },
     ],
     [t],
   );
   const formatLanguageLabel = useMemo(
-    () => (code) => languageOptions.find((item) => item.code === code)?.label || t("languageNames.ru"),
+    () => (code) =>
+      languageOptions.find((item) => item.code === code)?.label ||
+      t("languageNames.ru"),
     [languageOptions, t],
   );
+  const fullName = formatFullName(user);
+  const hasDisplayName = Boolean(fullName);
   const isProfileScrollEnabled =
     Platform.OS === "android" || scrollContentHeight > scrollViewportHeight + 4;
 
@@ -159,16 +210,15 @@ export function NativeProfileScreen() {
           .catch((loadError) => {
             if (!isMounted) return;
             if (loadError?.status === 401) {
-              setIsLoggedIn(false);
               setError("");
             } else {
-              setError("Failed to load profile.");
+              setError(t("profile.loadError"));
             }
           });
       })
       .catch(() => {
         if (!isMounted) return;
-        setIsLoggedIn(false);
+        setError("");
       });
 
     getStoredLanguageCode().then((code) => {
@@ -181,7 +231,7 @@ export function NativeProfileScreen() {
         clearTimeout(logoutRedirectTimerRef.current);
       }
     };
-  }, []);
+  }, [t]);
 
   const goToTab = (tabKey) => {
     const targetMap = {
@@ -279,9 +329,9 @@ export function NativeProfileScreen() {
         payload: {
           title: t("profile.contactTitle"),
           description: t("profile.contactDescription"),
-          phoneLabel: "Phone",
-          phoneNumber: "+998 55 500 05 05",
-          workHours: "Mon-Sun, 09:00 - 21:00",
+          phoneLabel: t("profile.phoneLabel"),
+          phoneNumber: "+998 88 381 44 44",
+          workHours: t("profile.workHours"),
         },
         options: {},
       });
@@ -349,7 +399,10 @@ export function NativeProfileScreen() {
   };
 
   const openLogin = () => {
-    router.push({ pathname: "/onboarding/phone", params: { next: "/profile" } });
+    router.push({
+      pathname: "/onboarding/phone",
+      params: { next: "/profile" },
+    });
   };
 
   return (
@@ -358,7 +411,10 @@ export function NativeProfileScreen() {
       <View style={[styles.hybridHeaderWrap, styles.hybridHeaderWrapCompact]}>
         <View style={[styles.hybridHeader, styles.hybridHeaderCompact]}>
           <View style={styles.headerTopRow}>
-            <Pressable onPress={() => goToTab("home")} style={styles.brandPressable}>
+            <Pressable
+              onPress={() => goToTab("home")}
+              style={styles.brandPressable}
+            >
               <View style={styles.brandCopy}>
                 <Text style={styles.brandText}>MIO BEAUTY</Text>
               </View>
@@ -367,7 +423,9 @@ export function NativeProfileScreen() {
               <WalletBadge amount={walletAmount} />
             ) : (
               <Pressable onPress={openLogin} style={styles.loginTopButton}>
-                <Text style={styles.loginTopButtonText}>{t("common.login")}</Text>
+                <Text style={styles.loginTopButtonText}>
+                  {t("common.login")}
+                </Text>
               </Pressable>
             )}
           </View>
@@ -377,7 +435,9 @@ export function NativeProfileScreen() {
       {!isLoggedIn ? (
         <View style={styles.loginPrompt}>
           <Text style={styles.loginTitle}>{t("profile.authorizeTitle")}</Text>
-          <Text style={styles.loginText}>{t("profile.authorizeDescription")}</Text>
+          <Text style={styles.loginText}>
+            {t("profile.authorizeDescription")}
+          </Text>
           <Pressable onPress={openLogin} style={styles.loginButton}>
             <Text style={styles.loginButtonText}>{t("common.login")}</Text>
           </Pressable>
@@ -399,22 +459,41 @@ export function NativeProfileScreen() {
             Platform.OS === "android" ? styles.contentWithAndroidTabBar : null,
           ]}
         >
-          <Pressable onPress={() => router.push("/account/me")} style={styles.heroCard}>
+          <Pressable
+            onPress={() => router.push("/account/me")}
+            style={styles.heroCard}
+          >
             <View style={styles.heroRow}>
               <View style={styles.heroAvatar}>
-                <Text style={styles.heroAvatarText}>{extractInitials(user)}</Text>
+                <Text style={styles.heroAvatarText}>
+                  {extractInitials(user)}
+                </Text>
               </View>
               <View style={styles.heroBody}>
                 <View style={styles.heroNameRow}>
-                  <Text numberOfLines={1} style={styles.heroName}>
-                    {formatFullName(user)}
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.heroName,
+                      !hasDisplayName ? styles.heroNameFallback : null,
+                    ]}
+                  >
+                    {fullName || user?.phoneNumber || ""}
                   </Text>
                   <View style={styles.heroActionRow}>
-                    <Text style={styles.heroActionText}>{t("profile.configure")}</Text>
-                    <Ionicons color="#747479" name="chevron-forward" size={16} />
+                    <Text style={styles.heroActionText}>
+                      {t("profile.configure")}
+                    </Text>
+                    <Ionicons
+                      color="#747479"
+                      name="chevron-forward"
+                      size={16}
+                    />
                   </View>
                 </View>
-                <Text style={styles.heroPhone}>{user?.phoneNumber || ""}</Text>
+                {hasDisplayName ? (
+                  <Text style={styles.heroPhone}>{user?.phoneNumber || ""}</Text>
+                ) : null}
               </View>
             </View>
           </Pressable>
@@ -427,15 +506,40 @@ export function NativeProfileScreen() {
 
           <View style={styles.menuWrap}>
             {menuItems.map((item) => (
-              <Pressable key={item.key} onPress={() => handleMenuPress(item)} style={styles.menuRow}>
-                <Ionicons color={item.danger ? "#B72136" : "#131314"} name={item.icon} size={22} />
-                <Text style={[styles.menuLabel, item.danger ? styles.menuLabelDanger : null]}>{item.label}</Text>
-                {item.hasValue ? <Text style={styles.menuValue}>{formatLanguageLabel(languageCode)}</Text> : null}
-                <Ionicons color={item.danger ? "#B72136" : "#747479"} name="chevron-forward" size={16} />
+              <Pressable
+                key={item.key}
+                onPress={() => handleMenuPress(item)}
+                style={styles.menuRow}
+              >
+                <Ionicons
+                  color={item.danger ? "#B72136" : "#131314"}
+                  name={item.icon}
+                  size={22}
+                />
+                <Text
+                  style={[
+                    styles.menuLabel,
+                    item.danger ? styles.menuLabelDanger : null,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                {item.hasValue ? (
+                  <Text style={styles.menuValue}>
+                    {formatLanguageLabel(languageCode)}
+                  </Text>
+                ) : null}
+                <Ionicons
+                  color={item.danger ? "#B72136" : "#747479"}
+                  name="chevron-forward"
+                  size={16}
+                />
               </Pressable>
             ))}
           </View>
-          {Platform.OS === "android" ? <View style={styles.androidTabSpacer} /> : null}
+          {Platform.OS === "android" ? (
+            <View style={styles.androidTabSpacer} />
+          ) : null}
         </ScrollView>
       )}
 

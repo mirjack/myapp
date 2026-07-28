@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Dimensions,
-  Easing,
-  Image,
+  Image as ReactNativeImage,
   Linking,
   Modal,
   PanResponder,
@@ -11,20 +9,20 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { openBrowserAsync } from "expo-web-browser";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
-const STORY_DURATION = 10000;
-const SWIPE_THRESHOLD = 50;
-const PRESS_DURATION = 300;
-const OPEN_TRANSLATE_Y = 18;
-const PROGRESS_COMPLETE_VALUE = 0.995;
-const IMAGE_OPEN_SCALE = 1.075;
-const IMAGE_OPEN_TRANSLATE_Y = 12;
-const CONTENT_OPEN_TRANSLATE_Y = 18;
-const BLUR_OPEN_RADIUS = 18;
+const STORY_DURATION_MS = 7000;
+const LONG_PRESS_DELAY_MS = 220;
+const TAP_MAX_DURATION_MS = 220;
+const MOVE_CANCEL_PRESS_PX = 8;
+const HORIZONTAL_SWIPE_THRESHOLD = 54;
+const VERTICAL_CLOSE_THRESHOLD = 88;
 
 function CloseIcon() {
   return (
@@ -40,20 +38,64 @@ function CloseIcon() {
   );
 }
 
-const clampIndex = (index, length) => {
+function clampIndex(index, length) {
   if (!length) return 0;
   const numericIndex = Number(index);
   if (!Number.isFinite(numericIndex)) return 0;
   return Math.min(Math.max(Math.trunc(numericIndex), 0), length - 1);
-};
+}
 
-const normalizeUrl = (url) => {
+function normalizeUrl(url) {
   const trimmedUrl = String(url ?? "").trim();
   if (!trimmedUrl) return null;
   return /^https?:\/\//i.test(trimmedUrl)
     ? trimmedUrl
     : `https://${trimmedUrl}`;
-};
+}
+
+function StoryProgressBar({
+  count,
+  activeIndex,
+  progress,
+  hidden = false,
+  topInset = 0,
+}) {
+  return (
+    <Animated.View
+      style={[
+        styles.progressRow,
+        {
+          top: topInset + 8,
+          opacity: hidden ? 0 : 1,
+        },
+      ]}
+      pointerEvents="none"
+    >
+      {Array.from({ length: count }).map((_, index) => {
+        const fillStyle =
+          index < activeIndex
+            ? styles.progressSegmentFillDone
+            : index === activeIndex
+              ? { width: progress }
+              : styles.progressSegmentFillPending;
+
+        return (
+          <View key={`story-progress-${index}`} style={styles.progressSegment}>
+            {index < activeIndex ? (
+              <View style={[styles.progressSegmentFill, fillStyle]} />
+            ) : index === activeIndex ? (
+              <Animated.View
+                style={[styles.progressSegmentFill, fillStyle]}
+              />
+            ) : (
+              <View style={[styles.progressSegmentFill, fillStyle]} />
+            )}
+          </View>
+        );
+      })}
+    </Animated.View>
+  );
+}
 
 export function NativeStoriesViewer({
   items = [],
@@ -61,57 +103,47 @@ export function NativeStoriesViewer({
   visible,
   onClose,
 }) {
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const initialActiveIndex = useMemo(
+    () => clampIndex(startIndex, items.length),
+    [items.length, startIndex],
+  );
+
   const normalizedItems = useMemo(
     () =>
-      (Array.isArray(items) ? items : []).filter((item) => {
-        return item && typeof item === "object" && item.mediaUrl;
-      }),
+      (Array.isArray(items) ? items : []).filter(
+        (item) => item && typeof item === "object" && item.mediaUrl,
+      ),
     [items],
   );
-  const [index, setIndex] = useState(() =>
-    clampIndex(startIndex, normalizedItems.length),
-  );
-  const [incomingIndex, setIncomingIndex] = useState(null);
-  const [isProgressVisible, setIsProgressVisible] = useState(true);
 
-  const screenWidth = Dimensions.get("window").width;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const overlayScale = useRef(new Animated.Value(0.95)).current;
-  const overlayTranslateY = useRef(
-    new Animated.Value(OPEN_TRANSLATE_Y),
-  ).current;
-  const imageEntrance = useRef(new Animated.Value(0)).current;
-  const progress = useRef(new Animated.Value(0)).current;
-  const currentX = useRef(new Animated.Value(0)).current;
-  const incomingX = useRef(new Animated.Value(0)).current;
-  const progressOpacity = useRef(new Animated.Value(1)).current;
+  const [activeIndex, setActiveIndex] = useState(initialActiveIndex);
+  const [isProgressHidden, setIsProgressHidden] = useState(false);
+
+  const loadedUrisRef = useRef(new Set());
   const pressTimerRef = useRef(null);
   const touchStartTimeRef = useRef(0);
+  const touchStartXRef = useRef(0);
+  const touchStartYRef = useRef(0);
   const pausedProgressRef = useRef(0);
+  const activeIndexRef = useRef(activeIndex);
   const isPausedRef = useRef(false);
   const isClosingRef = useRef(false);
-  const isTransitioningRef = useRef(false);
-  const isInitialOpenRef = useRef(false);
-  const pendingInitialIndexRef = useRef(null);
 
-  const item = normalizedItems[index];
-  const incomingItem =
-    incomingIndex === null ? null : normalizedItems[incomingIndex];
-  const imageSource = useMemo(
-    () => (item?.mediaUrl ? { uri: item.mediaUrl } : null),
-    [item?.mediaUrl],
-  );
-  const incomingImageSource = useMemo(
-    () => (incomingItem?.mediaUrl ? { uri: incomingItem.mediaUrl } : null),
-    [incomingItem?.mediaUrl],
-  );
+  const progressValue = useRef(new Animated.Value(0)).current;
 
-  const resetProgress = useCallback(() => {
-    progress.stopAnimation(() => {
-      progress.setValue(0);
-    });
-    progress.setValue(0);
-  }, [progress]);
+  const activeItem = normalizedItems[activeIndex] ?? null;
+  const activeUri = activeItem?.mediaUrl ?? null;
+
+  const progressWidth = useMemo(
+    () =>
+      progressValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0%", "100%"],
+      }),
+    [progressValue],
+  );
 
   const clearPressTimer = useCallback(() => {
     if (pressTimerRef.current) {
@@ -120,369 +152,241 @@ export function NativeStoriesViewer({
     }
   }, []);
 
+  const stopProgress = useCallback(() => {
+    progressValue.stopAnimation((value) => {
+      pausedProgressRef.current = value;
+    });
+  }, [progressValue]);
+
+  const resetProgress = useCallback(() => {
+    pausedProgressRef.current = 0;
+    progressValue.stopAnimation();
+    progressValue.setValue(0);
+  }, [progressValue]);
+
+  const markLoaded = useCallback((uri) => {
+    if (!uri || loadedUrisRef.current.has(uri)) return;
+    loadedUrisRef.current.add(uri);
+  }, []);
+
+  const finishClose = useCallback(() => {
+    clearPressTimer();
+    stopProgress();
+    resetProgress();
+    isPausedRef.current = false;
+    setIsProgressHidden(false);
+    onClose?.();
+  }, [clearPressTimer, onClose, resetProgress, stopProgress]);
+
   const close = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
-    clearPressTimer();
-    resetProgress();
-    Animated.parallel([
-      Animated.timing(overlayOpacity, {
-        toValue: 0,
-        duration: 90,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayScale, {
-        toValue: 0.985,
-        duration: 90,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayTranslateY, {
-        toValue: 0,
-        duration: 90,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(imageEntrance, {
-        toValue: 0,
-        duration: 140,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      isClosingRef.current = false;
-      onClose?.();
-    });
-  }, [
-    clearPressTimer,
-    onClose,
-    overlayOpacity,
-    overlayScale,
-    overlayTranslateY,
-    imageEntrance,
-    resetProgress,
-  ]);
+    isClosingRef.current = false;
+    finishClose();
+  }, [finishClose]);
 
-  const animateToIndex = useCallback(
-    (nextIndex, nextDirection) => {
-      if (isTransitioningRef.current) return;
+  const startProgress = useCallback(
+    (fromValue = 0) => {
+      if (!visible || !activeUri) return;
+      if (isClosingRef.current) return;
+      progressValue.stopAnimation();
+      progressValue.setValue(fromValue);
+      Animated.timing(progressValue, {
+        toValue: 1,
+        duration: Math.max(1, STORY_DURATION_MS * (1 - fromValue)),
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (!finished) return;
+        const nextIndex = activeIndexRef.current + 1;
+        if (nextIndex >= normalizedItems.length) {
+          close();
+          return;
+        }
+        activeIndexRef.current = nextIndex;
+        setActiveIndex(nextIndex);
+      });
+    },
+    [activeUri, close, normalizedItems.length, progressValue, visible],
+  );
+
+  const pause = useCallback(() => {
+    if (isPausedRef.current) return;
+    isPausedRef.current = true;
+    setIsProgressHidden(true);
+    stopProgress();
+  }, [stopProgress]);
+
+  const resume = useCallback(() => {
+    if (!isPausedRef.current) return;
+    isPausedRef.current = false;
+    setIsProgressHidden(false);
+    startProgress(pausedProgressRef.current);
+  }, [startProgress]);
+
+  const goToIndex = useCallback(
+    (nextIndex) => {
+      if (isClosingRef.current) return;
       if (nextIndex < 0) return;
       if (nextIndex >= normalizedItems.length) {
         close();
         return;
       }
-
-      isTransitioningRef.current = true;
-      resetProgress();
-      setIsProgressVisible(true);
-      setIncomingIndex(nextIndex);
-      currentX.setValue(0);
-      incomingX.setValue(nextDirection > 0 ? screenWidth : -screenWidth);
-
-      Animated.parallel([
-        Animated.spring(currentX, {
-          toValue: nextDirection > 0 ? -screenWidth : screenWidth,
-          stiffness: 300,
-          damping: 35,
-          mass: 1,
-          useNativeDriver: true,
-        }),
-        Animated.spring(incomingX, {
-          toValue: 0,
-          stiffness: 300,
-          damping: 35,
-          mass: 1,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIndex(nextIndex);
-        setIncomingIndex(null);
-        currentX.setValue(0);
-        incomingX.setValue(0);
-        isTransitioningRef.current = false;
-      });
+      if (nextIndex === activeIndexRef.current) return;
+      setIsProgressHidden(true);
+      stopProgress();
+      isPausedRef.current = false;
+      pausedProgressRef.current = 0;
+      activeIndexRef.current = nextIndex;
+      setActiveIndex(nextIndex);
+      setIsProgressHidden(false);
     },
-    [
-      close,
-      currentX,
-      incomingX,
-      normalizedItems.length,
-      resetProgress,
-      screenWidth,
-    ],
+    [close, normalizedItems.length, stopProgress],
   );
 
-  const next = useCallback(() => {
-    if (index >= normalizedItems.length - 1) {
-      close();
-      return;
-    }
-    animateToIndex(index + 1, 1);
-  }, [animateToIndex, close, index, normalizedItems.length]);
+  const goNext = useCallback(() => {
+    goToIndex(activeIndexRef.current + 1);
+  }, [goToIndex]);
 
-  const prev = useCallback(() => {
-    if (index <= 0) return;
-    animateToIndex(index - 1, -1);
-  }, [animateToIndex, index]);
+  const goPrev = useCallback(() => {
+    goToIndex(activeIndexRef.current - 1);
+  }, [goToIndex]);
 
-  const startProgress = useCallback(
-    (fromValue = 0) => {
-      if (isTransitioningRef.current || isClosingRef.current) return;
-      progress.stopAnimation();
-      progress.setValue(fromValue);
-      Animated.timing(progress, {
-        toValue: PROGRESS_COMPLETE_VALUE,
-        duration: STORY_DURATION * (1 - fromValue),
-        useNativeDriver: false,
-      }).start(({ finished }) => {
-        if (finished) next();
+  const handleActionPress = useCallback(() => {
+    const url = normalizeUrl(activeItem?.actionUrl);
+    if (!url) return;
+    pause();
+    openBrowserAsync(url)
+      .catch(() => Linking.openURL(url).catch(() => {}))
+      .finally(() => {
+        resume();
       });
-    },
-    [next, progress],
-  );
-
-  const pauseProgress = useCallback(() => {
-    if (isPausedRef.current) return;
-    isPausedRef.current = true;
-    progress.stopAnimation((value) => {
-      pausedProgressRef.current = value;
-    });
-    setIsProgressVisible(false);
-  }, [progress]);
-
-  const resumeProgress = useCallback(() => {
-    if (!isPausedRef.current) return;
-    isPausedRef.current = false;
-    setIsProgressVisible(true);
-    startProgress(pausedProgressRef.current);
-  }, [startProgress]);
+  }, [activeItem?.actionUrl, pause, resume]);
 
   useEffect(() => {
-    if (!visible) return;
-    isInitialOpenRef.current = true;
-    pendingInitialIndexRef.current = clampIndex(
-      startIndex,
-      normalizedItems.length,
-    );
-    overlayOpacity.setValue(0);
-    overlayScale.setValue(0.985);
-    overlayTranslateY.setValue(OPEN_TRANSLATE_Y);
-    imageEntrance.setValue(0);
-    Animated.parallel([
-      Animated.timing(overlayOpacity, {
-        toValue: 1,
-        duration: 130,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayScale, {
-        toValue: 1,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayTranslateY, {
-        toValue: 0,
-        duration: 180,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(imageEntrance, {
-        toValue: 1,
-        duration: 760,
-        easing: Easing.bezier(0.16, 1, 0.3, 1),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [
-    normalizedItems.length,
-    overlayOpacity,
-    overlayScale,
-    overlayTranslateY,
-    imageEntrance,
-    startIndex,
-    visible,
-  ]);
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
 
-  const imageEntranceScale = useMemo(
-    () =>
-      imageEntrance.interpolate({
-        inputRange: [0, 1],
-        outputRange: [IMAGE_OPEN_SCALE, 1],
-      }),
-    [imageEntrance],
-  );
-  const imageEntranceTranslateY = useMemo(
-    () =>
-      imageEntrance.interpolate({
-        inputRange: [0, 1],
-        outputRange: [IMAGE_OPEN_TRANSLATE_Y, 0],
-      }),
-    [imageEntrance],
-  );
-  const contentEntranceStyle = useMemo(
-    () => ({
-      opacity: imageEntrance,
-      transform: [
-        {
-          translateY: imageEntrance.interpolate({
-            inputRange: [0, 1],
-            outputRange: [CONTENT_OPEN_TRANSLATE_Y, 0],
-          }),
-        },
-      ],
-    }),
-    [imageEntrance],
-  );
-  const blurLayerStyle = useMemo(
-    () => ({
-      opacity: imageEntrance.interpolate({
-        inputRange: [0, 0.85, 1],
-        outputRange: [0.62, 0.16, 0],
-      }),
-      transform: [
-        {
-          scale: imageEntrance.interpolate({
-            inputRange: [0, 1],
-            outputRange: [1.08, 1.02],
-          }),
-        },
-      ],
-    }),
-    [imageEntrance],
-  );
+  useEffect(() => {
+    if (visible) return;
+    const nextIndex = clampIndex(startIndex, normalizedItems.length);
+    activeIndexRef.current = nextIndex;
+    setActiveIndex(nextIndex);
+    setIsProgressHidden(false);
+    isPausedRef.current = false;
+    pausedProgressRef.current = 0;
+    resetProgress();
+  }, [normalizedItems.length, resetProgress, startIndex, visible]);
 
   useEffect(() => {
     if (!visible) return;
     const nextIndex = clampIndex(startIndex, normalizedItems.length);
-    pendingInitialIndexRef.current = nextIndex;
-    setIndex(nextIndex);
+    activeIndexRef.current = nextIndex;
+    setActiveIndex(nextIndex);
+    setIsProgressHidden(false);
+    isPausedRef.current = false;
   }, [normalizedItems.length, startIndex, visible]);
 
   useEffect(() => {
-    if (!visible || !item) return;
-
-    setIsProgressVisible(true);
-    isPausedRef.current = false;
-    pausedProgressRef.current = 0;
-    resetProgress();
-
-    currentX.setValue(0);
-    incomingX.setValue(0);
-    setIncomingIndex(null);
-
-    if (isInitialOpenRef.current) {
-      isInitialOpenRef.current = false;
-      pendingInitialIndexRef.current = null;
-    }
-    startProgress(0);
-  }, [
-    currentX,
-    index,
-    incomingX,
-    item,
-    progress,
-    resetProgress,
-    startProgress,
-    visible,
-  ]);
-
-  useEffect(() => {
     if (!visible) return;
-    normalizedItems.forEach((story) => {
-      if (story?.mediaUrl) {
-        Promise.resolve(Image.prefetch(story.mediaUrl)).catch(() => {});
-      }
+    const uris = normalizedItems
+      .map((story) => story?.mediaUrl)
+      .filter(Boolean);
+    uris.forEach((uri) => {
+      Promise.resolve(ReactNativeImage.prefetch(uri))
+        .then(() => markLoaded(uri))
+        .catch(() => {});
     });
-  }, [normalizedItems, visible]);
+  }, [markLoaded, normalizedItems, visible]);
 
   useEffect(() => {
-    Animated.timing(progressOpacity, {
-      toValue: isProgressVisible ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [isProgressVisible, progressOpacity]);
+    if (!visible || !activeUri) return;
+    resetProgress();
+    startProgress(0);
+  }, [activeIndex, activeUri, resetProgress, startProgress, visible]);
 
   useEffect(
     () => () => {
       clearPressTimer();
-      progress.stopAnimation();
+      progressValue.stopAnimation();
     },
-    [clearPressTimer, progress],
+    [clearPressTimer, progressValue],
   );
-
-  const progressWidth = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
-
-  const handleActionPress = useCallback(() => {
-    const url = normalizeUrl(item?.actionUrl);
-    if (!url) return;
-    openBrowserAsync(url).catch(() => {
-      Linking.openURL(url).catch(() => {});
-    });
-  }, [item?.actionUrl]);
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > MOVE_CANCEL_PRESS_PX ||
+          Math.abs(gestureState.dy) > MOVE_CANCEL_PRESS_PX,
+        onPanResponderGrant: (event) => {
+          const { pageX, pageY } = event.nativeEvent;
           touchStartTimeRef.current = Date.now();
+          touchStartXRef.current = pageX;
+          touchStartYRef.current = pageY;
           clearPressTimer();
-          pressTimerRef.current = setTimeout(pauseProgress, PRESS_DURATION);
+          pressTimerRef.current = setTimeout(() => {
+            pause();
+          }, LONG_PRESS_DELAY_MS);
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (
+            Math.abs(gestureState.dx) > MOVE_CANCEL_PRESS_PX ||
+            Math.abs(gestureState.dy) > MOVE_CANCEL_PRESS_PX
+          ) {
+            clearPressTimer();
+          }
         },
         onPanResponderRelease: (event, gestureState) => {
           clearPressTimer();
-          if (isPausedRef.current) {
-            resumeProgress();
-            return;
-          }
 
-          const { dx, dy } = gestureState;
-          const timeDelta = Date.now() - touchStartTimeRef.current;
+          const elapsed = Date.now() - touchStartTimeRef.current;
+          const dx = gestureState.dx;
+          const dy = gestureState.dy;
           const pageX = event.nativeEvent.pageX;
 
-          if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && timeDelta < 200) {
-            if (pageX > screenWidth / 2) next();
-            else prev();
+          if (isPausedRef.current) {
+            resume();
             return;
           }
 
           if (
-            Math.abs(dx) > SWIPE_THRESHOLD &&
-            Math.abs(dy) < SWIPE_THRESHOLD * 1.5
+            dy > VERTICAL_CLOSE_THRESHOLD &&
+            Math.abs(dx) < HORIZONTAL_SWIPE_THRESHOLD * 1.5
           ) {
-            if (dx < 0) next();
-            else prev();
+            close();
             return;
           }
 
-          if (Math.abs(dy) > SWIPE_THRESHOLD * 1.5 && dy > SWIPE_THRESHOLD) {
-            close();
+          if (
+            Math.abs(dx) > HORIZONTAL_SWIPE_THRESHOLD &&
+            Math.abs(dy) < VERTICAL_CLOSE_THRESHOLD
+          ) {
+            if (dx < 0) goNext();
+            else goPrev();
+            return;
+          }
+
+          if (
+            elapsed <= TAP_MAX_DURATION_MS &&
+            Math.abs(dx) < MOVE_CANCEL_PRESS_PX &&
+            Math.abs(dy) < MOVE_CANCEL_PRESS_PX
+          ) {
+            if (pageX >= screenWidth / 2) goNext();
+            else goPrev();
           }
         },
         onPanResponderTerminate: () => {
           clearPressTimer();
-          resumeProgress();
+          if (isPausedRef.current) {
+            resume();
+          }
         },
       }),
-    [
-      clearPressTimer,
-      close,
-      next,
-      pauseProgress,
-      prev,
-      resumeProgress,
-      screenWidth,
-    ],
+    [clearPressTimer, close, goNext, goPrev, pause, resume, screenWidth],
   );
 
-  if (!visible || !item || !imageSource) return null;
+  if (!visible || !activeItem || !activeUri) return null;
 
   return (
     <Modal
@@ -494,132 +398,76 @@ export function NativeStoriesViewer({
       statusBarTranslucent
       onRequestClose={close}
     >
-      <Animated.View
-        style={[
-          styles.overlay,
-          {
-            opacity: overlayOpacity,
-            transform: [
-              { translateY: overlayTranslateY },
-              { scale: overlayScale },
-            ],
-          },
-        ]}
-      >
+      <View style={styles.overlay}>
+        <StatusBar style="light" translucent backgroundColor="transparent" />
         <View style={styles.safeArea}>
-          <StatusBar style="light" translucent backgroundColor="transparent" />
-          <Animated.View
-            style={[styles.progressTrack, { opacity: progressOpacity }]}
-          >
-            <Animated.View
-              style={[styles.progressFill, { width: progressWidth }]}
-            />
-          </Animated.View>
+          <StoryProgressBar
+            count={normalizedItems.length}
+            activeIndex={activeIndex}
+            progress={progressWidth}
+            hidden={isProgressHidden}
+            topInset={insets.top}
+          />
 
-          <Pressable style={styles.closeButton} onPress={close}>
+          <Pressable
+            style={[styles.closeButton, { top: insets.top + 22 }]}
+            onPress={close}
+          >
             <CloseIcon />
           </Pressable>
 
-          <Animated.View
-            style={[
-              styles.slide,
-              {
-                transform: [
-                  { translateX: currentX },
-                  { translateY: imageEntranceTranslateY },
-                  { scale: imageEntranceScale },
-                ],
-              },
-            ]}
-          >
-            <Animated.Image
-              source={imageSource}
-              style={[styles.image, styles.blurImage, blurLayerStyle]}
-              resizeMode="cover"
-              blurRadius={BLUR_OPEN_RADIUS}
-              fadeDuration={0}
+          <View style={styles.storyLayer}>
+            <ExpoImage
+              source={{ uri: activeUri }}
+              placeholder={
+                activeItem.previewUrl ? { uri: activeItem.previewUrl } : undefined
+              }
+              style={styles.storyImage}
+              contentFit="cover"
+              transition={0}
+              cachePolicy="memory-disk"
+              onLoad={() => markLoaded(activeUri)}
             />
-            <Image
-              source={imageSource}
-              style={styles.image}
-              resizeMode="cover"
-              fadeDuration={0}
-              onError={next}
-            />
-
-            <Animated.View style={[styles.copy, contentEntranceStyle]}>
-              {item.title ? (
-                <Text style={styles.title}>{item.title}</Text>
-              ) : null}
-              {item.subTitle ? (
-                <Text style={styles.subtitle}>{item.subTitle}</Text>
-              ) : null}
-            </Animated.View>
-
-            {item.action && item.actionUrl ? (
-              <Animated.View
-                style={[styles.actionButtonWrap, contentEntranceStyle]}
+            <View style={styles.imageShade} pointerEvents="none" />
+            <View
+              style={[
+                styles.copyWrap,
+                {
+                  paddingTop: insets.top + 80,
+                  paddingBottom: insets.bottom + (activeItem.action && activeItem.actionUrl ? 112 : 34),
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <View style={styles.copyBlock}>
+                {activeItem.title ? (
+                  <Text style={styles.title}>{activeItem.title}</Text>
+                ) : null}
+                {activeItem.subTitle ? (
+                  <Text style={styles.subtitle}>{activeItem.subTitle}</Text>
+                ) : null}
+              </View>
+            </View>
+            {activeItem.action && activeItem.actionUrl ? (
+              <View
+                style={[
+                  styles.actionWrap,
+                  { paddingBottom: insets.bottom + 24 },
+                ]}
               >
                 <Pressable
                   style={styles.actionButton}
                   onPress={handleActionPress}
                 >
-                  <Text style={styles.actionText}>{item.action}</Text>
+                  <Text style={styles.actionText}>{activeItem.action}</Text>
                 </Pressable>
-              </Animated.View>
+              </View>
             ) : null}
-          </Animated.View>
-
-          {incomingItem && incomingImageSource ? (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.slide,
-                {
-                  transform: [
-                    { translateX: incomingX },
-                    { translateY: imageEntranceTranslateY },
-                    { scale: imageEntranceScale },
-                  ],
-                },
-              ]}
-            >
-              <Animated.Image
-                source={incomingImageSource}
-                style={[styles.image, styles.blurImage, blurLayerStyle]}
-                resizeMode="cover"
-                blurRadius={BLUR_OPEN_RADIUS}
-                fadeDuration={0}
-              />
-              <Image
-                source={incomingImageSource}
-                style={styles.image}
-                resizeMode="cover"
-                fadeDuration={0}
-              />
-              <Animated.View style={[styles.copy, contentEntranceStyle]}>
-                {incomingItem.title ? (
-                  <Text style={styles.title}>{incomingItem.title}</Text>
-                ) : null}
-                {incomingItem.subTitle ? (
-                  <Text style={styles.subtitle}>{incomingItem.subTitle}</Text>
-                ) : null}
-              </Animated.View>
-              {incomingItem.action && incomingItem.actionUrl ? (
-                <Animated.View
-                  style={[styles.actionButtonWrap, contentEntranceStyle]}
-                >
-                  <View style={styles.actionButton}>
-                    <Text style={styles.actionText}>{incomingItem.action}</Text>
-                  </View>
-                </Animated.View>
-              ) : null}
-            </Animated.View>
-          ) : null}
+          </View>
 
           <View style={styles.touchLayer} {...panResponder.panHandlers} />
         </View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -627,99 +475,104 @@ export function NativeStoriesViewer({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
-    elevation: 100,
-    backgroundColor: "#000",
+    backgroundColor: "#000000",
   },
   safeArea: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#000000",
   },
-  progressTrack: {
+  progressRow: {
     position: "absolute",
-    top: 38,
-    left: 24,
-    right: 24,
-    zIndex: 50,
-    height: 4,
-    borderRadius: 999,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    left: 12,
+    right: 12,
+    zIndex: 40,
+    flexDirection: "row",
+    gap: 4,
   },
-  progressFill: {
+  progressSegment: {
+    flex: 1,
+    height: 3,
+    overflow: "hidden",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.24)",
+  },
+  progressSegmentFill: {
     height: "100%",
     borderRadius: 999,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
+  },
+  progressSegmentFillDone: {
+    width: "100%",
+  },
+  progressSegmentFillPending: {
+    width: "0%",
   },
   closeButton: {
     position: "absolute",
-    top: 60,
-    left: 25,
-    zIndex: 30,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    left: 14,
+    zIndex: 45,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(17,18,20,0.30)",
   },
-  closeText: {
-    color: "#fff",
-    fontSize: 20,
-    lineHeight: 22,
-    fontWeight: "500",
-  },
-  slide: {
+  storyLayer: {
     ...StyleSheet.absoluteFillObject,
   },
-  image: {
+  storyImage: {
     width: "100%",
     height: "100%",
+    backgroundColor: "#090909",
   },
-  blurImage: {
+  imageShade: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.08)",
   },
-  copy: {
-    position: "absolute",
-    left: 16,
-    right: "12%",
-    bottom: 95,
+  copyWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  copyBlock: {
+    marginTop: "auto",
     gap: 8,
   },
   title: {
-    color: "#fff",
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "700",
   },
   subtitle: {
-    color: "#fff",
-    fontSize: 14,
-    lineHeight: 19,
+    color: "rgba(255,255,255,0.96)",
+    fontSize: 15,
+    lineHeight: 20,
   },
-  actionButton: {
-    position: "absolute",
-    minHeight: 44,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  actionButtonWrap: {
+  actionWrap: {
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 30,
-    zIndex: 30,
+    bottom: 0,
+    zIndex: 45,
+  },
+  actionButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
   },
   actionText: {
     color: "#131314",
     fontSize: 15,
     lineHeight: 18,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   touchLayer: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
+    zIndex: 30,
   },
 });

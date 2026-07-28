@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,17 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { NativeBottomSheet } from "@/components/native-bottom-sheet";
-import { getStoredAuthTokens } from "@/lib/auth-storage";
 import { listNativeOrders } from "@/lib/native-account-api";
-import {
-  adjustCartItemByProduct,
-  fetchProductById,
-  getCartItems,
-  mapProduct,
-} from "@/lib/native-market-api";
 
 import { NativeAccountScreenShell } from "./account-screen-shell";
 import { nativeAccountStyles as styles } from "./native-account.styles";
@@ -26,50 +19,41 @@ import { nativeAccountStyles as styles } from "./native-account.styles";
 const ACTIVE_STATUSES = new Set(["pending", "confirmed", "processing", "shipped"]);
 const STATUS_META = {
   pending: {
-    label: "Оформляется",
+    label: "Pending",
     badgeStyle: styles.orderStatusBadgeWarning,
     textStyle: styles.orderStatusTextWarning,
   },
   confirmed: {
-    label: "Подтвержден",
+    label: "Confirmed",
     badgeStyle: styles.orderStatusBadgeInfo,
     textStyle: styles.orderStatusTextInfo,
   },
   processing: {
-    label: "Собирается",
+    label: "Processing",
     badgeStyle: styles.orderStatusBadgeWarning,
     textStyle: styles.orderStatusTextWarning,
   },
   shipped: {
-    label: "Доставляется",
+    label: "Shipped",
     badgeStyle: styles.orderStatusBadgeSuccess,
     textStyle: styles.orderStatusTextSuccess,
   },
   delivered: {
-    label: "Выдано покупателю",
+    label: "Delivered",
     badgeStyle: styles.orderStatusBadgeNeutral,
     textStyle: styles.orderStatusTextNeutral,
   },
   completed: {
-    label: "Выдано покупателю",
+    label: "Delivered",
     badgeStyle: styles.orderStatusBadgeNeutral,
     textStyle: styles.orderStatusTextNeutral,
   },
   cancelled: {
-    label: "Отменен",
+    label: "Cancelled",
     badgeStyle: styles.orderStatusBadgeDanger,
     textStyle: styles.orderStatusTextDanger,
   },
 };
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function toTimestamp(value) {
   if (!value) return 0;
@@ -77,11 +61,18 @@ function toTimestamp(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
-function formatDate(value) {
-  if (!value) return "Не указана";
+function formatDate(value, language) {
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Не указана";
-  return new Intl.DateTimeFormat("ru-RU", {
+  if (Number.isNaN(date.getTime())) return null;
+
+  const localeMap = {
+    en: "en-US",
+    ru: "ru-RU",
+    uz: "uz-UZ",
+  };
+
+  return new Intl.DateTimeFormat(localeMap[language] || "ru-RU", {
     day: "numeric",
     month: "long",
     weekday: "long",
@@ -103,45 +94,32 @@ function filterOrders(orders, tab) {
   return orders;
 }
 
-function getStatusMeta(status) {
+function getStatusMeta(status, t) {
   const value = String(status || "pending").toLowerCase();
-  return STATUS_META[value] || STATUS_META.pending;
+  const fallback = STATUS_META[value] || STATUS_META.pending;
+
+  return {
+    ...fallback,
+    label: t(`ordersHistory.statuses.${value}`, fallback.label),
+  };
 }
 
-function formatItemsLabel(count) {
-  const total = Number(count) || 0;
-  if (total % 10 === 1 && total % 100 !== 11) return `${total} товар`;
-  if ([2, 3, 4].includes(total % 10) && ![12, 13, 14].includes(total % 100)) {
-    return `${total} товара`;
-  }
-  return `${total} товаров`;
-}
-
-function toSheetProduct(item) {
-  return mapProduct({
-    id: item?.id,
-    name: item?.name || "Товар",
-    price: item?.price ?? 0,
-    image: item?.image || null,
-    image_url: item?.image || null,
-    images: item?.image ? [item.image] : [],
-    description: "",
-  });
+function formatItemsLabel(count, t) {
+  return t("ordersHistory.itemsCount", { count: Number(count) || 0 });
 }
 
 export function OrdersHistoryScreen() {
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   const router = useRouter();
-  const initialTab = params?.tab === "active" ? "active" : "all";
+  const initialTab = params?.tab === "all" ? "all" : "active";
   const [tab, setTab] = useState(initialTab);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [sheet, setSheet] = useState(null);
-  const [isSheetVisible, setIsSheetVisible] = useState(false);
 
-  const loadOrders = async ({ silent = false } = {}) => {
+  const loadOrders = useCallback(async ({ silent = false } = {}) => {
     if (silent) setIsRefreshing(true);
     else setIsLoading(true);
     setError("");
@@ -152,18 +130,18 @@ export function OrdersHistoryScreen() {
     } catch (loadError) {
       setError(
         loadError?.status === 401
-          ? "Войдите, чтобы посмотреть заказы."
-          : "Не удалось загрузить заказы.",
+          ? t("ordersHistory.loadErrorAuth")
+          : t("ordersHistory.loadError"),
       );
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     void loadOrders();
-  }, []);
+  }, [loadOrders]);
 
   const sortedOrders = useMemo(
     () =>
@@ -178,150 +156,24 @@ export function OrdersHistoryScreen() {
     [sortedOrders, tab],
   );
 
-  const closeSheet = () => {
-    setIsSheetVisible(false);
-    setTimeout(() => {
-      setSheet(null);
-    }, 280);
-  };
-
-  const updateSheetPayload = (updater) => {
-    setSheet((current) => {
-      if (!current || current.sheetKey !== "product_detail") return current;
-      const nextPayload =
-        typeof updater === "function"
-          ? updater(current.payload || {})
-          : updater || {};
-      return {
-        ...current,
-        payload: { ...(current.payload || {}), ...nextPayload },
-      };
-    });
-  };
-
-  const refreshProductQuantity = async (productId) => {
-    const tokens = parseTokensString(await getStoredAuthTokens());
-    if (!tokens?.access) {
-      updateSheetPayload({ quantity: 0, isQuantityLoading: false });
-      return;
-    }
-
-    try {
-      const response = await getCartItems(tokens.access);
-      const items = Array.isArray(response?.items) ? response.items : [];
-      const found = items.find(
-        (entry) => String(entry?.product?.id) === String(productId),
-      );
-      updateSheetPayload({
-        quantity: found?.quantity ?? 0,
-        isQuantityLoading: false,
-      });
-    } catch {
-      updateSheetPayload({ quantity: 0, isQuantityLoading: false });
-    }
-  };
-
-  const openProductSheet = async (item) => {
+  const openProduct = (item) => {
     const productId = item?.id;
     if (!productId) return;
-
-    const fallbackProduct = toSheetProduct(item);
-    setSheet({
-      requestId: `order-product-${productId}-${Date.now()}`,
-      sheetKey: "product_detail",
-      payload: {
-        productId: String(productId),
-        product: fallbackProduct,
-        fallbackProduct,
-        quantity: 0,
-        isLoading: true,
-        isQuantityLoading: true,
-        isCartPending: false,
-        error: null,
-      },
-      options: {},
+    router.push({
+      pathname: "/product",
+      params: { productPath: `/products/${productId}` },
     });
-    setIsSheetVisible(true);
-
-    void refreshProductQuantity(productId);
-
-    try {
-      const product = await fetchProductById(productId);
-      updateSheetPayload((current) => ({
-        product: product || current.product || current.fallbackProduct,
-        isLoading: false,
-        error:
-          product || current.product || current.fallbackProduct
-            ? null
-            : "Не удалось загрузить товар.",
-      }));
-    } catch {
-      updateSheetPayload((current) => ({
-        product: current.product || current.fallbackProduct,
-        isLoading: false,
-        error:
-          current.product || current.fallbackProduct
-            ? null
-            : "Не удалось загрузить товар.",
-      }));
-    }
-  };
-
-  const handleSheetAction = async (actionId) => {
-    const productId = sheet?.payload?.productId;
-    if (!productId) return;
-
-    if (actionId === "catalog") {
-      closeSheet();
-      setTimeout(() => {
-        router.replace("/(tabs)/catalog");
-      }, 280);
-      return;
-    }
-
-    const delta =
-      actionId === "add_to_cart" || actionId === "increment"
-        ? 1
-        : actionId === "decrement"
-          ? -1
-          : 0;
-    if (!delta) return;
-
-    const currentQuantity = Math.max(
-      0,
-      Number(sheet?.payload?.quantity || 0),
-    );
-    if (delta < 0 && currentQuantity <= 0) return;
-
-    const tokens = parseTokensString(await getStoredAuthTokens());
-    if (!tokens?.access) return;
-
-    updateSheetPayload({ isCartPending: true });
-    try {
-      const updated = await adjustCartItemByProduct(
-        tokens.access,
-        productId,
-        delta,
-      );
-      const nextQuantity = Math.max(
-        0,
-        Number(updated?.quantity ?? currentQuantity + delta),
-      );
-      updateSheetPayload({
-        quantity: nextQuantity,
-        isCartPending: false,
-      });
-    } catch {
-      updateSheetPayload({ isCartPending: false });
-    }
   };
 
   return (
-    <NativeAccountScreenShell title="История заказов">
+    <NativeAccountScreenShell
+      forceBackToProfile={true}
+      title={t("ordersHistory.title")}
+    >
       {isLoading ? (
         <View style={styles.centeredState}>
           <ActivityIndicator color="#FE946E" size="small" />
-          <Text style={styles.stateText}>Загружаем заказы...</Text>
+          <Text style={styles.stateText}>{t("ordersHistory.loading")}</Text>
         </View>
       ) : (
         <>
@@ -338,23 +190,25 @@ export function OrdersHistoryScreen() {
           >
             <View style={styles.segmented}>
               {["active", "all"].map((key) => {
-                const active = key === tab;
+                const isActive = key === tab;
                 return (
                   <Pressable
                     key={key}
                     onPress={() => setTab(key)}
                     style={[
                       styles.segmentedButton,
-                      active && styles.segmentedButtonActive,
+                      isActive && styles.segmentedButtonActive,
                     ]}
                   >
                     <Text
                       style={[
                         styles.segmentedButtonText,
-                        active && styles.segmentedButtonTextActive,
+                        isActive && styles.segmentedButtonTextActive,
                       ]}
                     >
-                      {key === "active" ? "Активные" : "Все"}
+                      {key === "active"
+                        ? t("ordersHistory.tabs.active")
+                        : t("ordersHistory.tabs.all")}
                     </Text>
                   </Pressable>
                 );
@@ -362,9 +216,7 @@ export function OrdersHistoryScreen() {
             </View>
 
             {error ? (
-              <Text style={[styles.errorText, styles.ordersError]}>
-                {error}
-              </Text>
+              <Text style={[styles.errorText, styles.ordersError]}>{error}</Text>
             ) : null}
 
             <View style={styles.listGap}>
@@ -372,13 +224,13 @@ export function OrdersHistoryScreen() {
                 <View style={styles.card}>
                   <Text style={styles.stateText}>
                     {tab === "active"
-                      ? "Активных заказов пока нет."
-                      : "Заказов пока нет."}
+                      ? t("ordersHistory.empty.active")
+                      : t("ordersHistory.empty.all")}
                   </Text>
                 </View>
               ) : (
                 filteredOrders.map((order) => {
-                  const statusMeta = getStatusMeta(order.status);
+                  const statusMeta = getStatusMeta(order.status, t);
                   const itemPreview = Array.isArray(order.items)
                     ? order.items.slice(0, 2)
                     : [];
@@ -390,7 +242,9 @@ export function OrdersHistoryScreen() {
                   return (
                     <View key={order.id} style={styles.orderCard}>
                       <Text style={styles.orderNumber}>
-                        {`Заказ №${order.number || order.id}`}
+                        {t("ordersHistory.orderNumber", {
+                          number: order.number || order.id,
+                        })}
                       </Text>
 
                       <View
@@ -406,21 +260,22 @@ export function OrdersHistoryScreen() {
                       <View style={styles.orderInfoList}>
                         <View style={styles.orderInfoSection}>
                           <Text style={styles.orderSectionLabel}>
-                            Дата доставки
+                            {t("ordersHistory.deliveryDate")}
                           </Text>
                           <Text style={styles.orderSectionValue}>
                             {order.deliveryDate
-                              ? formatDate(order.deliveryDate)
-                              : "Не указана"}
+                              ? formatDate(order.deliveryDate, i18n.language)
+                              : t("ordersHistory.notSpecified")}
                           </Text>
                         </View>
 
                         <View style={styles.orderInfoSection}>
                           <Text style={styles.orderSectionLabel}>
-                            Адрес доставки
+                            {t("ordersHistory.deliveryAddress")}
                           </Text>
                           <Text style={styles.orderSectionValue}>
-                            {order.address || "Адрес не указан"}
+                            {order.address ||
+                              t("ordersHistory.addressNotSpecified")}
                           </Text>
                         </View>
                       </View>
@@ -428,26 +283,31 @@ export function OrdersHistoryScreen() {
                       <View style={styles.orderTotals}>
                         <View style={styles.orderTotalsRow}>
                           <Text style={styles.mutedText}>
-                            {formatItemsLabel(order.items?.length || 0)}
+                            {formatItemsLabel(order.items?.length || 0, t)}
                           </Text>
                           <Text style={styles.orderTotalsValue}>
-                            {formatMoney(order.subtotal || order.total)} сум
+                            {formatMoney(order.subtotal || order.total)}{" "}
+                            {t("ordersHistory.currency")}
                           </Text>
                         </View>
 
                         <View style={styles.orderTotalsRow}>
-                          <Text style={styles.mutedText}>Доставка</Text>
+                          <Text style={styles.mutedText}>
+                            {t("ordersHistory.deliveryFee")}
+                          </Text>
                           <Text style={styles.orderTotalsValue}>
                             {order.deliveryFee
-                              ? `${formatMoney(order.deliveryFee)} сум`
-                              : "Бесплатно"}
+                              ? `${formatMoney(order.deliveryFee)} ${t("ordersHistory.currency")}`
+                              : t("ordersHistory.free")}
                           </Text>
                         </View>
 
                         <View style={styles.orderTotalsRow}>
-                          <Text style={styles.orderTotalLabel}>Итого</Text>
+                          <Text style={styles.orderTotalLabel}>
+                            {t("ordersHistory.total")}
+                          </Text>
                           <Text style={styles.orderTotalValue}>
-                            {formatMoney(order.total)} сум
+                            {formatMoney(order.total)} {t("ordersHistory.currency")}
                           </Text>
                         </View>
                       </View>
@@ -465,7 +325,7 @@ export function OrdersHistoryScreen() {
                         {itemPreview.map((item, index) => (
                           <Pressable
                             key={`${order.id}-${item.id ?? index}`}
-                            onPress={() => openProductSheet(item)}
+                            onPress={() => openProduct(item)}
                             style={styles.previewPressable}
                           >
                             <View style={styles.previewImageWrap}>
@@ -504,14 +364,6 @@ export function OrdersHistoryScreen() {
               )}
             </View>
           </ScrollView>
-
-          <NativeBottomSheet
-            mounted={Boolean(sheet)}
-            visible={isSheetVisible}
-            sheet={sheet}
-            onClose={closeSheet}
-            onAction={handleSheetAction}
-          />
         </>
       )}
     </NativeAccountScreenShell>

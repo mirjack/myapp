@@ -71,10 +71,17 @@ export const nativeProfileStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#131314",
+    flex: 1,
+    minWidth: 0,
+  },
+  heroNameFallback: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   heroActionRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
   },
   heroActionText: {
     fontSize: 14,

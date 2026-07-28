@@ -39,6 +39,85 @@ export function getPersonDisplayName(person) {
     .trim();
 }
 
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function pickLocalizedProblemTypeName(problemType, language) {
+  const normalizedLanguage = String(language || "en").toLowerCase();
+
+  if (normalizedLanguage === "uz" && problemType?.nameUz) {
+    return String(problemType.nameUz).trim();
+  }
+  if (normalizedLanguage === "ru" && problemType?.nameRu) {
+    return String(problemType.nameRu).trim();
+  }
+  if (normalizedLanguage === "en" && problemType?.nameEn) {
+    return String(problemType.nameEn).trim();
+  }
+
+  return (
+    String(problemType?.nameUz || "").trim() ||
+    String(problemType?.nameRu || "").trim() ||
+    String(problemType?.nameEn || "").trim() ||
+    String(problemType?.name || "").trim() ||
+    ""
+  );
+}
+
+export function getSupportCategoryKey(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+
+  if (
+    text.includes("product") ||
+    text.includes("товар") ||
+    text.includes("mahs")
+  ) {
+    return "product";
+  }
+
+  if (
+    text.includes("delivery") ||
+    text.includes("достав") ||
+    text.includes("yetkaz")
+  ) {
+    return "delivery";
+  }
+
+  if (
+    text.includes("service") ||
+    text.includes("сервис") ||
+    text.includes("xizmat")
+  ) {
+    return "service";
+  }
+
+  if (
+    text.includes("other") ||
+    text.includes("друг") ||
+    text.includes("boshqa")
+  ) {
+    return "other";
+  }
+
+  if (text.includes("problem")) return "problem";
+  if (text.includes("question")) return "question";
+
+  return null;
+}
+
+export function getLocalizedProblemTypeLabel(problemType, t, language) {
+  const rawLabel = pickLocalizedProblemTypeName(problemType, language);
+  const categoryKey = getSupportCategoryKey(rawLabel);
+
+  if (categoryKey && categoryKey !== "problem" && categoryKey !== "question") {
+    return t(`support.categories.${categoryKey}`);
+  }
+
+  return rawLabel || `Type #${problemType?.id ?? ""}`;
+}
+
 export function getLastTextMessage(request) {
   return [...(request?.messages || [])]
     .filter((message) => String(message?.text || "").trim())
@@ -63,12 +142,13 @@ export function getLatestSupportMessage(request, customerId) {
     })[0];
 }
 
-export function getRequestAgentProfile(request, customerId) {
+export function getRequestAgentProfile(request, customerId, t) {
   const latestSupportMessage = getLatestSupportMessage(request, customerId);
   const name =
     getPersonDisplayName(latestSupportMessage?.sender) ||
     getPersonDisplayName(request?.user) ||
-    "\u041c\u0435\u043d\u0435\u0434\u0436\u0435\u0440";
+    t?.("support.managerTitle") ||
+    "Manager";
 
   const avatarUri =
     latestSupportMessage?.sender?.avatar ||
@@ -88,23 +168,26 @@ export function getRequestAgentProfile(request, customerId) {
   };
 }
 
-export function getRequestSummary(request, customerId, agentName) {
+export function getRequestSummary(request, customerId, agentName, t, language) {
   const lastMessage = getLastTextMessage(request);
 
   if (lastMessage?.text) {
     const isCustomerMessage =
       Number(lastMessage?.sender?.id) === Number(customerId);
-    const senderLabel = isCustomerMessage ? "\u0412\u044b" : agentName;
+    const senderLabel = isCustomerMessage ? t("support.you") : agentName;
     return `${senderLabel}: ${String(lastMessage.text).trim()}`;
   }
 
-  return (
-    request?.problemType?.nameUz ||
-    request?.problemType?.nameRu ||
-    request?.problemType?.nameEn ||
-    request?.requestType ||
-    "Support"
-  );
+  if (request?.problemType) {
+    return getLocalizedProblemTypeLabel(request.problemType, t, language);
+  }
+
+  const requestTypeKey = getSupportCategoryKey(request?.requestType);
+  if (requestTypeKey === "problem" || requestTypeKey === "question") {
+    return t(`support.${requestTypeKey}`);
+  }
+
+  return t("support.supportLabel");
 }
 
 export function getRequestLastActivityTime(request) {
@@ -112,12 +195,24 @@ export function getRequestLastActivityTime(request) {
   return lastMessage?.time || request?.closeTime || request?.createTime;
 }
 
-export function getRequestStatusLabel(request) {
+export function getRequestStatusLabel(request, t) {
   const statusName = String(request?.status?.name || "").toUpperCase();
-  if (statusName === "DONE") return "Closed";
-  if (statusName === "PENDING_USER_CONFIRMATION") return "Pending confirmation";
-  if (statusName === "NEW" || statusName === "ASSIGNED") return "Open";
-  return request?.status?.name || "Open";
+  if (statusName === "DONE" || statusName === "CLOSED" || statusName === "RESOLVED") {
+    return t("support.status.closed");
+  }
+  if (statusName === "PENDING_USER_CONFIRMATION") {
+    return t("support.status.pendingConfirmation");
+  }
+  if (
+    statusName === "NEW" ||
+    statusName === "ASSIGNED" ||
+    statusName === "OPEN" ||
+    statusName === "IN_PROGRESS"
+  ) {
+    return t("support.status.open");
+  }
+
+  return request?.status?.name || t("support.status.open");
 }
 
 export function getRequestStatusTone(request) {

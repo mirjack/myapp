@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { openBrowserAsync } from "expo-web-browser";
+import { useTranslation } from "react-i18next";
 
 import {
   DISABLE_ZOOM_SCRIPT,
   buildBridgeScript,
 } from "@/components/hybrid-shell/scripts";
 import { getStoredAuthTokens } from "@/lib/auth-storage";
+import { getStoredLanguageCode } from "@/lib/app-preferences";
 import { toWebViewUrl, WEBVIEW_BASE_URL } from "@/lib/runtime-config";
 
 const LOADING_BACKGROUND_COLOR = "#F8F8F8";
@@ -60,24 +62,63 @@ export function shouldUseSupportWebFallback(errorMessage) {
 }
 
 export function SupportChatWebView({ path = "/chat" }) {
+  const { i18n } = useTranslation();
   const webViewRef = useRef(null);
   const [bridgeScript, setBridgeScript] = useState(() =>
-    buildBridgeScript(null, Platform.OS),
+    buildBridgeScript(null, Platform.OS, i18n.language),
   );
 
   const targetUrl = useMemo(() => buildSupportUrl(path), [path]);
 
   useEffect(() => {
     let mounted = true;
-    getStoredAuthTokens().then((tokensString) => {
-      if (!mounted) return;
-      setBridgeScript(buildBridgeScript(tokensString, Platform.OS));
-    });
+    Promise.all([getStoredAuthTokens(), getStoredLanguageCode()]).then(
+      ([tokensString, languageCode]) => {
+        if (!mounted) return;
+        setBridgeScript(
+          buildBridgeScript(tokensString, Platform.OS, languageCode),
+        );
+      },
+    );
 
     return () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.all([getStoredAuthTokens(), getStoredLanguageCode()])
+      .then(([tokensString, languageCode]) => {
+        if (!mounted) return;
+
+        setBridgeScript(
+          buildBridgeScript(tokensString, Platform.OS, languageCode),
+        );
+
+        webViewRef.current?.injectJavaScript(`
+          (function () {
+            try {
+              if (typeof window.__handleNativeMessage === "function") {
+                window.__handleNativeMessage(${JSON.stringify(
+                  JSON.stringify({
+                    type: "LANGUAGE_CHANGE",
+                    payload: { language: i18n.language },
+                  }),
+                )});
+              }
+            } catch (e) {}
+            true;
+          })();
+        `);
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [i18n.language]);
 
   if (!targetUrl) {
     return (
@@ -117,8 +158,8 @@ export function SupportChatWebView({ path = "/chat" }) {
         }
       }}
       onLoadEnd={() => {
-        getStoredAuthTokens()
-          .then((tokensString) => {
+        Promise.all([getStoredAuthTokens(), getStoredLanguageCode()])
+          .then(([tokensString, languageCode]) => {
             const tokens = tokensString ? JSON.parse(tokensString) : null;
             webViewRef.current?.injectJavaScript(`
               (function () {
@@ -130,6 +171,12 @@ export function SupportChatWebView({ path = "/chat" }) {
                           ? { type: "AUTH_SESSION", payload: tokens }
                           : { type: "AUTH_LOGOUT" },
                       ),
+                    )});
+                    window.__handleNativeMessage(${JSON.stringify(
+                      JSON.stringify({
+                        type: "LANGUAGE_CHANGE",
+                        payload: { language: languageCode },
+                      }),
                     )});
                   }
                 } catch (e) {}

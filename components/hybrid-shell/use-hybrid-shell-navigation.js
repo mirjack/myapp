@@ -13,6 +13,7 @@ import {
 } from "@/lib/tab-bar-visibility";
 import { isWebViewInternalUrl } from "@/lib/runtime-config";
 import { getStoredAuthTokens } from "@/lib/auth-storage";
+import { getStoredLanguageCode } from "@/lib/app-preferences";
 import {
   buildNativeAccountRoute,
   isNativeAccountPath,
@@ -36,6 +37,7 @@ import {
   goToNativeLoginScreenImpl,
   openNativeAuthGuardSheetImpl,
 } from "./navigation-helpers";
+import { buildBridgeScript } from "./scripts";
 
 export function useHybridShellNavigation({
   routePath,
@@ -88,6 +90,43 @@ export function useHybridShellNavigation({
     },
     [refs.pendingPathRef, refs.webViewRef, setters, state.isWebReady],
   );
+
+  const syncWebContext = useCallback(async () => {
+    const [tokensString, storedLanguageCode] = await Promise.all([
+      getStoredAuthTokens(),
+      getStoredLanguageCode(),
+    ]);
+    const tokens = tokensString ? JSON.parse(tokensString) : null;
+    const nextLanguageCode = storedLanguageCode || state.languageCode || "ru";
+
+    setters.setBridgeScript(
+      buildBridgeScript(tokensString, Platform.OS, nextLanguageCode),
+    );
+    setters.setLanguageCode(nextLanguageCode);
+
+    refs.webViewRef.current?.injectJavaScript(`
+      (function () {
+        try {
+          if (typeof window.__handleNativeMessage === "function") {
+            window.__handleNativeMessage(${JSON.stringify(
+              JSON.stringify(
+                tokens
+                  ? { type: "AUTH_SESSION", payload: tokens }
+                  : { type: "AUTH_LOGOUT" },
+              ),
+            )});
+            window.__handleNativeMessage(${JSON.stringify(
+              JSON.stringify({
+                type: "LANGUAGE_CHANGE",
+                payload: { language: nextLanguageCode },
+              }),
+            )});
+          }
+        } catch (e) {}
+        true;
+      })();
+    `);
+  }, [refs.webViewRef, setters, state.languageCode]);
 
   const goToNativeLoginScreen = useCallback(
     (targetPath) => {
@@ -181,19 +220,7 @@ export function useHybridShellNavigation({
 
   const onWebLoadEnd = useCallback(() => {
     setters.setCurrentWebReady(true);
-    getStoredAuthTokens().then((tokensString) => {
-      const tokens = tokensString ? JSON.parse(tokensString) : null;
-      refs.webViewRef.current?.injectJavaScript(`
-        (function () {
-          try {
-            if (typeof window.__handleNativeMessage === "function") {
-              window.__handleNativeMessage(${JSON.stringify(JSON.stringify(tokens ? { type: "AUTH_SESSION", payload: tokens } : { type: "AUTH_LOGOUT" }))});
-            }
-          } catch (e) {}
-          true;
-        })();
-      `);
-    }).catch(() => {});
+    syncWebContext().catch(() => {});
     if (refs.webViewRef.current) {
       refs.webViewRef.current.injectJavaScript(`
         (function () {
@@ -212,7 +239,7 @@ export function useHybridShellNavigation({
       refs.pendingPathRef.current = null;
       refs.webViewRef.current.injectJavaScript(`(function(){try{var nextPath=${JSON.stringify(path)};if(typeof window.__reactRouter_navigate === "function"){window.__reactRouter_navigate(nextPath);}else if(window.location.pathname !== nextPath){window.__pendingNativePath=nextPath;}}catch(e){}true;})();`);
     }
-  }, [refs.pendingPathRef, refs.webViewRef, setters]);
+  }, [refs.pendingPathRef, refs.webViewRef, setters, syncWebContext]);
 
   const handleBackPress = useCallback(() => {
     if (
@@ -274,11 +301,12 @@ export function useHybridShellNavigation({
 
       lastFocusSyncedPathRef.current = sharedPath;
       navigateWebPath(sharedPath);
+      syncWebContext().catch(() => {});
 
       return () => {
         lastFocusSyncedPathRef.current = null;
       };
-    }, [navigateWebPath, routePath]),
+    }, [navigateWebPath, routePath, syncWebContext]),
   );
 
   useEffect(() => {

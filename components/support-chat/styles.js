@@ -123,7 +123,7 @@ export const supportStyles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingTop: 14,
   },
   centerMessage: {
     color: supportColors.muted,
@@ -528,7 +528,7 @@ export const supportStyles = StyleSheet.create({
   disabledComposerText: {
     color: "#C5C5CA",
     fontSize: 15,
-    lineHeight: 20,
+    paddingBlock: 15,
     textAlign: "center",
   },
   selectedProblemPill: {

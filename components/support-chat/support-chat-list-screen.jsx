@@ -13,6 +13,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { SupportHeader } from "@/components/support-chat/support-header";
@@ -36,6 +37,7 @@ function isSupportAuthError(errorMessage) {
 
 export function SupportChatListScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const { bootstrapData, error, loading } = useSupportChatSnapshot();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
@@ -108,16 +110,22 @@ export function SupportChatListScreen() {
 
     return requests.filter((request) => {
       const requestNumber = String(request?.requestNumber || "").toLowerCase();
-      const agentProfile = getRequestAgentProfile(request, customerId);
+      const agentProfile = getRequestAgentProfile(request, customerId, t);
       const summary = String(
-        getRequestSummary(request, customerId, agentProfile.name),
+        getRequestSummary(
+          request,
+          customerId,
+          agentProfile.name,
+          t,
+          i18n.language,
+        ),
       ).toLowerCase();
       return (
         requestNumber.includes(normalizedSearch) ||
         summary.includes(normalizedSearch)
       );
     });
-  }, [customerId, requests, searchTerm]);
+  }, [customerId, i18n.language, requests, searchTerm, t]);
 
   const handleStartRequest = (requestKind) => {
     handleCloseSheet();
@@ -198,12 +206,10 @@ export function SupportChatListScreen() {
     requestId: "support-request-create",
     sheetKey: "support_request_create",
     payload: {
-      title:
-        "\u041c\u044b \u0440\u044f\u0434\u043e\u043c \u0438 \u0433\u043e\u0442\u043e\u0432\u044b \u043f\u043e\u043c\u043e\u0447\u044c",
-      description:
-        "\u041f\u043e\u0434\u0441\u043a\u0430\u0436\u0438\u0442\u0435, \u043f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0443 \u0432\u0430\u0441 \u0432\u043e\u043f\u0440\u043e\u0441 \u0438\u043b\u0438 \u0432\u043e\u0437\u043d\u0438\u043a\u043b\u0430 \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430?",
-      problemTitle: "\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0430",
-      questionTitle: "\u0412\u043e\u043f\u0440\u043e\u0441",
+      title: t("support.createTitle"),
+      description: t("support.createDescription"),
+      problemTitle: t("support.problem"),
+      questionTitle: t("support.question"),
     },
     options: {},
   };
@@ -211,7 +217,7 @@ export function SupportChatListScreen() {
   return (
     <View style={supportStyles.screen}>
       <SupportHeader
-        title={"\u0427\u0430\u0442\u044b"}
+        title={t("support.chatsTitle")}
         metaText=""
         fallbackHref="/(tabs)/profile"
       />
@@ -219,7 +225,7 @@ export function SupportChatListScreen() {
       {loading && !bootstrapData ? (
         <View style={supportStyles.centerMessageWrap}>
           <Text style={supportStyles.centerMessage}>
-            Loading support requests...
+            {t("support.loadingRequests")}
           </Text>
         </View>
       ) : (
@@ -235,7 +241,7 @@ export function SupportChatListScreen() {
                 }
                 style={supportStyles.retryInlineButton}
               >
-                <Text style={supportStyles.retryInlineButtonText}>Retry</Text>
+                <Text style={supportStyles.retryInlineButtonText}>{t("support.retry")}</Text>
               </Pressable>
               {isSupportAuthError(error) ? (
                 <Pressable
@@ -248,7 +254,7 @@ export function SupportChatListScreen() {
                   style={supportStyles.retryInlineButton}
                 >
                   <Text style={supportStyles.retryInlineButtonText}>
-                    Log in
+                    {t("support.logIn")}
                   </Text>
                 </Pressable>
               ) : null}
@@ -268,7 +274,7 @@ export function SupportChatListScreen() {
                 value={searchTerm}
                 onChangeText={setSearchTerm}
                 onFocus={() => setIsSearchActive(true)}
-                placeholder="Search by"
+                placeholder={t("support.searchPlaceholder")}
                 placeholderTextColor={supportColors.muted}
                 style={[
                   supportStyles.searchInput,
@@ -304,7 +310,7 @@ export function SupportChatListScreen() {
                 style={supportStyles.searchCancelButton}
               >
                 <Text numberOfLines={1} style={supportStyles.searchCancelText}>
-                  {"\u0417\u0430\u043a\u0440\u044b\u0442\u044c"}
+                  {t("support.close")}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -312,14 +318,14 @@ export function SupportChatListScreen() {
 
           {loading ? (
             <View style={supportStyles.centerMessageWrap}>
-              <Text style={supportStyles.centerMessage}>Updating chats...</Text>
+              <Text style={supportStyles.centerMessage}>{t("support.updatingChats")}</Text>
             </View>
           ) : null}
 
           <ScrollView contentInsetAdjustmentBehavior="automatic">
             {filteredRequests.length === 0 ? (
               <View style={supportStyles.centerMessageWrap}>
-                <Text style={supportStyles.centerMessage}>No requests yet</Text>
+                <Text style={supportStyles.centerMessage}>{t("support.noRequests")}</Text>
               </View>
             ) : (
               filteredRequests.map((request) => {
@@ -353,8 +359,8 @@ export function SupportChatListScreen() {
           <LinearGradient
             colors={["#FE946E", "#FE946E"]}
             style={supportStyles.primaryButton}
-          >
-            <Text style={supportStyles.primaryButtonText}>Create request</Text>
+        >
+            <Text style={supportStyles.primaryButtonText}>{t("support.createRequest")}</Text>
           </LinearGradient>
         </Pressable>
       </View>

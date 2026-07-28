@@ -8,21 +8,25 @@ import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { nativeAccountStyles as styles } from "./native-account.styles";
 
-export function useBackToProfile() {
+export function useBackToProfile({ forceReplace = false } = {}) {
   const router = useRouter();
 
   return useCallback(() => {
-    if (router.canGoBack()) {
+    if (!forceReplace && router.canGoBack()) {
       router.back();
       return true;
     }
     router.replace("/(tabs)/profile");
     return true;
-  }, [router]);
+  }, [forceReplace, router]);
 }
 
-export function NativeAccountScreenShell({ title, children }) {
-  const handleBack = useBackToProfile();
+export function NativeAccountScreenShell({
+  title,
+  children,
+  forceBackToProfile = false,
+}) {
+  const handleBack = useBackToProfile({ forceReplace: forceBackToProfile });
 
   useFocusEffect(
     useCallback(() => {

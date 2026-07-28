@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useTranslation } from "react-i18next";
 
 import { getMockAddresses, searchAddresses } from "@/lib/address-geocoding-service";
 
@@ -24,6 +25,7 @@ export function AddressSearchModal({
   onUseCurrentLocation,
   visible,
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const abortRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -72,7 +74,7 @@ export function AddressSearchModal({
         setResults(nextResults);
       } catch (_searchError) {
         if (controller.signal.aborted) return;
-        setError("Address search is temporarily unavailable.");
+        setError(t("addresses.searchUnavailable"));
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
@@ -81,7 +83,7 @@ export function AddressSearchModal({
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [query, visible]);
+  }, [query, t, visible]);
 
   const listHeader = useMemo(
     () => (
@@ -92,11 +94,11 @@ export function AddressSearchModal({
           Keyboard.dismiss();
           await onUseCurrentLocation();
         }}
-        subtitle="Center the map on where I am"
-        title="Use my current location"
+        subtitle={t("addresses.useCurrentLocationSubtitle")}
+        title={t("addresses.useCurrentLocation")}
       />
     ),
-    [onUseCurrentLocation],
+    [onUseCurrentLocation, t],
   );
 
   return (
@@ -110,7 +112,7 @@ export function AddressSearchModal({
               autoCorrect={false}
               autoFocus
               onChangeText={setQuery}
-              placeholder="Search by district, street, or building"
+              placeholder={t("addresses.searchPlaceholder")}
               placeholderTextColor={addressPalette.secondaryText}
               ref={inputRef}
               returnKeyType="search"
@@ -119,7 +121,7 @@ export function AddressSearchModal({
             />
           </View>
           <Pressable hitSlop={10} onPress={onRequestClose} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t("common.cancel")}</Text>
           </Pressable>
         </View>
 
@@ -139,7 +141,9 @@ export function AddressSearchModal({
             ListEmptyComponent={
               <View style={styles.centerState}>
                 <Text style={styles.emptyText}>
-                  {query.trim().length < 2 ? "At least 2 characters are required." : "No addresses found."}
+                  {query.trim().length < 2
+                    ? t("addresses.minSearchChars")
+                    : t("addresses.noSearchResults")}
                 </Text>
               </View>
             }

@@ -6,7 +6,22 @@ export function normalizeStoriesPayload(payload) {
   const startIndex = Number.isFinite(numericStartIndex)
     ? Math.max(0, Math.trunc(numericStartIndex))
     : 0;
-  return { items, startIndex };
+  const rawOriginFrame = payload?.originFrame;
+  const originFrame =
+    rawOriginFrame &&
+    typeof rawOriginFrame === "object" &&
+    Number.isFinite(Number(rawOriginFrame.x)) &&
+    Number.isFinite(Number(rawOriginFrame.y)) &&
+    Number.isFinite(Number(rawOriginFrame.width)) &&
+    Number.isFinite(Number(rawOriginFrame.height))
+      ? {
+          x: Number(rawOriginFrame.x),
+          y: Number(rawOriginFrame.y),
+          width: Number(rawOriginFrame.width),
+          height: Number(rawOriginFrame.height),
+        }
+      : null;
+  return { items, startIndex, originFrame };
 }
 
 export function authPromptDescription(path) {

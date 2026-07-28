@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { AddressDetailsForm } from "./address-details-form";
 import { addressPalette, addressSharedStyles } from "./address-theme";
@@ -30,6 +31,7 @@ export function AddressBottomSheet({
   onPrimaryPress,
   onSubmit,
 }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const collapsedHeight = 236;
@@ -123,7 +125,7 @@ export function AddressBottomSheet({
                   />
                 </Pressable>
                 <Text numberOfLines={1} style={styles.title}>
-                  Choose delivery address
+                  {t("addresses.chooseDeliveryAddress")}
                 </Text>
                 <View style={styles.leadingSpacer} />
               </View>
@@ -140,7 +142,7 @@ export function AddressBottomSheet({
                 },
               ]}
             >
-              <Text style={styles.label}>Address</Text>
+              <Text style={styles.label}>{t("addresses.fields.address")}</Text>
               <Pressable onPress={onAddressPress} style={styles.addressField}>
                 <Text
                   numberOfLines={2}
@@ -150,8 +152,8 @@ export function AddressBottomSheet({
                   ]}
                 >
                   {isReverseGeocoding
-                    ? "Looking up the address..."
-                    : address || "Select an address"}
+                    ? t("addresses.lookingUpAddress")
+                    : address || t("addresses.selectAddress")}
                 </Text>
               </Pressable>
               {addressError ? (
@@ -164,7 +166,7 @@ export function AddressBottomSheet({
                   pressed && styles.primaryButtonPressed,
                 ]}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Text style={styles.primaryButtonText}>{t("addresses.continue")}</Text>
               </Pressable>
             </Animated.View>
 

@@ -1,4 +1,5 @@
 import { Image, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { supportStyles } from "@/components/support-chat/styles";
 import {
@@ -13,7 +14,8 @@ import {
 } from "@/components/support-chat/support-chat-view-model";
 
 export function SupportRequestRow({ request, customerId, onPress }) {
-  const agentProfile = getRequestAgentProfile(request, customerId);
+  const { t, i18n } = useTranslation();
+  const agentProfile = getRequestAgentProfile(request, customerId, t);
   const statusTone = getRequestStatusTone(request);
   const unreadCount = request?.active
     ? getUnreadSupportMessageCount(request, customerId)
@@ -56,12 +58,18 @@ export function SupportRequestRow({ request, customerId, onPress }) {
                     { color: statusTone.text },
                   ]}
                 >
-                  {getRequestStatusLabel(request)}
+                  {getRequestStatusLabel(request, t)}
                 </Text>
               </View>
             </View>
             <Text numberOfLines={1} style={supportStyles.requestSummary}>
-              {getRequestSummary(request, customerId, agentProfile.name)}
+              {getRequestSummary(
+                request,
+                customerId,
+                agentProfile.name,
+                t,
+                i18n.language,
+              )}
             </Text>
           </View>
         </View>
