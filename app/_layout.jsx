@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/lib/i18n";
+import { ensureNotificationSetupAsync } from "@/lib/notifications";
 
 // Custom themani yaratamiz - DefaultTheme'dan meros olib
 export const AppTheme = {
@@ -21,6 +23,12 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  useEffect(() => {
+    ensureNotificationSetupAsync({
+      requestIfUndetermined: Platform.OS === "android",
+    }).catch(() => {});
+  }, []);
+
   return (
     <ThemeProvider value={AppTheme}>
       <Stack

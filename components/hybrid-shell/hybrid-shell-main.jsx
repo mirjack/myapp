@@ -158,8 +158,8 @@ export function HybridShell({
   const initialRouteUrl = useMemo(() => toWebViewUrl(initialPath), [initialPath]);
   const isNativeSheetVisible = core.state.isNativeSheetVisible;
   const isProductLoading = productScreenMode && !core.state.isWebReady;
-  const fullscreenProgress = navigation.fullscreenProgress;
   const activeTabPath = normalizeToTabPath(core.state.currentPath);
+  const fullscreenProgress = navigation.fullscreenProgress;
   const isHomeRoute = activeTabPath === "/";
   const isCatalogRoute = activeTabPath === "/catalog";
   const isCartRoute = activeTabPath === "/cart";
@@ -386,8 +386,14 @@ export function HybridShell({
       </View>
 
       <NativeBottomSheet
-        mounted={Boolean(core.state.nativeSheet)}
-        visible={core.state.isNativeSheetVisible}
+        mounted={
+          Boolean(core.state.nativeSheet) &&
+          core.state.nativeSheet?.sheetKey !== "login_required"
+        }
+        visible={
+          core.state.isNativeSheetVisible &&
+          core.state.nativeSheet?.sheetKey !== "login_required"
+        }
         sheet={core.state.nativeSheet}
         onClose={() => sheets.closeNativeSheet()}
         onAction={sheets.handleNativeSheetAction}

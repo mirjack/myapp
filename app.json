@@ -34,7 +34,9 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -46,6 +48,7 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
+      "expo-notifications",
       [
         "expo-build-properties",
         {

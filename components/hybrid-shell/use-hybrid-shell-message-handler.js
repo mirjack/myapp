@@ -11,6 +11,12 @@ import {
 import { setAuthStateCache } from "@/lib/auth-guard-bridge";
 import { applyAppLanguage } from "@/lib/i18n";
 import {
+  ensureNotificationSetupAsync,
+  getNotificationPermissionStatusAsync,
+  openNotificationSettingsAsync,
+  requestNotificationPermissionAsync,
+} from "@/lib/notifications";
+import {
   getLastNonProductWebPath,
   setCurrentWebPath,
   setTabBarForcedHidden,
@@ -53,6 +59,22 @@ export function useHybridShellMessageHandler({
 
   const onMessage = useCallback(
     (event) => {
+      const postNativeMessageToWeb = (type, payload = {}) => {
+        refs.webViewRef.current?.injectJavaScript(`
+          (function () {
+            try {
+              if (typeof window.__handleNativeMessage === "function") {
+                window.__handleNativeMessage(${JSON.stringify(JSON.stringify({
+                  type: type,
+                  payload,
+                }))});
+              }
+            } catch (e) {}
+            true;
+          })();
+        `);
+      };
+
       const applyNativeInsetForPath = () => {
         refs.webViewRef.current?.injectJavaScript(`
           (function () {
@@ -128,6 +150,9 @@ export function useHybridShellMessageHandler({
       if (message?.type === "OPEN_BOTTOM_SHEET") {
         const incoming = message?.payload;
         if (!incoming?.requestId || !incoming?.sheetKey) return;
+        if (incoming.sheetKey === "login_required") {
+          return;
+        }
         if (refs.nativeSheetCloseTimerRef.current) {
           clearTimeout(refs.nativeSheetCloseTimerRef.current);
           refs.nativeSheetCloseTimerRef.current = null;
@@ -244,6 +269,9 @@ export function useHybridShellMessageHandler({
             setAuthStateCache(true);
             syncWebAuthSession(tokens);
             applyPostLoginTransition(tokens);
+            ensureNotificationSetupAsync({
+              requestIfUndetermined: true,
+            }).catch(() => {});
           })().catch(() => {});
         }
         return;
@@ -274,6 +302,9 @@ export function useHybridShellMessageHandler({
         if (message?.payload?.isLoggedIn === true) {
           setters.setIsLoggedIn(true);
           setAuthStateCache(true);
+          ensureNotificationSetupAsync({
+            requestIfUndetermined: true,
+          }).catch(() => {});
         }
         return;
       }
@@ -298,6 +329,29 @@ export function useHybridShellMessageHandler({
       if (message?.type === "OPEN_EXTERNAL_URL") {
         const url = message?.payload?.url;
         if (url) openBrowserAsync(url).catch(() => {});
+        return;
+      }
+
+      if (message?.type === "GET_NOTIFICATION_PERMISSION_STATUS") {
+        getNotificationPermissionStatusAsync()
+          .then((payload) => {
+            postNativeMessageToWeb("NOTIFICATION_PERMISSION_STATUS", payload);
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (message?.type === "REQUEST_NOTIFICATION_PERMISSION") {
+        requestNotificationPermissionAsync()
+          .then((payload) => {
+            postNativeMessageToWeb("NOTIFICATION_PERMISSION_STATUS", payload);
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (message?.type === "OPEN_NOTIFICATION_SETTINGS") {
+        openNotificationSettingsAsync().catch(() => {});
         return;
       }
 

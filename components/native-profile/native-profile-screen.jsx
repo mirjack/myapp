@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
@@ -97,6 +97,7 @@ export function NativeProfileScreen() {
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeTabKey, setActiveTabKey] = useState("profile");
+  const [activeMenuKey, setActiveMenuKey] = useState(null);
   const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
   const [scrollContentHeight, setScrollContentHeight] = useState(0);
   const headerCache = getHeaderCache();
@@ -121,19 +122,19 @@ export function NativeProfileScreen() {
         key: "details",
         label: t("profile.details"),
         icon: "settings-outline",
-        route: "/account/me",
+        route: "/(tabs)/profile/me",
       },
       {
         key: "orders",
         label: t("profile.orders"),
         icon: "bag-outline",
-        route: "/account/orders",
+        route: "/(tabs)/profile/orders",
       },
       {
         key: "addresses",
         label: t("profile.addresses"),
         icon: "location-outline",
-        route: "/account/addresses",
+        route: "/(tabs)/profile/addresses",
       },
       {
         key: "support",
@@ -233,6 +234,12 @@ export function NativeProfileScreen() {
     };
   }, [t]);
 
+  useFocusEffect(
+    useCallback(() => {
+      setActiveMenuKey(null);
+    }, []),
+  );
+
   const goToTab = (tabKey) => {
     const targetMap = {
       home: "/(tabs)",
@@ -301,6 +308,8 @@ export function NativeProfileScreen() {
   };
 
   const handleMenuPress = async (item) => {
+    setActiveMenuKey(item.key);
+
     if (item.route) {
       router.push(item.route);
       return;
@@ -361,11 +370,13 @@ export function NativeProfileScreen() {
   const handleLanguageSelect = async (code) => {
     const nextLanguageCode = await applyAppLanguage(code);
     setLanguageCode(nextLanguageCode);
+    setActiveMenuKey(null);
     setIsSheetVisible(false);
   };
 
   const closeSheet = () => {
     setIsSheetVisible(false);
+    setActiveMenuKey(null);
     setTimeout(() => {
       setSheet(null);
     }, 280);
@@ -460,7 +471,7 @@ export function NativeProfileScreen() {
           ]}
         >
           <Pressable
-            onPress={() => router.push("/account/me")}
+            onPress={() => router.push("/(tabs)/profile/me")}
             style={styles.heroCard}
           >
             <View style={styles.heroRow}>
@@ -492,7 +503,9 @@ export function NativeProfileScreen() {
                   </View>
                 </View>
                 {hasDisplayName ? (
-                  <Text style={styles.heroPhone}>{user?.phoneNumber || ""}</Text>
+                  <Text style={styles.heroPhone}>
+                    {user?.phoneNumber || ""}
+                  </Text>
                 ) : null}
               </View>
             </View>
@@ -505,37 +518,42 @@ export function NativeProfileScreen() {
           ) : null}
 
           <View style={styles.menuWrap}>
-            {menuItems.map((item) => (
-              <Pressable
-                key={item.key}
-                onPress={() => handleMenuPress(item)}
-                style={styles.menuRow}
-              >
-                <Ionicons
-                  color={item.danger ? "#B72136" : "#131314"}
-                  name={item.icon}
-                  size={22}
-                />
-                <Text
-                  style={[
-                    styles.menuLabel,
-                    item.danger ? styles.menuLabelDanger : null,
+            {menuItems.map((item) => {
+              const isMenuItemActive = activeMenuKey === item.key;
+              const itemIconColor = item.danger ? "#B72136" : "#131314";
+              const itemChevronColor = item.danger ? "#000" : "#747479";
+
+              return (
+                <Pressable
+                  key={item.key}
+                  onPressIn={() => handleMenuPress(item)}
+                  style={({ pressed }) => [
+                    styles.menuRow,
+                    (pressed || isMenuItemActive) && styles.menuRowActive,
                   ]}
                 >
-                  {item.label}
-                </Text>
-                {item.hasValue ? (
-                  <Text style={styles.menuValue}>
-                    {formatLanguageLabel(languageCode)}
+                  <Ionicons color={itemIconColor} name={item.icon} size={22} />
+                  <Text
+                    style={[
+                      styles.menuLabel,
+                      item.danger ? styles.menuLabelDanger : null,
+                    ]}
+                  >
+                    {item.label}
                   </Text>
-                ) : null}
-                <Ionicons
-                  color={item.danger ? "#B72136" : "#747479"}
-                  name="chevron-forward"
-                  size={16}
-                />
-              </Pressable>
-            ))}
+                  {item.hasValue ? (
+                    <Text style={styles.menuValue}>
+                      {formatLanguageLabel(languageCode)}
+                    </Text>
+                  ) : null}
+                  <Ionicons
+                    color={itemChevronColor}
+                    name="chevron-forward"
+                    size={16}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
           {Platform.OS === "android" ? (
             <View style={styles.androidTabSpacer} />

@@ -31,11 +31,16 @@ import {
   ROOT_PATHS,
   ROUTE_GUARD_PATHS,
 } from "./constants";
-import { getPathFromUrl, isTabActive, normalizeToTabPath, startsWithAny, toNumber } from "./utils";
+import {
+  getPathFromUrl,
+  isTabActive,
+  normalizeToTabPath,
+  startsWithAny,
+  toNumber,
+} from "./utils";
 import {
   goNativeTabImpl,
   goToNativeLoginScreenImpl,
-  openNativeAuthGuardSheetImpl,
 } from "./navigation-helpers";
 import { buildBridgeScript } from "./scripts";
 
@@ -52,21 +57,27 @@ export function useHybridShellNavigation({
   const fullscreenProgress = useSharedValue(0);
   const isChromeFullscreen = state.isWebFullscreen && !state.isNativeSheetVisible;
 
-  const shouldRenderHeader = useMemo(() => startsWithAny(state.currentPath, HEADER_VISIBLE_PATHS), [state.currentPath]);
+  const shouldRenderHeader = useMemo(
+    () => startsWithAny(state.currentPath, HEADER_VISIBLE_PATHS),
+    [state.currentPath],
+  );
 
   const shouldShowInlineAuthGuard = useMemo(() => {
-    if (Platform.OS !== "ios") return false;
     if (state.isLoggedIn) return false;
     if (startsWithAny(state.currentPath, LOGIN_PATH_PREFIXES)) return false;
     return ROUTE_GUARD_PATHS.has(normalizeToTabPath(routePath || "/"));
   }, [routePath, state.currentPath, state.isLoggedIn]);
 
-  const shouldRenderAndroidTabBar = Platform.OS === "android" && isTabBarVisiblePath(state.currentPath);
+  const shouldRenderAndroidTabBar =
+    Platform.OS === "android" && isTabBarVisiblePath(state.currentPath);
   const activeAndroidTabIndex = useMemo(() => {
-    const foundIndex = ANDROID_TAB_ITEMS.findIndex((tab) => isTabActive(state.currentPath, tab));
+    const foundIndex = ANDROID_TAB_ITEMS.findIndex((tab) =>
+      isTabActive(state.currentPath, tab),
+    );
     return foundIndex >= 0 ? foundIndex : 0;
   }, [state.currentPath]);
-  const activeAndroidTabKey = ANDROID_TAB_ITEMS[activeAndroidTabIndex]?.key || "home";
+  const activeAndroidTabKey =
+    ANDROID_TAB_ITEMS[activeAndroidTabIndex]?.key || "home";
 
   const formattedWalletBalance = useMemo(
     () =>
@@ -135,20 +146,13 @@ export function useHybridShellNavigation({
     [refs, rootNavigationState, router],
   );
 
-  const openNativeAuthGuardSheet = useCallback(
-    (targetPath) => {
-      openNativeAuthGuardSheetImpl({ refs, setters, navigateWebPath, targetPath });
-    },
-    [navigateWebPath, refs, setters],
-  );
-
   const goNativeTab = useCallback(
     (tabKey) => {
       const targetTab = ANDROID_TAB_ITEMS.find((tab) => tab.key === tabKey);
       if (targetTab && isTabActive(state.currentPath, targetTab)) return;
-      goNativeTabImpl({ tabKey, isLoggedIn: state.isLoggedIn, navigateWebPath, openNativeAuthGuardSheet, router });
+      goNativeTabImpl({ tabKey, navigateWebPath, router });
     },
-    [navigateWebPath, openNativeAuthGuardSheet, router, state.currentPath, state.isLoggedIn],
+    [navigateWebPath, router, state.currentPath],
   );
 
   const openLogin = useCallback(() => {
@@ -337,24 +341,11 @@ export function useHybridShellNavigation({
       normalizeToTabPath(sharedPath) === targetPath
         ? sharedPath
         : normalizeToTabPath(initialRoutePathRef.current) === targetPath
-        ? initialRoutePathRef.current
-        : routePath;
-
-    if (!state.isLoggedIn && ROUTE_GUARD_PATHS.has(targetPath)) {
-      if (Platform.OS === "android") {
-        openNativeAuthGuardSheet(targetPath);
-      }
-      return;
-    }
+          ? initialRoutePathRef.current
+          : routePath;
 
     navigateWebPath(desiredPath);
-  }, [
-    navigateWebPath,
-    openNativeAuthGuardSheet,
-    routePath,
-    state.isAuthLoaded,
-    state.isLoggedIn,
-  ]);
+  }, [navigateWebPath, routePath, state.isAuthLoaded, state.isLoggedIn]);
 
   useEffect(() => {
     fullscreenProgress.value = withTiming(isChromeFullscreen ? 1 : 0, {
@@ -374,11 +365,8 @@ export function useHybridShellNavigation({
     onShouldStartLoadWithRequest,
     onWebLoadEnd,
     openLogin,
-    openNativeAuthGuardSheet,
     shouldRenderAndroidTabBar,
     shouldRenderHeader,
     shouldShowInlineAuthGuard,
   };
 }
-
-

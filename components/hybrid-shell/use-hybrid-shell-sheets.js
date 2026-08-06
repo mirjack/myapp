@@ -12,8 +12,6 @@ import {
   mapProduct,
   removeFavoriteByProduct,
 } from "@/lib/native-market-api";
-import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
-
 import { BOTTOM_SHEET_ACTION_EVENT, BOTTOM_SHEET_CLOSE_EVENT, NATIVE_SHEET_CLOSE_MS, PRODUCT_SHEET_KEY, PRODUCT_SHEET_REQUEST_ID } from "./constants";
 import { buildBridgeScript } from "./scripts";
 import { parseTokensString } from "./utils";
@@ -229,7 +227,6 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
   const closeNativeSheet = useCallback(({ shouldNotify = true } = {}) => {
     setters.setIsNativeSheetVisible(false);
     const requestId = state.nativeSheet?.requestId;
-    const meta = requestId ? refs.nativeSheetMetaRef.current.get(requestId) : null;
     if (refs.nativeSheetCloseTimerRef.current) clearTimeout(refs.nativeSheetCloseTimerRef.current);
 
     refs.nativeSheetCloseTimerRef.current = setTimeout(() => {
@@ -237,26 +234,9 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       if (requestId) refs.nativeSheetMetaRef.current.delete(requestId);
       refs.nativeGuardOpenRef.current = false;
 
-      if (meta?.source === "native_guard") {
-        setTabBarForcedHidden(false);
-        if (Platform.OS === "ios") {
-          let attempts = 0;
-          const tryGoHomeTab = () => {
-            attempts += 1;
-            try { router.replace("/(tabs)"); return; } catch {
-              if (attempts < 12) refs.iosHomeRedirectTimerRef.current = setTimeout(tryGoHomeTab, 80);
-            }
-          };
-          if (refs.iosHomeRedirectTimerRef.current) clearTimeout(refs.iosHomeRedirectTimerRef.current);
-          refs.iosHomeRedirectTimerRef.current = setTimeout(tryGoHomeTab, 0);
-        }
-        navigateWebPath("/");
-        return;
-      }
-
       if (shouldNotify && requestId) emitToWeb(BOTTOM_SHEET_CLOSE_EVENT, { requestId });
     }, NATIVE_SHEET_CLOSE_MS);
-  }, [emitToWeb, navigateWebPath, refs, router, setters, state.nativeSheet?.requestId]);
+  }, [emitToWeb, refs, setters, state.nativeSheet?.requestId]);
 
   const handleNativeSheetAction = useCallback(async (actionId, payload) => {
     if (!state.nativeSheet?.requestId || !actionId) return;
@@ -342,39 +322,6 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
       return;
     }
 
-    if (meta?.source === "native_guard" && actionId === "login") {
-      setTabBarForcedHidden(false);
-      if (refs.webViewRef.current) {
-        const target = refs.authReturnPathRef.current;
-        refs.webViewRef.current.injectJavaScript(`(function(){try{window.localStorage.setItem('lastPath', ${JSON.stringify(target || "/")});}catch(e){}true;})();`);
-      }
-      setters.setIsNativeSheetVisible(false);
-      if (refs.nativeSheetCloseTimerRef.current) clearTimeout(refs.nativeSheetCloseTimerRef.current);
-      refs.nativeSheetCloseTimerRef.current = setTimeout(() => {
-        refs.nativeSheetMetaRef.current.delete(state.nativeSheet.requestId);
-        setters.setNativeSheet(null);
-        refs.nativeGuardOpenRef.current = false;
-        navigateWebPath("/login/phone");
-      }, NATIVE_SHEET_CLOSE_MS);
-      return;
-    }
-
-    if (meta?.source === "web_login_required" && actionId === "login") {
-      emitToWeb(BOTTOM_SHEET_CLOSE_EVENT, { requestId: state.nativeSheet.requestId });
-      setters.setIsNativeSheetVisible(false);
-      if (refs.nativeSheetCloseTimerRef.current) clearTimeout(refs.nativeSheetCloseTimerRef.current);
-      const requestId = state.nativeSheet.requestId;
-      refs.nativeSheetMetaRef.current.delete(requestId);
-      setters.setNativeSheet(null);
-      refs.nativeGuardOpenRef.current = false;
-      openLogin();
-      refs.nativeSheetCloseTimerRef.current = setTimeout(() => {
-        refs.nativeSheetMetaRef.current.delete(requestId);
-        refs.nativeGuardOpenRef.current = false;
-      }, NATIVE_SHEET_CLOSE_MS);
-      return;
-    }
-
     emitToWeb(BOTTOM_SHEET_ACTION_EVENT, { requestId: state.nativeSheet.requestId, actionId, payload: payload ?? null });
     if (state.nativeSheet.sheetKey === "loyalty_progress" && actionId === "loyalty_info") {
       closeNativeSheet({ shouldNotify: false });
@@ -386,7 +333,7 @@ export function useHybridShellSheets({ core, navigateWebPath, goNativeTab, openL
     if (state.nativeSheet.sheetKey === "catalog_filter" && actionId === "apply") {
       closeNativeSheet({ shouldNotify: false });
     }
-  }, [closeNativeSheet, emitToWeb, goNativeTab, navigateWebPath, openLogin, queuePendingAuthAction, refs, router, setters, state.nativeSheet, syncWebLanguage, updateNativeProductSheetPayload]);
+  }, [closeNativeSheet, emitToWeb, goNativeTab, openLogin, queuePendingAuthAction, refs, router, setters, state.nativeSheet, syncWebLanguage, updateNativeProductSheetPayload]);
 
   return {
     closeNativeSheet,

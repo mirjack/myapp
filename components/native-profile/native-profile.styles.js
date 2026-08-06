@@ -117,6 +117,9 @@ export const nativeProfileStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  menuRowActive: {
+    backgroundColor: "#FBFBFB",
+  },
   menuLabel: {
     flex: 1,
     fontSize: 16,

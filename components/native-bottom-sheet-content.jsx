@@ -33,30 +33,6 @@ import {
 } from "@/components/native-bottom-sheet.shared";
 import { styles } from "@/components/native-bottom-sheet.styles";
 
-function LoginRequiredSheet({ payload, onAction }) {
-  return (
-    <View>
-      <Image
-        source={{ uri: payload?.imageUrl }}
-        style={styles.loginImage}
-        resizeMode="contain"
-      />
-      <Text style={styles.loginTitle}>
-        {payload?.title || "Login required"}
-      </Text>
-      <Text style={styles.loginDescription}>{payload?.description || ""}</Text>
-      <Pressable
-        style={styles.loginButton}
-        onPress={() => onAction?.("login", null)}
-      >
-        <Text style={styles.loginButtonText}>
-          {payload?.loginText || "Login"}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 function LanguageSelectSheet({ payload, onAction }) {
   const options = Array.isArray(payload?.options) ? payload.options : [];
   return (
@@ -1208,7 +1184,7 @@ function ProductDetailSheet({ payload, onAction }) {
 export function renderSheetContent(sheet, onAction) {
   if (!sheet) return null;
   if (sheet.sheetKey === "login_required") {
-    return <LoginRequiredSheet payload={sheet.payload} onAction={onAction} />;
+    return null;
   }
   if (sheet.sheetKey === "language_select") {
     return <LanguageSelectSheet payload={sheet.payload} onAction={onAction} />;

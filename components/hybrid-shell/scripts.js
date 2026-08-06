@@ -121,6 +121,27 @@ export function buildBridgeScript(tokensString, nativePlatform, languageCode) {
       } catch (e) {}
     }
 
+    function postNativeMessage(type, payload) {
+      try {
+        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: type,
+          payload: payload || {},
+        }));
+      } catch (e) {}
+    }
+
+    window.__nativeNotifications = {
+      getPermissionStatus: function () {
+        postNativeMessage('GET_NOTIFICATION_PERMISSION_STATUS');
+      },
+      requestPermission: function () {
+        postNativeMessage('REQUEST_NOTIFICATION_PERMISSION');
+      },
+      openSettings: function () {
+        postNativeMessage('OPEN_NOTIFICATION_SETTINGS');
+      }
+    };
+
     var originalSetItem = window.localStorage.setItem;
     window.localStorage.setItem = function (key, value) {
       originalSetItem.apply(this, arguments);
@@ -171,6 +192,13 @@ export function buildBridgeScript(tokensString, nativePlatform, languageCode) {
 
         if (payload.type === 'LANGUAGE_CHANGE' && payload.payload && payload.payload.language) {
           applyNativeLanguage(payload.payload.language);
+        }
+
+        if (payload.type === 'NOTIFICATION_PERMISSION_STATUS') {
+          window.__NATIVE_NOTIFICATION_PERMISSION__ = payload.payload || null;
+          window.dispatchEvent(new CustomEvent('native:notification-permission', {
+            detail: payload.payload || null
+          }));
         }
       } catch (e) {}
     };
