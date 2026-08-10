@@ -26,6 +26,7 @@
     "android": {
       "package": "uz.miobeauty.webview",
       "versionCode": 1,
+      "launchMode": "singleTask",
       "icon": "./assets/images/logo.png",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",

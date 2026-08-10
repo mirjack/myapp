@@ -257,13 +257,16 @@ export default function OnboardingPhoneScreen() {
           const tokens = message?.payload;
           if (!tokens?.access) return;
 
-          redirectedRef.current = true;
           (async () => {
             const tokensString = JSON.stringify(tokens);
             await setStoredAuthTokens(tokensString);
             flushPendingAuthAction(tokensString).catch(() => {});
             setAuthStateCache(true);
-            router.replace(toNativeTabsPath(nextPath));
+            const isNewAccount = Boolean(tokens?.isNew ?? tokens?.is_new);
+            if (!isNewAccount) {
+              redirectedRef.current = true;
+              router.replace(toNativeTabsPath(nextPath));
+            }
           })().catch(() => {
             redirectedRef.current = false;
           });

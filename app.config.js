@@ -68,8 +68,15 @@ module.exports = ({ config }) => {
   const expoBuildPropertiesPlugin = plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === "expo-build-properties",
   );
+  const hasExpoAssetPlugin = plugins.some((plugin) =>
+    plugin === "expo-asset" ||
+    (Array.isArray(plugin) && plugin[0] === "expo-asset"),
+  );
   const otherPlugins = plugins.filter(
-    (plugin) => !(Array.isArray(plugin) && plugin[0] === "expo-build-properties"),
+    (plugin) =>
+      !(Array.isArray(plugin) && plugin[0] === "expo-build-properties") &&
+      plugin !== "expo-asset" &&
+      !(Array.isArray(plugin) && plugin[0] === "expo-asset"),
   );
 
   return {
@@ -78,6 +85,7 @@ module.exports = ({ config }) => {
     scheme: `${baseScheme}${schemeSuffix}`,
     plugins: [
       ...otherPlugins,
+      ...(hasExpoAssetPlugin ? [] : ["expo-asset"]),
       [
         "expo-build-properties",
         {
