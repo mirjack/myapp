@@ -2,6 +2,10 @@ const googleMapsApiKey =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   process.env.GOOGLE_MAPS_API_KEY ||
   "";
+const appMetricaApiKey =
+  process.env.EXPO_PUBLIC_APP_METRICA_API_KEY ||
+  process.env.APP_METRICA_API_KEY ||
+  "";
 const yandexMapsApiKey =
   process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY ||
   process.env.YANDEX_MAPS_API_KEY ||
@@ -133,6 +137,7 @@ module.exports = ({ config }) => {
     extra: {
       ...extra,
       googleMapsApiKey,
+      appMetricaApiKey,
       yandexMapsApiKey,
       webUrl,
       allowCleartextTraffic,

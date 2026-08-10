@@ -3,9 +3,11 @@ import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
 import "react-native-reanimated";
 import "@/lib/i18n";
 import { ensureNotificationSetupAsync } from "@/lib/notifications";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 // Custom themani yaratamiz - DefaultTheme'dan meros olib
 export const AppTheme = {
@@ -27,6 +29,35 @@ export default function RootLayout() {
     ensureNotificationSetupAsync({
       requestIfUndetermined: Platform.OS === "android",
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const apiKey = getRuntimeConfig().appMetricaApiKey;
+    if (!apiKey) return;
+    if (Constants?.appOwnership === "expo") return;
+
+    let cancelled = false;
+
+    const initAppMetrica = async () => {
+      try {
+        const module = await import("@appmetrica/react-native-analytics");
+        if (cancelled) return;
+
+        module.default.activate({
+          apiKey,
+          logs: __DEV__,
+          sessionTimeout: 120,
+        });
+      } catch {
+        // Ignore analytics bootstrap issues so the app can continue to load.
+      }
+    };
+
+    void initAppMetrica();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

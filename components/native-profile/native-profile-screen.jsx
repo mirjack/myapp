@@ -384,7 +384,7 @@ export function NativeProfileScreen() {
 
         if (!hasAccessToken) {
           setLoyaltyProfile(null);
-          setContactChannels([]);
+          setBrandingContacts({});
           return;
         }
 
