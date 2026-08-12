@@ -11,28 +11,6 @@ const yandexMapsApiKey =
   process.env.YANDEX_MAPS_API_KEY ||
   "";
 
-function normalizeUrl(rawValue) {
-  const input = String(rawValue || "").trim();
-  if (!input) return "";
-
-  try {
-    return new URL(input).toString();
-  } catch {
-    return "";
-  }
-}
-
-function requiresCleartextTraffic(rawValue) {
-  const normalizedUrl = normalizeUrl(rawValue);
-  if (!normalizedUrl) return false;
-
-  try {
-    return new URL(normalizedUrl).protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
 module.exports = ({ config }) => {
   const resolvedConfig = config || require("./app.json").expo || {};
   const ios = resolvedConfig.ios || {};
@@ -60,15 +38,15 @@ module.exports = ({ config }) => {
       : "";
   const baseScheme = resolvedConfig.scheme || "myapp";
   const iosBundleIdentifier =
-    (ios.bundleIdentifier || "uz.miobeauty.webview") + variantSuffix;
+    (ios.bundleIdentifier || "uz.miobeauty.app") + variantSuffix;
   const androidPackage =
-    (android.package || "uz.miobeauty.webview") + variantSuffix;
-  const webUrl =
-    process.env.EXPO_PUBLIC_WEB_URL ||
-    process.env.EXPO_WEB_URL ||
-    extra.webUrl ||
+    (android.package || "uz.miobeauty.app") + variantSuffix;
+  const tenantDomain =
+    process.env.EXPO_PUBLIC_TENANT_DOMAIN ||
+    process.env.EXPO_PUBLIC_STOREFRONT_DOMAIN ||
+    extra.tenantDomain ||
     "";
-  const allowCleartextTraffic = requiresCleartextTraffic(webUrl);
+  const allowCleartextTraffic = false;
   const expoBuildPropertiesPlugin = plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === "expo-build-properties",
   );
@@ -139,7 +117,7 @@ module.exports = ({ config }) => {
       googleMapsApiKey,
       appMetricaApiKey,
       yandexMapsApiKey,
-      webUrl,
+      tenantDomain,
       allowCleartextTraffic,
     },
   };

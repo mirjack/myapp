@@ -6,47 +6,12 @@ const path = require("path");
 const projectRoot = path.resolve(__dirname, "..");
 const expoStateDir = path.join(projectRoot, ".expo");
 const isWindows = process.platform === "win32";
-const envFilePath = path.join(projectRoot, ".env");
-
-function readEnvValueFromFile(key) {
-  try {
-    if (!fs.existsSync(envFilePath)) return "";
-    const content = fs.readFileSync(envFilePath, "utf8");
-    const lines = content.split(/\r?\n/);
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIndex = trimmed.indexOf("=");
-      if (eqIndex <= 0) continue;
-
-      const currentKey = trimmed.slice(0, eqIndex).trim();
-      if (currentKey !== key) continue;
-
-      const rawValue = trimmed.slice(eqIndex + 1).trim();
-      return rawValue.replace(/^['"]|['"]$/g, "");
-    }
-  } catch {
-    return "";
-  }
-
-  return "";
-}
 
 const mode = process.argv.includes("--dev-client") ? "dev-client" : "go";
 const useTunnel = process.argv.includes("--tunnel");
 const defaultPort = mode === "dev-client" ? "8080" : "8081";
 const metroPort =
   process.env.EXPO_DEV_PORT || process.env.EXPO_GO_PORT || defaultPort;
-const fileWebUrlOverride =
-  readEnvValueFromFile("EXPO_WEB_URL") ||
-  readEnvValueFromFile("EXPO_PUBLIC_WEB_URL") ||
-  "";
-const explicitWebUrlOverride =
-  process.env.EXPO_WEB_URL ||
-  process.env.EXPO_PUBLIC_WEB_URL ||
-  fileWebUrlOverride ||
-  "";
 
 function log(message) {
   process.stdout.write(`${message}\n`);
@@ -185,21 +150,10 @@ function startExpo() {
       );
     }
 
-    const resolvedWebUrl =
-      explicitWebUrlOverride || `http://${lanIpAddress}:80/`;
-    const webUrlSource = process.env.EXPO_WEB_URL || process.env.EXPO_PUBLIC_WEB_URL
-      ? "shell env"
-      : fileWebUrlOverride
-        ? ".env"
-        : "LAN fallback";
-
     env.EXPO_PACKAGER_PROXY_URL = `http://${lanIpAddress}:${metroPort}`;
     env.REACT_NATIVE_PACKAGER_HOSTNAME = lanIpAddress;
-    env.EXPO_PUBLIC_WEB_URL = resolvedWebUrl;
 
-    log(
-      `Starting Expo ${mode} on ${lanIpAddress}:${metroPort} with WebView base ${resolvedWebUrl} (${webUrlSource})`
-    );
+    log(`Starting Expo ${mode} on ${lanIpAddress}:${metroPort}`);
 
     args.push("--host", "lan", "--port", metroPort);
   }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { LinearGradient } from "expo-linear-gradient";
+import { EmojiKeyboard } from "rn-emoji-keyboard";
 import {
   ActivityIndicator,
   BackHandler,
@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -188,6 +188,7 @@ export function SupportChatDetailScreen({
   isDraft,
 }) {
   const router = useRouter();
+  const segments = useSegments();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const ScreenKeyboardContainer =
@@ -203,6 +204,7 @@ export function SupportChatDetailScreen({
   const scrollRef = useRef(null);
   const sheetCloseTimerRef = useRef(null);
   const [input, setInput] = useState("");
+  const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
   const [selectedProblemType, setSelectedProblemType] = useState(null);
@@ -214,6 +216,12 @@ export function SupportChatDetailScreen({
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
   const [returnToListAfterRating, setReturnToListAfterRating] = useState(false);
+  const isProfileStackRoute =
+    segments[0] === "(tabs)" && segments[1] === "profile";
+  const chatListPath = isProfileStackRoute ? "/(tabs)/profile/chat" : "/chat";
+  const chatDetailPath = isProfileStackRoute
+    ? "/(tabs)/profile/chat/[id]"
+    : "/chat/[id]";
 
   const normalizedRequestType = useMemo(
     () => normalizeRequestKind(requestKind),
@@ -240,7 +248,7 @@ export function SupportChatDetailScreen({
 
         if (isDraft && nextBootstrap?.activeRequestId) {
           router.replace({
-            pathname: "/chat/[id]",
+            pathname: chatDetailPath,
             params: { id: String(nextBootstrap.activeRequestId) },
           });
         }
@@ -253,17 +261,21 @@ export function SupportChatDetailScreen({
     return () => {
       isActive = false;
     };
-  }, [isDraft, router]);
+  }, [chatDetailPath, isDraft, router]);
 
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== "android") return;
       const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-        router.replace("/chat");
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
+        router.replace(chatListPath);
         return true;
       });
       return () => sub.remove();
-    }, [router]),
+    }, [chatListPath, router]),
   );
 
   useEffect(() => {
@@ -394,8 +406,9 @@ export function SupportChatDetailScreen({
         });
 
         setInput("");
+        setIsEmojiPanelOpen(false);
         router.replace({
-          pathname: "/chat/[id]",
+          pathname: chatDetailPath,
           params: {
             id: String(createdRequest.id),
             requestKind: String(
@@ -408,6 +421,7 @@ export function SupportChatDetailScreen({
       }
 
       setInput("");
+      setIsEmojiPanelOpen(false);
       void supportChatService
         .sendMessage({
           requestId: currentRequest?.id ?? numericRequestId,
@@ -421,6 +435,12 @@ export function SupportChatDetailScreen({
         setSending(false);
       }
     }
+  };
+
+  const handleAddEmoji = (emoji) => {
+    const value = typeof emoji === "string" ? emoji : emoji?.emoji;
+    if (!value) return;
+    setInput((current) => `${current}${value}`);
   };
 
   const handleOpenSheet = useCallback((sheetKey) => {
@@ -463,7 +483,7 @@ export function SupportChatDetailScreen({
         return;
       }
 
-      router.replace("/chat");
+      router.replace(chatListPath);
     } catch {
       // state error is already owned by the shared service
     } finally {
@@ -471,6 +491,7 @@ export function SupportChatDetailScreen({
     }
   }, [
     currentRequest?.id,
+    chatListPath,
     handleCloseActiveSheet,
     handleOpenSheet,
     isClosingRequest,
@@ -580,7 +601,7 @@ export function SupportChatDetailScreen({
         <SupportHeader
           title={t("support.managerTitle")}
           metaText={headerMetaText}
-          fallbackHref="/chat"
+          fallbackHref={chatListPath}
         />
         <View style={supportStyles.centerMessageWrap}>
           <Text style={supportStyles.centerMessage}>
@@ -600,7 +621,7 @@ export function SupportChatDetailScreen({
             : supportAgentProfile.name
         }
         metaText={shouldShowTypePicker ? "" : headerMetaText}
-        fallbackHref="/chat"
+        fallbackHref={chatListPath}
         showAvatar={!shouldShowTypePicker}
         avatarUri={shouldShowTypePicker ? null : supportAgentProfile.avatarUri}
         avatarLabel={supportAgentProfile.avatarLabel}
@@ -632,7 +653,7 @@ export function SupportChatDetailScreen({
                 onPress={() =>
                   router.push({
                     pathname: "/onboarding/phone",
-                    params: { next: "/chat" },
+                    params: { next: chatListPath },
                   })
                 }
                 style={supportStyles.retryInlineButton}
@@ -664,6 +685,47 @@ export function SupportChatDetailScreen({
               </Text>
             </View>
           </Pressable>
+        ) : null}
+
+        {isPendingConfirmation ? (
+          <View style={supportStyles.confirmationBanner}>
+            <View style={supportStyles.confirmationTextWrap}>
+              <Text style={supportStyles.confirmationTitle}>
+                {t("support.resolvedQuestion")}
+              </Text>
+              <Text style={supportStyles.confirmationText}>
+                {t("support.closeRequestPendingDescription")}
+              </Text>
+            </View>
+            <View style={supportStyles.confirmationActions}>
+              <Pressable
+                disabled={isClosingRequest}
+                onPress={handleNotResolved}
+                style={[
+                  supportStyles.confirmationSecondaryButton,
+                  isClosingRequest ? supportStyles.confirmationButtonDisabled : null,
+                ]}
+              >
+                <Text style={supportStyles.confirmationSecondaryText}>
+                  {t("support.notYet")}
+                </Text>
+              </Pressable>
+              <Pressable
+                disabled={isClosingRequest}
+                onPress={handleConfirmResolved}
+                style={[
+                  supportStyles.confirmationPrimaryButton,
+                  isClosingRequest ? supportStyles.confirmationButtonDisabled : null,
+                ]}
+              >
+                <Text style={supportStyles.confirmationPrimaryText}>
+                  {isClosingRequest
+                    ? t("support.saving")
+                    : t("support.yesSolvedShort")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         ) : null}
 
         <ScrollView
@@ -770,57 +832,6 @@ export function SupportChatDetailScreen({
               />
             ))}
           </View>
-
-          {isPendingConfirmation ? (
-            <View style={supportStyles.footerCard}>
-              <Text style={supportStyles.footerCardTitle}>
-                {t("support.resolvedQuestion")}
-              </Text>
-              <Text style={supportStyles.footerCardText}>
-                {t("support.resolvedDescription")}
-              </Text>
-              <View style={supportStyles.doubleButtonRow}>
-                <Pressable
-                  disabled={isClosingRequest}
-                  onPress={handleNotResolved}
-                  style={[
-                    supportStyles.outlineButton,
-                    { flex: 1, backgroundColor: "#FFECE5", borderWidth: 0 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      supportStyles.outlineButtonText,
-                      { color: "#FFA182" },
-                    ]}
-                  >
-                    {t("support.notYet")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={isClosingRequest}
-                  onPress={handleConfirmResolved}
-                  style={{ flex: 1 }}
-                >
-                  <LinearGradient
-                    colors={["#FF946F", "#FF946F"]}
-                    style={supportStyles.primaryButton}
-                  >
-                    <Text
-                      style={[
-                        supportStyles.primaryButtonText,
-                        { color: "#FFFFFF" },
-                      ]}
-                    >
-                      {isClosingRequest
-                        ? t("support.saving")
-                        : t("support.yesSolvedShort")}
-                    </Text>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            </View>
-          ) : null}
 
           {isClosedRequest && canRateClosedRequest ? (
             <View style={supportStyles.footerCard}>
@@ -932,16 +943,57 @@ export function SupportChatDetailScreen({
               },
             ]}
           >
+            {Platform.OS === "android" && isEmojiPanelOpen ? (
+              <View style={supportStyles.inlineEmojiKeyboard}>
+                <EmojiKeyboard
+                  onEmojiSelected={handleAddEmoji}
+                  defaultHeight={280}
+                  enableSearchBar
+                  categoryPosition="bottom"
+                  styles={{
+                    container: {
+                      borderRadius: 0,
+                      elevation: 0,
+                      shadowOpacity: 0,
+                    },
+                    searchBar: {
+                      container: {
+                        marginTop: 10,
+                      },
+                    },
+                  }}
+                  theme={{
+                    container: "#FFFFFF",
+                    header: supportColors.text,
+                    category: {
+                      icon: "#7A7A80",
+                      iconActive: supportColors.orange,
+                      container: "#FFFFFF",
+                      containerActive: "#FFF0E8",
+                    },
+                    search: {
+                      background: supportColors.pillBg,
+                      text: supportColors.text,
+                      placeholder: supportColors.muted,
+                      icon: supportColors.muted,
+                    },
+                  }}
+                />
+              </View>
+            ) : null}
             <View style={supportStyles.composerRow}>
-              <Pressable
-                disabled
-                style={[
-                  supportStyles.composerIconButton,
-                  supportStyles.composerIconDisabled,
-                ]}
-              >
-                <Ionicons name="attach-outline" size={24} color="#7A7A80" />
-              </Pressable>
+              {Platform.OS === "android" ? (
+                <Pressable
+                  onPress={() => setIsEmojiPanelOpen((current) => !current)}
+                  style={supportStyles.composerIconButton}
+                >
+                  <Ionicons
+                    name={isEmojiPanelOpen ? "happy" : "happy-outline"}
+                    size={24}
+                    color={isEmojiPanelOpen ? "#FE946E" : "#7A7A80"}
+                  />
+                </Pressable>
+              ) : null}
               <TextInput
                 value={input}
                 onChangeText={setInput}
@@ -955,15 +1007,6 @@ export function SupportChatDetailScreen({
                 style={supportStyles.composerInput}
               />
               <Pressable
-                disabled
-                style={[
-                  supportStyles.composerIconButton,
-                  supportStyles.composerIconDisabled,
-                ]}
-              >
-                <Ionicons name="happy-outline" size={24} color="#7A7A80" />
-              </Pressable>
-              <Pressable
                 disabled={(isDraft && sending) || !input.trim()}
                 onPress={handleSend}
                 style={[
@@ -972,17 +1015,12 @@ export function SupportChatDetailScreen({
                 ]}
               >
                 <Ionicons
-                  name={input.trim().length > 0 ? "send" : "mic-outline"}
+                  name="send"
                   size={24}
-                  color="#7A7A80"
+                  color={input.trim().length > 0 ? "#FE946E" : "#7A7A80"}
                 />
               </Pressable>
             </View>
-            {isDraft && sending ? (
-              <Text style={supportStyles.composerHint}>
-                {t("support.sending")}
-              </Text>
-            ) : null}
           </View>
         )}
       </ScreenKeyboardContainer>
@@ -1004,7 +1042,7 @@ export function SupportChatDetailScreen({
           if (actionId === "skip_rating") {
             handleCloseActiveSheet();
             if (returnToListAfterRating) {
-              router.replace("/chat");
+              router.replace(chatListPath);
             }
             return;
           }
@@ -1020,7 +1058,7 @@ export function SupportChatDetailScreen({
               .then(() => {
                 handleCloseActiveSheet();
                 if (returnToListAfterRating) {
-                  router.replace("/chat");
+                  router.replace(chatListPath);
                 }
               })
               .catch(() => {})

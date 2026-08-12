@@ -1,5 +1,5 @@
-import { HybridShell } from "@/components/hybrid-shell";
+import { NativeHomeScreen } from "@/components/native-home/native-home-screen";
 
 export default function HybridRootScreen() {
-  return <HybridShell routePath="/" />;
+  return <NativeHomeScreen />;
 }

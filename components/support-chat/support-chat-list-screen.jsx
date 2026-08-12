@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 
@@ -37,6 +37,7 @@ function isSupportAuthError(errorMessage) {
 
 export function SupportChatListScreen() {
   const router = useRouter();
+  const segments = useSegments();
   const { t, i18n } = useTranslation();
   const { bootstrapData, error, loading } = useSupportChatSnapshot();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -47,6 +48,12 @@ export function SupportChatListScreen() {
   const searchCancelAnim = useRef(new Animated.Value(0)).current;
   const searchClearAnim = useRef(new Animated.Value(0)).current;
   const sheetCloseTimerRef = useRef(null);
+  const isProfileStackRoute =
+    segments[0] === "(tabs)" && segments[1] === "profile";
+  const chatListPath = isProfileStackRoute ? "/(tabs)/profile/chat" : "/chat";
+  const chatDetailPath = isProfileStackRoute
+    ? "/(tabs)/profile/chat/[id]"
+    : "/chat/[id]";
 
   useEffect(() => {
     supportChatService.enterChatListView();
@@ -91,6 +98,10 @@ export function SupportChatListScreen() {
     useCallback(() => {
       if (Platform.OS !== "android") return;
       const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
         router.replace("/(tabs)/profile");
         return true;
       });
@@ -132,14 +143,14 @@ export function SupportChatListScreen() {
 
     if (bootstrapData?.activeRequestId) {
       router.push({
-        pathname: "/chat/[id]",
+        pathname: chatDetailPath,
         params: { id: String(bootstrapData.activeRequestId) },
       });
       return;
     }
 
     router.push({
-      pathname: "/chat/[id]",
+      pathname: chatDetailPath,
       params: {
         id: "new",
         requestKind,
@@ -248,7 +259,7 @@ export function SupportChatListScreen() {
                   onPress={() =>
                     router.push({
                       pathname: "/onboarding/phone",
-                      params: { next: "/chat" },
+                      params: { next: chatListPath },
                     })
                   }
                   style={supportStyles.retryInlineButton}
@@ -336,7 +347,7 @@ export function SupportChatListScreen() {
                     customerId={customerId}
                     onPress={() =>
                       router.push({
-                        pathname: "/chat/[id]",
+                        pathname: chatDetailPath,
                         params: {
                           id: String(request.id),
                           requestKind: String(

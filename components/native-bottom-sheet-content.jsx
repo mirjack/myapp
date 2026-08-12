@@ -33,6 +33,156 @@ import {
 } from "@/components/native-bottom-sheet.shared";
 import { styles } from "@/components/native-bottom-sheet.styles";
 
+function readAddressValue(item, keys) {
+  for (const key of keys) {
+    const value = item?.[key];
+    if (value != null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+
+  const nestedSources = [
+    item?.details,
+    item?.address_details,
+    item?.addressDetails,
+    item?.metadata,
+    item?.extra,
+  ];
+
+  for (const source of nestedSources) {
+    if (!source || typeof source !== "object") continue;
+    for (const key of keys) {
+      const value = source?.[key];
+      if (value != null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+function CheckoutDeliveryIcon({ size = 20, color = "#0B0B0B" }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path d="M17.9167 12.9165C18.15 12.9165 18.3333 13.0998 18.3333 13.3332V14.1665C18.3333 15.5498 17.2167 16.6665 15.8333 16.6665C15.8333 15.2915 14.7083 14.1665 13.3333 14.1665C11.9583 14.1665 10.8333 15.2915 10.8333 16.6665H9.16666C9.16666 15.2915 8.04166 14.1665 6.66666 14.1665C5.29166 14.1665 4.16666 15.2915 4.16666 16.6665C2.78332 16.6665 1.66666 15.5498 1.66666 14.1665V12.4998C1.66666 12.0415 2.04166 11.6665 2.49999 11.6665H10.4167C11.5667 11.6665 12.5 10.7332 12.5 9.58317V4.99984C12.5 4.5415 12.875 4.1665 13.3333 4.1665H14.0333C14.6333 4.1665 15.1833 4.4915 15.4833 5.00817L16.0167 5.9415C16.0917 6.07484 15.9917 6.24984 15.8333 6.24984C14.6833 6.24984 13.75 7.18317 13.75 8.33317V10.8332C13.75 11.9832 14.6833 12.9165 15.8333 12.9165H17.9167Z" fill={color} />
+      <Path d="M6.66667 18.3333C7.58714 18.3333 8.33333 17.5872 8.33333 16.6667C8.33333 15.7462 7.58714 15 6.66667 15C5.74619 15 5 15.7462 5 16.6667C5 17.5872 5.74619 18.3333 6.66667 18.3333Z" fill={color} />
+      <Path d="M13.3333 18.3333C14.2538 18.3333 15 17.5872 15 16.6667C15 15.7462 14.2538 15 13.3333 15C12.4128 15 11.6667 15.7462 11.6667 16.6667C11.6667 17.5872 12.4128 18.3333 13.3333 18.3333Z" fill={color} />
+      <Path d="M18.3333 10.4417V11.6667H15.8333C15.375 11.6667 15 11.2917 15 10.8333V8.33333C15 7.875 15.375 7.5 15.8333 7.5H16.9083L18.1167 9.61667C18.2583 9.86667 18.3333 10.15 18.3333 10.4417Z" fill={color} />
+      <Path d="M10.9 1.6665H4.74166C3.04166 1.6665 1.66666 3.0415 1.66666 4.7415V10.0582C1.66666 10.5165 2.04166 10.8915 2.49999 10.8915H10.125C10.975 10.8915 11.6667 10.1998 11.6667 9.34984V2.43317C11.6667 2.00817 11.325 1.6665 10.9 1.6665ZM8.39166 5.8915L6.64999 7.57484C6.52499 7.6915 6.36666 7.74984 6.21666 7.74984C6.05832 7.74984 5.89999 7.6915 5.78332 7.57484L4.94166 6.77484C4.69166 6.53317 4.68332 6.13317 4.92499 5.88317C5.15832 5.63317 5.55832 5.63317 5.80832 5.8665L6.21666 6.25817L7.52499 4.9915C7.77499 4.74984 8.16666 4.75817 8.40832 5.00817C8.64999 5.25817 8.64166 5.64984 8.39166 5.8915Z" fill={color} />
+    </Svg>
+  );
+}
+
+function getCheckoutAddressLabel(address) {
+  const direct = readAddressValue(address, [
+    "formatted_address",
+    "formattedAddress",
+    "full_address",
+    "fullAddress",
+    "address",
+    "display_address",
+    "description",
+  ]);
+  if (direct) return direct;
+  return [
+    readAddressValue(address, ["city", "district", "town"]),
+    readAddressValue(address, ["street", "line1"]),
+    readAddressValue(address, ["house", "house_number", "building"]),
+    readAddressValue(address, ["apartment", "flat", "office", "unit"]),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function CheckoutAddressSelectSheet({ payload, onAction }) {
+  const addresses = Array.isArray(payload?.addresses) ? payload.addresses : [];
+  const draftId = String(payload?.draftId || payload?.selectedId || "");
+
+  return (
+    <View style={styles.checkoutAddressSheetWrap}>
+      <Text style={styles.checkoutAddressSheetTitle}>
+        Мои адреса
+      </Text>
+      <ScrollView
+        style={styles.checkoutAddressList}
+        contentContainerStyle={styles.checkoutAddressListContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {addresses.length > 0 ? (
+          addresses.map((address) => {
+            const id = String(address.id);
+            const checked = draftId === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => onAction?.("select_address", { id })}
+                style={styles.checkoutAddressOption}
+              >
+                <CheckoutDeliveryIcon size={20} />
+                <View style={styles.checkoutAddressTextBlock}>
+                  <Text numberOfLines={1} style={styles.checkoutAddressTitle}>
+                    {readAddressValue(address, ["title", "name", "label"]) ||
+                      "Адрес доставки"}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.checkoutAddressSubtitle}>
+                    {getCheckoutAddressLabel(address) ||
+                      "Адрес не указан"}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.checkoutAddressRadio,
+                    checked ? styles.checkoutAddressRadioActive : null,
+                  ]}
+                >
+                  {checked ? <View style={styles.checkoutAddressRadioDot} /> : null}
+                </View>
+              </Pressable>
+            );
+          })
+        ) : (
+          <View style={styles.checkoutAddressEmpty}>
+            <Text style={styles.checkoutAddressEmptyTitle}>
+              Адресов пока нет
+            </Text>
+            <Text style={styles.checkoutAddressEmptyText}>
+              Добавьте адрес доставки.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+      <View style={styles.checkoutAddressActions}>
+        <Pressable
+          disabled={!draftId}
+          onPress={() => onAction?.("save_address", { id: draftId })}
+          style={[
+            styles.checkoutAddressPrimaryButton,
+            !draftId ? styles.checkoutAddressButtonDisabled : null,
+          ]}
+        >
+          <Text
+            style={[
+              styles.checkoutAddressPrimaryText,
+              !draftId ? styles.checkoutAddressDisabledText : null,
+            ]}
+          >
+            Save
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onAction?.("manage_addresses", null)}
+          style={styles.checkoutAddressSecondaryButton}
+        >
+          <Text style={styles.checkoutAddressSecondaryText}>
+            Addresses page
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function LanguageSelectSheet({ payload, onAction }) {
   const options = Array.isArray(payload?.options) ? payload.options : [];
   return (
@@ -475,12 +625,14 @@ function LoyaltyProgressSheet({ payload, onAction }) {
 
 function CatalogFilterSheet({ payload, onAction }) {
   const filterKey = payload?.filterKey || "price";
+  const initialMinText = String(payload?.price?.min ?? "").trim();
+  const initialMaxText = String(payload?.price?.max ?? "").trim();
   const initialMinPrice = parsePriceInput(
-    payload?.price?.min,
+    initialMinText,
     PRICE_FILTER_MIN,
   );
   const initialMaxPrice = parsePriceInput(
-    payload?.price?.max,
+    initialMaxText,
     PRICE_FILTER_MAX,
   );
   const initialMinValue = Math.min(initialMinPrice, initialMaxPrice);
@@ -488,8 +640,8 @@ function CatalogFilterSheet({ payload, onAction }) {
   const initialSelectedValue = String(payload?.selected ?? "");
   const [minValue, setMinValue] = useState(initialMinValue);
   const [maxValue, setMaxValue] = useState(initialMaxValue);
-  const [minPrice, setMinPrice] = useState(priceToInput(initialMinValue));
-  const [maxPrice, setMaxPrice] = useState(priceToInput(initialMaxValue));
+  const [minPrice, setMinPrice] = useState(initialMinText);
+  const [maxPrice, setMaxPrice] = useState(initialMaxText);
   const [selectedValue, setSelectedValue] = useState(initialSelectedValue);
   const options = Array.isArray(payload?.options) ? payload.options : [];
 
@@ -513,7 +665,7 @@ function CatalogFilterSheet({ payload, onAction }) {
 
   const isApplyEnabled =
     filterKey === "price"
-      ? minValue !== initialMinValue || maxValue !== initialMaxValue
+      ? minPrice.trim() !== initialMinText || maxPrice.trim() !== initialMaxText
       : selectedValue !== initialSelectedValue;
 
   const applyFilter = () => {
@@ -522,7 +674,10 @@ function CatalogFilterSheet({ payload, onAction }) {
       filterKey,
       value:
         filterKey === "price"
-          ? { min: priceToInput(minValue), max: priceToInput(maxValue) }
+          ? {
+              min: minPrice.trim() ? priceToInput(minValue) : "",
+              max: maxPrice.trim() ? priceToInput(maxValue) : "",
+            }
           : selectedValue,
     });
   };
@@ -538,7 +693,11 @@ function CatalogFilterSheet({ payload, onAction }) {
               value={minPrice}
               onChangeText={(text) => {
                 setMinPrice(text);
-                syncMinPrice(parsePriceInput(text, PRICE_FILTER_MIN));
+                if (text.trim()) {
+                  syncMinPrice(parsePriceInput(text, PRICE_FILTER_MIN));
+                } else {
+                  setMinValue(PRICE_FILTER_MIN);
+                }
               }}
               keyboardType="number-pad"
               placeholder="0"
@@ -552,7 +711,11 @@ function CatalogFilterSheet({ payload, onAction }) {
               value={maxPrice}
               onChangeText={(text) => {
                 setMaxPrice(text);
-                syncMaxPrice(parsePriceInput(text, PRICE_FILTER_MAX));
+                if (text.trim()) {
+                  syncMaxPrice(parsePriceInput(text, PRICE_FILTER_MAX));
+                } else {
+                  setMaxValue(PRICE_FILTER_MAX);
+                }
               }}
               keyboardType="number-pad"
               placeholder="100000000"
@@ -1218,6 +1381,14 @@ export function renderSheetContent(sheet, onAction) {
   }
   if (sheet.sheetKey === "catalog_filter") {
     return <CatalogFilterSheet payload={sheet.payload} onAction={onAction} />;
+  }
+  if (sheet.sheetKey === "checkout_address_select") {
+    return (
+      <CheckoutAddressSelectSheet
+        payload={sheet.payload}
+        onAction={onAction}
+      />
+    );
   }
   if (sheet.sheetKey === "product_detail") {
     return <ProductDetailSheet payload={sheet.payload} onAction={onAction} />;

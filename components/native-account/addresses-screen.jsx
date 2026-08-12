@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Text,
   View,
 } from "react-native";
@@ -53,6 +54,13 @@ const EMPTY_FORM = {
   courierComment: "",
   isDefault: false,
 };
+
+function getStableTopInset(topInset) {
+  if (Platform.OS === "android") {
+    return StatusBar.currentHeight || 0;
+  }
+  return topInset;
+}
 
 function readAddressValue(item, keys) {
   for (const key of keys) {
@@ -615,7 +623,10 @@ export function AddressesScreen() {
       : t("addresses.headerDeliveryAddresses");
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <SafeAreaView
+      edges={[]}
+      style={[styles.safeArea, { paddingTop: getStableTopInset(insets.top) }]}
+    >
       <View style={styles.header}>
         <Pressable hitSlop={12} onPress={handleBack} style={styles.headerBack}>
           <Ionicons color={BrandColors.primary} name="chevron-back" size={28} />

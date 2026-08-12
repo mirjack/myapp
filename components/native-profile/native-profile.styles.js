@@ -1,25 +1,30 @@
 import { StyleSheet } from "react-native";
 
-import { styles as hybridStyles } from "@/components/hybrid-shell/styles";
+import { nativeShellStyles } from "@/components/native-shell-styles";
 
 export const nativeProfileStyles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#F8F8F8",
   },
+  nativePageHeaderWrap: {
+    width: "100%",
+    zIndex: 10,
+    backgroundColor: "#FFFFFF",
+  },
   pageHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 10,
+    paddingTop: 18,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 18,
     backgroundColor: "#FFFFFF",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
   pageTitle: {
-    fontSize: 23,
+    fontSize: 25,
     lineHeight: 22,
     fontWeight: "500",
     color: "#131314",
@@ -31,6 +36,9 @@ export const nativeProfileStyles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: "#F8F8F8",
     gap: 8,
+  },
+  scroll: {
+    flex: 1,
   },
   contentWithAndroidTabBar: {
     paddingBottom: 8,
@@ -89,6 +97,32 @@ export const nativeProfileStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
     color: "#7C7C7C",
+  },
+  skeletonAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: "#EFEFF2",
+  },
+  skeletonLine: {
+    borderRadius: 999,
+    backgroundColor: "#EFEFF2",
+  },
+  skeletonNameLine: {
+    width: "62%",
+    height: 18,
+  },
+  skeletonPhoneLine: {
+    width: "44%",
+    height: 14,
+    marginTop: 8,
+  },
+  skeletonActionLine: {
+    width: 72,
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: "#EFEFF2",
+    marginLeft: 8,
   },
   errorBox: {
     marginBottom: 8,
@@ -186,6 +220,47 @@ export const nativeProfileStyles = StyleSheet.create({
     lineHeight: 12,
     color: "#FFFFFF",
     textAlign: "center",
+  },
+  skeletonLineDark: {
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  skeletonCaptionLine: {
+    width: 118,
+    height: 14,
+  },
+  skeletonLevelLine: {
+    width: "54%",
+    height: 22,
+  },
+  skeletonHintLine: {
+    width: "68%",
+    height: 14,
+  },
+  skeletonProgressTrack: {
+    height: 8,
+    justifyContent: "center",
+    marginTop: 2,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  skeletonProgressFill: {
+    width: "38%",
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(215,254,3,0.35)",
+  },
+  skeletonTierLabels: {
+    marginTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  skeletonTierLabelLine: {
+    flex: 1,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.13)",
   },
   menuWrap: {
     borderRadius: 24,
@@ -329,22 +404,20 @@ export const nativeProfileStyles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "600",
   },
-  androidTabSpacer: {
-    height: 98,
-  },
-  hybridHeader: hybridStyles.header,
-  hybridHeaderCompact: hybridStyles.headerCompact,
-  hybridHeaderWrap: hybridStyles.headerAnimatedWrap,
-  hybridHeaderWrapCompact: hybridStyles.headerAnimatedWrapCompact,
-  headerTopRow: hybridStyles.headerTopRow,
-  walletBadge: hybridStyles.walletBadge,
-  walletText: hybridStyles.walletText,
-  loginTopButton: hybridStyles.loginButton,
-  loginTopButtonText: hybridStyles.loginButtonText,
-  androidTabBarAnimatedWrap: hybridStyles.androidTabBarAnimatedWrap,
-  androidTabBarWrap: hybridStyles.androidTabBarWrap,
-  androidTabBar: hybridStyles.androidTabBar,
-  androidTabActivePill: hybridStyles.androidTabActivePill,
+
+  hybridHeader: nativeShellStyles.header,
+  hybridHeaderCompact: nativeShellStyles.headerCompact,
+  hybridHeaderWrap: nativeShellStyles.headerAnimatedWrap,
+  hybridHeaderWrapCompact: nativeShellStyles.headerAnimatedWrapCompact,
+  headerTopRow: nativeShellStyles.headerTopRow,
+  walletBadge: nativeShellStyles.walletBadge,
+  walletText: nativeShellStyles.walletText,
+  loginTopButton: nativeShellStyles.loginButton,
+  loginTopButtonText: nativeShellStyles.loginButtonText,
+  androidTabBarAnimatedWrap: nativeShellStyles.androidTabBarAnimatedWrap,
+  androidTabBarWrap: nativeShellStyles.androidTabBarWrap,
+  androidTabBar: nativeShellStyles.androidTabBar,
+  androidTabActivePill: nativeShellStyles.androidTabActivePill,
   profileWalletBadge: {
     minHeight: 26,
     paddingHorizontal: 8,

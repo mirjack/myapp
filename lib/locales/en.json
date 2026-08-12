@@ -14,6 +14,34 @@
     "favorites": "Favorites",
     "profile": "Profile"
   },
+  "favorites": {
+    "loading": "Loading favorites...",
+    "authTitle": "Sign in to see favorites",
+    "authDescription": "Your saved items will appear here after you log in.",
+    "emptyTitle": "No favorites yet",
+    "emptyDescription": "Tap the heart on a product to keep it here for later.",
+    "refresh": "Refresh"
+  },
+  "catalogPage": {
+    "searchPlaceholder": "Search",
+    "searchAriaLabel": "Search products",
+    "clearSearch": "Clear search",
+    "noProducts": "No products found",
+    "tryDifferent": "Try another search or filters.",
+    "loadError": "Failed to load products.",
+    "filters": {
+      "categoryTitle": "Category",
+      "categoryChip": "Category",
+      "priceTitle": "Price",
+      "priceChip": "Price",
+      "priceMin": "From",
+      "priceMax": "To",
+      "all": "All",
+      "openFilters": "Open filters",
+      "resetFilter": "Reset",
+      "apply": "Apply"
+    }
+  },
   "hybrid": {
     "searchPlaceholder": "Search tickets by number, phone number",
     "authRequiredTitle": "Authorize",
@@ -34,7 +62,7 @@
     "privacy": "Privacy policy",
     "terms": "Terms of use",
     "chooseLanguage": "Choose language",
-    "chooseLanguageDescription": "Select the language for the app and webview.",
+    "chooseLanguageDescription": "Select the language for the app.",
     "contactTitle": "Contact",
     "contactDescription": "If you have any questions, contact us.",
     "phoneLabel": "Phone",
@@ -103,6 +131,9 @@
       "completed": "Delivered",
       "cancelled": "Cancelled"
     }
+  },
+  "orderDetail": {
+    "discount": "Discount"
   },
   "addresses": {
     "loadErrorAuth": "Please sign in to view your addresses.",

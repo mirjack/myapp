@@ -509,6 +509,17 @@ export const supportStyles = StyleSheet.create({
   composerIconDisabled: {
     opacity: 0.7,
   },
+  inlineEmojiKeyboard: {
+    height: 280,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: supportColors.border,
+  },
   composerInput: {
     flex: 1,
     minHeight: 56,
@@ -627,6 +638,65 @@ export const supportStyles = StyleSheet.create({
   },
   actionCardText: {
     display: "none",
+  },
+  confirmationBanner: {
+    marginHorizontal: 8,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 16,
+    backgroundColor: "#FFF4EB",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#F5D9CF",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  confirmationTextWrap: {
+    gap: 4,
+  },
+  confirmationTitle: {
+    color: supportColors.text,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "700",
+  },
+  confirmationText: {
+    color: supportColors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  confirmationActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  confirmationSecondaryButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFE5DB",
+  },
+  confirmationPrimaryButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: supportColors.orange,
+  },
+  confirmationButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmationSecondaryText: {
+    color: "#FFA182",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  confirmationPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
   outlineButton: {
     height: 48,

@@ -1,5 +1,5 @@
-import { HybridShell } from "@/components/hybrid-shell";
+import { NativeFavoritesScreen } from "@/components/native-favorites/native-favorites-screen";
 
 export default function FavoritesTabScreen() {
-  return <HybridShell routePath="/favorites" />;
+  return <NativeFavoritesScreen />;
 }

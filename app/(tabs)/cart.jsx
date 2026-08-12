@@ -1,5 +1,5 @@
-import { HybridShell } from "@/components/hybrid-shell";
+import { NativeCartScreen } from "@/components/native-cart/native-cart-screen";
 
 export default function CartTabScreen() {
-  return <HybridShell routePath="/cart" />;
+  return <NativeCartScreen />;
 }

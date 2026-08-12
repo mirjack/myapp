@@ -12,6 +12,7 @@ export default function AccountLayout() {
     >
       <Stack.Screen name="me" options={{ headerShown: false }} />
       <Stack.Screen name="orders" options={{ headerShown: false }} />
+      <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="addresses" options={{ headerShown: false }} />
     </Stack>
   );

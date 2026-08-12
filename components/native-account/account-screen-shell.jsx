@@ -1,5 +1,8 @@
-import { BackHandler, Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { BackHandler, Platform, Pressable, StatusBar, Text, View } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -7,6 +10,13 @@ import { useCallback } from "react";
 import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 import { nativeAccountStyles as styles } from "./native-account.styles";
+
+function getStableTopInset(topInset) {
+  if (Platform.OS === "android") {
+    return StatusBar.currentHeight || 0;
+  }
+  return topInset;
+}
 
 export function useBackToProfile({ forceReplace = false } = {}) {
   const router = useRouter();
@@ -27,7 +37,7 @@ export function NativeAccountScreenShell({
   forceBackToProfile = false,
 }) {
   const handleBack = useBackToProfile({ forceReplace: forceBackToProfile });
-
+  const insets = useSafeAreaInsets();
   useFocusEffect(
     useCallback(() => {
       setTabBarForcedHidden(true);
@@ -46,7 +56,10 @@ export function NativeAccountScreenShell({
   );
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <SafeAreaView
+      edges={[]}
+      style={[styles.safeArea, { paddingTop: getStableTopInset(insets.top) }]}
+    >
       <View style={styles.header}>
         <Pressable hitSlop={12} onPress={handleBack} style={styles.headerBackButton}>
           <Ionicons color="#FE946E" name="chevron-back" size={24} />

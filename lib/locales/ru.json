@@ -14,6 +14,34 @@
     "favorites": "Избранное",
     "profile": "Профиль"
   },
+  "favorites": {
+    "loading": "Загрузка избранного...",
+    "authTitle": "Войдите, чтобы увидеть избранное",
+    "authDescription": "Сохранённые товары появятся здесь после входа.",
+    "emptyTitle": "Пока нет избранного",
+    "emptyDescription": "Нажмите на сердечко у товара, чтобы сохранить его на потом.",
+    "refresh": "Обновить"
+  },
+  "catalogPage": {
+    "searchPlaceholder": "Поиск",
+    "searchAriaLabel": "Поиск товаров",
+    "clearSearch": "Очистить поиск",
+    "noProducts": "Товары не найдены",
+    "tryDifferent": "Попробуйте другой поиск или фильтры.",
+    "loadError": "Не удалось загрузить товары.",
+    "filters": {
+      "categoryTitle": "Категория",
+      "categoryChip": "Категория",
+      "priceTitle": "Цена",
+      "priceChip": "Цена",
+      "priceMin": "От",
+      "priceMax": "До",
+      "all": "Все",
+      "openFilters": "Открыть фильтры",
+      "resetFilter": "Сбросить",
+      "apply": "Применить"
+    }
+  },
   "hybrid": {
     "searchPlaceholder": "Искать билеты по номеру, номеру телефона",
     "authRequiredTitle": "Авторизуйтесь",
@@ -34,7 +62,7 @@
     "privacy": "Политика конфиденциальности",
     "terms": "Условия использования",
     "chooseLanguage": "Выберите язык",
-    "chooseLanguageDescription": "Выберите язык для приложения и webview.",
+    "chooseLanguageDescription": "Выберите язык для приложения.",
     "contactTitle": "Контакты",
     "contactDescription": "Если у вас есть вопросы, свяжитесь с нами.",
     "phoneLabel": "Телефон",
@@ -105,6 +133,9 @@
       "completed": "Выдано покупателю",
       "cancelled": "Отменен"
     }
+  },
+  "orderDetail": {
+    "discount": "Discount"
   },
   "addresses": {
     "loadErrorAuth": "Пожалуйста, войдите, чтобы посмотреть ваши адреса.",

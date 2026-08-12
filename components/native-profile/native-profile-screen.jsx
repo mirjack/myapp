@@ -1,17 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Animated from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import { NativePageHeader } from "@/components/native-page-header";
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
+import { getHeaderCache } from "@/lib/native-header-cache";
 
 import {
   clearStoredAuthTokens,
@@ -26,9 +22,10 @@ import {
 import {
   readCachedNativeLoyaltyProfileSync,
 } from "@/lib/native-loyalty-cache";
-import { setCurrentWebPath } from "@/lib/tab-bar-visibility";
-import { getHeaderCache } from "@/components/hybrid-shell/header-cache";
-import { AndroidTabBar } from "@/components/hybrid-shell/android-tab-bar";
+import {
+  setCurrentWebPath,
+  setTabBarForcedHidden,
+} from "@/lib/tab-bar-visibility";
 import {
   fetchCurrentUserProfile,
   fetchNativeBranding,
@@ -161,27 +158,6 @@ const CONTACT_ICONS = {
 
 const CONTACT_ORDER = ["telegram", "instagram", "youtube", "phone"];
 
-function WalletBadge({ amount }) {
-  return (
-    <LinearGradient
-      colors={["#FAF56C", "#7EFDEC"]}
-      start={{ x: 0, y: 0.434 }}
-      end={{ x: 1, y: 0.566 }}
-      style={[styles.walletBadge, styles.profileWalletBadge]}
-    >
-      <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-        <Path
-          d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM11.6787 5.31641C11.9696 4.68384 11.3162 4.03042 10.6836 4.32129L8.31348 5.41113C8.1146 5.50258 7.8854 5.50258 7.68652 5.41113L5.31641 4.32129C4.68384 4.03042 4.03042 4.68384 4.32129 5.31641L5.41113 7.68652C5.50258 7.8854 5.50258 8.1146 5.41113 8.31348L4.32129 10.6836C4.03042 11.3162 4.68384 11.9696 5.31641 11.6787L7.68652 10.5889C7.8854 10.4974 8.1146 10.4974 8.31348 10.5889L10.6836 11.6787C11.3162 11.9696 11.9696 11.3162 11.6787 10.6836L10.5889 8.31348C10.4974 8.1146 10.4974 7.8854 10.5889 7.68652L11.6787 5.31641Z"
-          fill="#0B0B0B"
-        />
-      </Svg>
-      <Text style={[styles.walletText, styles.profileWalletText]}>
-        {amount}
-      </Text>
-    </LinearGradient>
-  );
-}
-
 function DeveloperCredit() {
   const openBrandSite = () => {
     Linking.openURL("https://cmfrt.uz").catch(() => {});
@@ -200,6 +176,45 @@ function DeveloperCredit() {
           <Text style={styles.developerCreditBrand}>CMFRT</Text>
         </View>
       </Pressable>
+  );
+}
+
+function ProfileCardSkeleton() {
+  return (
+    <View style={styles.profileCard}>
+      <View style={styles.profileCardRow}>
+        <View style={styles.skeletonAvatar} />
+        <View style={styles.profileBody}>
+          <View style={[styles.skeletonLine, styles.skeletonNameLine]} />
+          <View style={[styles.skeletonLine, styles.skeletonPhoneLine]} />
+        </View>
+        <View style={styles.skeletonActionLine} />
+      </View>
+    </View>
+  );
+}
+
+function LoyaltyCardSkeleton() {
+  return (
+    <View style={styles.loyaltyCard}>
+      <View style={styles.loyaltyContent}>
+        <View style={styles.loyaltyTop}>
+          <View style={[styles.skeletonLineDark, styles.skeletonCaptionLine]} />
+          <View style={[styles.skeletonLineDark, styles.skeletonLevelLine]} />
+        </View>
+        <View style={[styles.skeletonLineDark, styles.skeletonHintLine]} />
+        <View>
+          <View style={styles.skeletonProgressTrack}>
+            <View style={styles.skeletonProgressFill} />
+          </View>
+          <View style={styles.skeletonTierLabels}>
+            {[0, 1, 2].map((item) => (
+              <View key={item} style={styles.skeletonTierLabelLine} />
+            ))}
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -243,7 +258,6 @@ function normalizeContactUrl(type, value) {
 
 export function NativeProfileScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const initialTokens = parseTokensString(getStoredAuthTokensSync());
   const initialCachedProfileEntry = readCachedNativeProfileSync(
@@ -253,25 +267,24 @@ export function NativeProfileScreen() {
   const initialCachedLoyaltyProfile = readCachedNativeLoyaltyProfileSync(
     initialTokens?.access || null,
   )?.profile || null;
+  const hasInitialCachedProfileRef = useRef(Boolean(initialCachedProfile));
+  const hasInitialCachedLoyaltyProfileRef = useRef(Boolean(initialCachedLoyaltyProfile));
   const [user, setUser] = useState(initialCachedProfile);
+  const [isUserLoading, setIsUserLoading] = useState(
+    Boolean(initialTokens?.access && !initialCachedProfile),
+  );
   const [error, setError] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(initialTokens?.access));
   const [languageCode, setLanguageCode] = useState("ru");
   const [loyaltyProfile, setLoyaltyProfile] = useState(initialCachedLoyaltyProfile);
+  const [isLoyaltyLoading, setIsLoyaltyLoading] = useState(
+    Boolean(initialTokens?.access && !initialCachedLoyaltyProfile),
+  );
   const [brandingContacts, setBrandingContacts] = useState({});
   const [sheet, setSheet] = useState(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
-  const [activeTabKey, setActiveTabKey] = useState("profile");
   const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
   const [scrollContentHeight, setScrollContentHeight] = useState(0);
-  const headerCache = getHeaderCache();
-  const walletAmount = useMemo(() => {
-    const loyaltyBalance = formatLoyaltyValue(loyaltyProfile?.wallet_balance);
-    if (loyaltyBalance) return loyaltyBalance;
-    return new Intl.NumberFormat("en-US", { useGrouping: true })
-      .format(Math.trunc(Number(headerCache.walletBalance || 0)))
-      .replace(/,/g, " ");
-  }, [headerCache.walletBalance, loyaltyProfile?.wallet_balance]);
   const languageOptions = useMemo(
     () => [
       { code: "ru", label: t("languageNames.ru") },
@@ -304,7 +317,7 @@ export function NativeProfileScreen() {
         key: "chats",
         label: t("profile.chats"),
         icon: "chatbubble-ellipses-outline",
-        route: "/chat",
+        route: "/(tabs)/profile/chat",
       },
       {
         key: "notifications",
@@ -369,11 +382,11 @@ export function NativeProfileScreen() {
     tierName ||
     nextTier ||
     t("profile.currentLevel");
+  const headerCache = getHeaderCache();
 
   useEffect(() => {
     let isMounted = true;
     setCurrentWebPath("/profile");
-    setActiveTabKey("profile");
 
     getStoredAuthTokens()
       .then(async (tokensString) => {
@@ -383,21 +396,29 @@ export function NativeProfileScreen() {
         setIsLoggedIn(hasAccessToken);
 
         if (!hasAccessToken) {
+          setUser(null);
+          setIsUserLoading(false);
           setLoyaltyProfile(null);
+          setIsLoyaltyLoading(false);
           setBrandingContacts({});
           return;
         }
+
+        setIsUserLoading(!hasInitialCachedProfileRef.current);
+        setIsLoyaltyLoading(!hasInitialCachedLoyaltyProfileRef.current);
 
         const cachedLoyalty = await readCachedNativeLoyaltyProfileSync(tokens.access);
         if (!isMounted) return;
         if (cachedLoyalty?.profile) {
           setLoyaltyProfile((current) => current || normalizeLoyaltyProfile(cachedLoyalty.profile));
+          setIsLoyaltyLoading(false);
         }
 
         const cached = await readCachedNativeProfile(tokens.access);
         if (!isMounted) return;
         if (cached?.profile) {
           setUser(cached.profile);
+          setIsUserLoading(false);
           if (isNativeProfileCacheFresh(cached)) {
             setError("");
           }
@@ -408,10 +429,12 @@ export function NativeProfileScreen() {
             .then((data) => {
               if (!isMounted) return;
               setUser(data);
+              setIsUserLoading(false);
               setError("");
             })
             .catch((loadError) => {
               if (!isMounted) return;
+              setIsUserLoading(false);
               if (loadError?.status === 401) {
                 setError("");
               } else {
@@ -426,9 +449,11 @@ export function NativeProfileScreen() {
             if (data) {
               setLoyaltyProfile(normalizeLoyaltyProfile(data));
             }
+            setIsLoyaltyLoading(false);
           })
           .catch(() => {
             if (!isMounted) return;
+            setIsLoyaltyLoading(false);
             // Keep existing cached tier if refresh fails.
           });
 
@@ -444,6 +469,8 @@ export function NativeProfileScreen() {
       })
       .catch(() => {
         if (!isMounted) return;
+        setIsUserLoading(false);
+        setIsLoyaltyLoading(false);
         setError("");
       });
 
@@ -457,29 +484,6 @@ export function NativeProfileScreen() {
       isMounted = false;
     };
   }, [t]);
-
-  const goToTab = (tabKey) => {
-    const targetMap = {
-      home: "/(tabs)",
-      catalog: "/(tabs)/catalog",
-      cart: "/(tabs)/cart",
-      favorites: "/(tabs)/favorites",
-      profile: "/(tabs)/profile",
-    };
-    const nextRoute = targetMap[tabKey];
-    const nextWebPath = tabKey === "home" ? "/" : `/${tabKey}`;
-
-    if (tabKey === "profile") {
-      setActiveTabKey("profile");
-      setCurrentWebPath("/profile");
-      return;
-    }
-
-    setCurrentWebPath(nextWebPath);
-    if (nextRoute) {
-      router.replace(nextRoute);
-    }
-  };
 
   const openLogin = () => {
     router.push({
@@ -496,8 +500,10 @@ export function NativeProfileScreen() {
   const handleLogout = async () => {
     await clearStoredAuthTokens();
     setUser(null);
+    setIsUserLoading(false);
     setError("");
     setLoyaltyProfile(null);
+    setIsLoyaltyLoading(false);
     setBrandingContacts({});
     setIsLoggedIn(false);
     setCurrentWebPath("/");
@@ -525,6 +531,12 @@ export function NativeProfileScreen() {
 
   const handleMenuPress = (item) => {
     if (item.route) {
+      if (
+        String(item.route).startsWith("/account/") ||
+        String(item.route).startsWith("/(tabs)/profile/")
+      ) {
+        setTabBarForcedHidden(true);
+      }
       router.push(item.route);
       return;
     }
@@ -574,17 +586,15 @@ export function NativeProfileScreen() {
   }).filter((channel) => Boolean(channel.url));
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <View style={styles.screen}>
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>{t("tabs.profile")}</Text>
-        {isLoggedIn ? (
-          <WalletBadge amount={walletAmount} />
-        ) : (
-          <Pressable onPress={openLogin} style={styles.loginTopButton}>
-            <Text style={styles.loginTopButtonText}>{t("common.login")}</Text>
-          </Pressable>
-        )}
+      <View style={styles.nativePageHeaderWrap}>
+        <NativePageHeader
+          title={t("tabs.profile")}
+          isLoggedIn={isLoggedIn}
+          walletBalance={headerCache.walletBalance}
+          onLoginPress={isLoggedIn ? undefined : openLogin}
+        />
       </View>
 
       {!isLoggedIn ? (
@@ -599,6 +609,7 @@ export function NativeProfileScreen() {
         </View>
       ) : (
         <ScrollView
+          style={styles.scroll}
           scrollEnabled={isProfileScrollEnabled}
           bounces={false}
           alwaysBounceVertical={false}
@@ -614,106 +625,117 @@ export function NativeProfileScreen() {
             Platform.OS === "android" ? styles.contentWithAndroidTabBar : null,
           ]}
         >
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile/me")}
-            style={styles.profileCard}
-          >
-            <View style={styles.profileCardRow}>
-              <View style={styles.profileAvatar}>
-                {user?.avatarUrl ? (
-                  <Image
-                    source={{ uri: user.avatarUrl }}
-                    style={styles.profileAvatarImage}
-                  />
-                ) : (
-                  <Text style={styles.profileAvatarText}>
-                    {extractInitials(user)}
+          {isUserLoading ? (
+            <ProfileCardSkeleton />
+          ) : (
+            <Pressable
+              onPress={() => {
+                setTabBarForcedHidden(true);
+                router.push("/(tabs)/profile/me");
+              }}
+              style={styles.profileCard}
+            >
+              <View style={styles.profileCardRow}>
+                <View style={styles.profileAvatar}>
+                  {user?.avatarUrl ? (
+                    <Image
+                      source={{ uri: user.avatarUrl }}
+                      style={styles.profileAvatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.profileAvatarText}>
+                      {extractInitials(user)}
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.profileBody}>
+                  <Text numberOfLines={1} style={styles.profileName}>
+                    {fullName || t("profile.defaultName")}
                   </Text>
-                )}
-              </View>
-              <View style={styles.profileBody}>
-                <Text numberOfLines={1} style={styles.profileName}>
-                  {fullName || t("profile.defaultName")}
-                </Text>
-                <Text numberOfLines={1} style={styles.profilePhone}>
-                  {user?.phoneNumber || "\u2014"}
-                </Text>
-              </View>
-              <View style={styles.profileAction}>
-                <Text style={styles.profileActionText}>
-                  {t("profile.configure")}
-                </Text>
-                <Ionicons color="#7C7C7C" name="chevron-forward" size={16} />
-              </View>
-            </View>
-          </Pressable>
-
-          <Pressable onPress={openLoyaltyInfo} style={styles.loyaltyCard}>
-            <View style={styles.loyaltyContent}>
-              <View style={styles.loyaltyTop}>
-                <Text style={styles.loyaltyCaption}>
-                  {t("profile.currentLevel")}
-                </Text>
-                <View style={styles.loyaltyLevelTrail}>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.loyaltyLevelText, styles.loyaltyLevelTextActive]}
-                  >
-                    {currentLevelLabel}
+                  <Text numberOfLines={1} style={styles.profilePhone}>
+                    {user?.phoneNumber || "\u2014"}
                   </Text>
                 </View>
+                <View style={styles.profileAction}>
+                  <Text style={styles.profileActionText}>
+                    {t("profile.configure")}
+                  </Text>
+                  <Ionicons color="#7C7C7C" name="chevron-forward" size={16} />
+                </View>
               </View>
+            </Pressable>
+          )}
 
-              <Text style={styles.loyaltyHint}>
-                {isLastTier
-                  ? t("profile.lastTierReached")
-                  : pointsToNextTier
-                    ? t("profile.pointsToNextTier", {
-                        points: pointsToNextTier,
-                      })
-                    : ""}
-              </Text>
+          {isLoyaltyLoading ? (
+            <LoyaltyCardSkeleton />
+          ) : (
+            <Pressable onPress={openLoyaltyInfo} style={styles.loyaltyCard}>
+              <View style={styles.loyaltyContent}>
+                <View style={styles.loyaltyTop}>
+                  <Text style={styles.loyaltyCaption}>
+                    {t("profile.currentLevel")}
+                  </Text>
+                  <View style={styles.loyaltyLevelTrail}>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.loyaltyLevelText, styles.loyaltyLevelTextActive]}
+                    >
+                      {currentLevelLabel}
+                    </Text>
+                  </View>
+                </View>
 
-              {tiers.length > 0 ? (
-                <View>
-                  <View style={styles.loyaltyProgressTrack}>
-                    <View
-                      style={[
-                        styles.loyaltyProgressFill,
-                        {
-                          width: displayedProgress == null ? "0%" : `${displayedProgress}%`,
-                        },
-                      ]}
-                    />
-                    <View style={styles.loyaltyDotsRow}>
+                <Text style={styles.loyaltyHint}>
+                  {isLastTier
+                    ? t("profile.lastTierReached")
+                    : pointsToNextTier
+                      ? t("profile.pointsToNextTier", {
+                          points: pointsToNextTier,
+                        })
+                      : ""}
+                </Text>
+
+                {tiers.length > 0 ? (
+                  <View>
+                    <View style={styles.loyaltyProgressTrack}>
+                      <View
+                        style={[
+                          styles.loyaltyProgressFill,
+                          {
+                            width: displayedProgress == null ? "0%" : `${displayedProgress}%`,
+                          },
+                        ]}
+                      />
+                      <View style={styles.loyaltyDotsRow}>
+                        {tiers.map((tier, index) => (
+                          <View
+                            key={tier.id ?? `${tier.name}-${index}`}
+                            style={[
+                              styles.loyaltyDot,
+                              index <= currentTierIndex
+                                ? styles.loyaltyDotActive
+                                : null,
+                            ]}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <View style={styles.loyaltyTierLabels}>
                       {tiers.map((tier, index) => (
-                        <View
-                          key={tier.id ?? `${tier.name}-${index}`}
-                          style={[
-                            styles.loyaltyDot,
-                            index <= currentTierIndex
-                              ? styles.loyaltyDotActive
-                              : null,
-                          ]}
-                        />
+                        <Text
+                          key={tier.id ?? `${tier.name}-label-${index}`}
+                          style={styles.loyaltyTierLabel}
+                          numberOfLines={1}
+                        >
+                          {tier.name ?? ""}
+                        </Text>
                       ))}
                     </View>
                   </View>
-                  <View style={styles.loyaltyTierLabels}>
-                    {tiers.map((tier, index) => (
-                      <Text
-                        key={tier.id ?? `${tier.name}-label-${index}`}
-                        style={styles.loyaltyTierLabel}
-                        numberOfLines={1}
-                      >
-                        {tier.name ?? ""}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          </Pressable>
+                ) : null}
+              </View>
+            </Pressable>
+          )}
 
           {error ? (
             <View style={styles.errorBox}>
@@ -838,6 +860,7 @@ export function NativeProfileScreen() {
         </ScrollView>
       )}
 
+      {/*
       {Platform.OS === "android" ? (
         <Animated.View
           style={[
@@ -852,6 +875,7 @@ export function NativeProfileScreen() {
           />
         </Animated.View>
       ) : null}
+      */}
       <NativeBottomSheet
         mounted={Boolean(sheet)}
         visible={isSheetVisible}
@@ -859,6 +883,6 @@ export function NativeProfileScreen() {
         onClose={closeSheet}
         onAction={handleSheetAction}
       />
-    </SafeAreaView>
+    </View>
   );
 }

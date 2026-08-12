@@ -17,6 +17,10 @@ export const nativeAccountStyles = StyleSheet.create({
   ordersScreenContent: {
     paddingTop: 10,
   },
+  orderDetailContent: {
+    paddingTop: 10,
+    gap: 12,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -253,6 +257,9 @@ export const nativeAccountStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
+  orderCardPressed: {
+    opacity: 0.82,
+  },
   orderInfoList: {
     marginTop: 12,
     gap: 12,
@@ -409,6 +416,80 @@ export const nativeAccountStyles = StyleSheet.create({
   ordersError: {
     marginTop: 0,
     marginBottom: 12,
+  },
+  orderDetailSectionTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "700",
+    color: "#131314",
+  },
+  orderItemsList: {
+    marginTop: 12,
+  },
+  orderDetailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+  },
+  orderDetailItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: "#F1F1F3",
+  },
+  orderDetailItemPressed: {
+    opacity: 0.78,
+  },
+  orderDetailImageWrap: {
+    width: 64,
+    height: 74,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#F1F2F4",
+  },
+  orderDetailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  orderDetailImageFallback: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+  },
+  orderDetailItemBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  orderDetailItemName: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#131314",
+  },
+  orderDetailItemMeta: {
+    marginTop: 5,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#747479",
+  },
+  orderDetailItemSide: {
+    maxWidth: 104,
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  orderDetailItemTotal: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+    color: "#131314",
+    textAlign: "right",
+  },
+  orderDetailTotalDivider: {
+    height: 1,
+    backgroundColor: "#F1F1F3",
+    marginTop: 10,
+    marginBottom: 8,
   },
   addressCard: {
     backgroundColor: "#FFFFFF",

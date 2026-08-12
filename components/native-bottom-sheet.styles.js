@@ -4,9 +4,14 @@ import {
   PRODUCT_IMAGE_HEIGHT,
   SHEET_OPEN_WIDTH,
 } from "@/components/native-bottom-sheet.shared";
+import { BrandColors } from "@/constants/theme";
 
 export const styles = StyleSheet.create({
   modalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalKeyboardContent: {
     flex: 1,
     justifyContent: "flex-end",
   },
@@ -186,6 +191,126 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#131314",
     fontWeight: "500",
+  },
+  checkoutAddressSheetWrap: {
+    paddingHorizontal: 8,
+    paddingTop: 14,
+    paddingBottom: 2,
+  },
+  checkoutAddressSheetTitle: {
+    color: "#0B0B0B",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "600",
+  },
+  checkoutAddressList: {
+    maxHeight: 292,
+    marginTop: 8,
+  },
+  checkoutAddressListContent: {
+    paddingBottom: 6,
+  },
+  checkoutAddressOption: {
+    minHeight: 66,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EDEDED",
+    paddingVertical: 9,
+  },
+  checkoutAddressIcon: {
+    width: 20,
+    height: 20,
+  },
+  checkoutAddressTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  checkoutAddressTitle: {
+    color: "#0B0B0B",
+    fontSize: 15,
+    lineHeight: 18,
+  },
+  checkoutAddressSubtitle: {
+    marginTop: 2,
+    color: "#7C7C7C",
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  checkoutAddressRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#D0D0D5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutAddressRadioActive: {
+    borderColor: BrandColors.primary,
+  },
+  checkoutAddressRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: BrandColors.primary,
+  },
+  checkoutAddressEmpty: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  checkoutAddressEmptyTitle: {
+    color: "#0B0B0B",
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  checkoutAddressEmptyText: {
+    marginTop: 4,
+    color: "#7C7C7C",
+    fontSize: 13,
+    lineHeight: 16,
+    textAlign: "center",
+  },
+  checkoutAddressActions: {
+    flexDirection: "row",
+    gap: 8,
+    paddingTop: 10,
+  },
+  checkoutAddressPrimaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: BrandColors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutAddressSecondaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: "#F1F1F3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutAddressButtonDisabled: {
+    backgroundColor: "#EFEFF1",
+  },
+  checkoutAddressPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  checkoutAddressSecondaryText: {
+    color: "#0B0B0B",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  checkoutAddressDisabledText: {
+    color: "#BCBDC2",
   },
   contactCard: {
     marginTop: 12,
@@ -543,7 +668,7 @@ export const styles = StyleSheet.create({
     color: "#747479",
   },
   loyaltySubTextAccent: {
-    color: "#16C647",
+    color: "#0B0B0B",
     fontWeight: "600",
   },
   loyaltyProgressTrack: {

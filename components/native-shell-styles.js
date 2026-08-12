@@ -1,0 +1,107 @@
+import { StyleSheet } from "react-native";
+
+const HEADER_CONTENT_HEIGHT = 126;
+const ANDROID_TAB_WRAP_HEIGHT = 98;
+
+export const nativeShellStyles = StyleSheet.create({
+  headerAnimatedWrap: {
+    height: HEADER_CONTENT_HEIGHT,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+    zIndex: 30,
+  },
+  headerAnimatedWrapCompact: {
+    height: 68,
+  },
+  header: {
+    height: HEADER_CONTENT_HEIGHT,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    overflow: "hidden",
+  },
+  headerCompact: {
+    height: 68,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walletBadge: {
+    minHeight: 28,
+    paddingHorizontal: 9,
+    borderRadius: 96,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    backgroundColor: "transparent",
+  },
+  walletText: {
+    color: "#131314",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
+  loginButton: {
+    borderRadius: 58,
+    backgroundColor: "#FE946E",
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  androidTabBarAnimatedWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: ANDROID_TAB_WRAP_HEIGHT,
+    overflow: "hidden",
+    backgroundColor: "transparent",
+    zIndex: 40,
+    elevation: 40,
+  },
+  androidTabBarWrap: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 14,
+    backgroundColor: "transparent",
+  },
+  androidTabBar: {
+    position: "relative",
+    height: 66,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 50,
+    padding: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  androidTabActivePill: {
+    position: "absolute",
+    top: 4,
+    left: 0,
+    height: 58,
+    borderRadius: 999,
+    backgroundColor: "rgba(230,230,235,0.90)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+  },
+});

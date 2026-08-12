@@ -14,6 +14,34 @@
     "favorites": "Saralanganlar",
     "profile": "Profil"
   },
+  "favorites": {
+    "loading": "Saralanganlar yuklanmoqda...",
+    "authTitle": "Saralanganlarni ko'rish uchun kiring",
+    "authDescription": "Saqlangan mahsulotlaringiz kirgandan keyin shu yerda ko'rinadi.",
+    "emptyTitle": "Hali saralanganlar yo'q",
+    "emptyDescription": "Mahsulot yonidagi yurakchani bosib, uni keyin uchun saqlang.",
+    "refresh": "Yangilash"
+  },
+  "catalogPage": {
+    "searchPlaceholder": "Qidirish",
+    "searchAriaLabel": "Mahsulotlarni qidirish",
+    "clearSearch": "Qidiruvni tozalash",
+    "noProducts": "Mahsulotlar topilmadi",
+    "tryDifferent": "Boshqa qidiruv yoki filtrlarni sinab ko'ring.",
+    "loadError": "Mahsulotlarni yuklab bo'lmadi.",
+    "filters": {
+      "categoryTitle": "Kategoriya",
+      "categoryChip": "Kategoriya",
+      "priceTitle": "Narx",
+      "priceChip": "Narx",
+      "priceMin": "Dan",
+      "priceMax": "Gacha",
+      "all": "Hammasi",
+      "openFilters": "Filtrlarni ochish",
+      "resetFilter": "Tozalash",
+      "apply": "Qo'llash"
+    }
+  },
   "hybrid": {
     "searchPlaceholder": "Chipta raqami yoki telefon raqami bo'yicha qidirish",
     "authRequiredTitle": "Tizimga kiring",
@@ -34,7 +62,7 @@
     "privacy": "Maxfiylik siyosati",
     "terms": "Foydalanish shartlari",
     "chooseLanguage": "Tilni tanlang",
-    "chooseLanguageDescription": "Ilova va webview uchun tilni tanlang.",
+    "chooseLanguageDescription": "Ilova uchun tilni tanlang.",
     "contactTitle": "Kontaktlar",
     "contactDescription": "Savollaringiz bo'lsa, biz bilan bog'laning.",
     "phoneLabel": "Telefon",
@@ -103,6 +131,9 @@
       "completed": "Topshirildi",
       "cancelled": "Bekor qilingan"
     }
+  },
+  "orderDetail": {
+    "discount": "Chegirma"
   },
   "addresses": {
     "loadErrorAuth": "Manzillarni ko'rish uchun tizimga kiring.",

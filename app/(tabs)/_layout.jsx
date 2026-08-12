@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { Slot, Tabs, useSegments } from "expo-router";
+import { Tabs, usePathname, useSegments } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,6 +8,7 @@ import {
   NativeTabs,
   VectorIcon,
 } from "expo-router/unstable-native-tabs";
+
 import { useIsTabBarVisible } from "@/lib/tab-bar-visibility";
 
 const IOS_NATIVE_TABS_MIN_VERSION = 26;
@@ -19,26 +20,28 @@ function getIosMajorVersion() {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export default function TabsLayout() {
+function TabsBody() {
   const isTabBarVisible = useIsTabBarVisible();
+  const pathname = usePathname();
   const segments = useSegments();
   const { t } = useTranslation();
+  const normalizedPathname = String(pathname || "/").replace(/\/+$/, "") || "/";
   const isNestedProfileRoute =
-    segments[0] === "(tabs)" &&
-    segments[1] === "profile" &&
-    segments[2] &&
-    segments[2] !== "index";
+    normalizedPathname.startsWith("/profile/") ||
+    (segments[0] === "(tabs)" &&
+      segments[1] === "profile" &&
+      segments[2] &&
+      segments[2] !== "index");
   const shouldShowTabBar = isTabBarVisible && !isNestedProfileRoute;
-
-  if (Platform.OS === "android") {
-    return <Slot />;
-  }
 
   if (getIosMajorVersion() < IOS_NATIVE_TABS_MIN_VERSION) {
     return (
       <Tabs
         screenOptions={{
+          animation: "fade",
           headerShown: false,
+          lazy: true,
+          freezeOnBlur: true,
           tabBarActiveTintColor: "#FE946E",
           tabBarInactiveTintColor: "#757575",
           tabBarStyle: {
@@ -181,4 +184,8 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
     </NativeTabs>
   );
+}
+
+export default function TabsLayout() {
+  return <TabsBody />;
 }

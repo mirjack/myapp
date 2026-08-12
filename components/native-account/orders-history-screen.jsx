@@ -9,12 +9,16 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 
 import { listNativeOrders } from "@/lib/native-account-api";
 
 import { NativeAccountScreenShell } from "./account-screen-shell";
 import { nativeAccountStyles as styles } from "./native-account.styles";
+import {
+  setCurrentWebPath,
+  setTabBarForcedHidden,
+} from "@/lib/tab-bar-visibility";
 
 const ACTIVE_STATUSES = new Set(["pending", "confirmed", "processing", "shipped"]);
 const STATUS_META = {
@@ -112,6 +116,7 @@ export function OrdersHistoryScreen() {
   const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   const router = useRouter();
+  const segments = useSegments();
   const initialTab = params?.tab === "all" ? "all" : "active";
   const [tab, setTab] = useState(initialTab);
   const [orders, setOrders] = useState([]);
@@ -159,15 +164,29 @@ export function OrdersHistoryScreen() {
   const openProduct = (item) => {
     const productId = item?.id;
     if (!productId) return;
+    setCurrentWebPath(`/products/${productId}`);
+    setTabBarForcedHidden(true);
     router.push({
       pathname: "/product",
       params: { productPath: `/products/${productId}` },
     });
   };
 
+  const openOrder = (order) => {
+    if (!order?.id) return;
+    const isProfileStackRoute =
+      segments[0] === "(tabs)" && segments[1] === "profile";
+    router.push({
+      pathname: isProfileStackRoute
+        ? "/(tabs)/profile/orders/[id]"
+        : "/account/orders/[id]",
+      params: { id: order.id },
+    });
+  };
+
   return (
     <NativeAccountScreenShell
-      forceBackToProfile={true}
+      forceBackToProfile={false}
       title={t("ordersHistory.title")}
     >
       {isLoading ? (
@@ -240,7 +259,14 @@ export function OrdersHistoryScreen() {
                   );
 
                   return (
-                    <View key={order.id} style={styles.orderCard}>
+                    <Pressable
+                      key={order.id}
+                      onPress={() => openOrder(order)}
+                      style={({ pressed }) => [
+                        styles.orderCard,
+                        pressed ? styles.orderCardPressed : null,
+                      ]}
+                    >
                       <Text style={styles.orderNumber}>
                         {t("ordersHistory.orderNumber", {
                           number: order.number || order.id,
@@ -325,7 +351,10 @@ export function OrdersHistoryScreen() {
                         {itemPreview.map((item, index) => (
                           <Pressable
                             key={`${order.id}-${item.id ?? index}`}
-                            onPress={() => openProduct(item)}
+                            onPress={(event) => {
+                              event.stopPropagation();
+                              openProduct(item);
+                            }}
                             style={styles.previewPressable}
                           >
                             <View style={styles.previewImageWrap}>
@@ -358,7 +387,7 @@ export function OrdersHistoryScreen() {
                           </View>
                         ) : null}
                       </ScrollView>
-                    </View>
+                    </Pressable>
                   );
                 })
               )}

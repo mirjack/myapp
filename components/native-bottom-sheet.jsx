@@ -243,7 +243,8 @@ export function NativeBottomSheet({
     >
       <KeyboardAvoidingView
         style={styles.modalRoot}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : "position"}
+        contentContainerStyle={styles.modalKeyboardContent}
         keyboardVerticalOffset={0}
       >
         <Pressable style={styles.backdropTap} onPress={onClose}>

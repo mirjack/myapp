@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "uz.miobeauty.webview",
+      "bundleIdentifier": "uz.miobeauty.app",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
@@ -24,7 +24,7 @@
       "userInterfaceStyle": "light"
     },
     "android": {
-      "package": "uz.miobeauty.webview",
+      "package": "uz.miobeauty.app",
       "versionCode": 1,
       "launchMode": "singleTask",
       "icon": "./assets/images/logo.png",
@@ -54,7 +54,7 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": false
           }
         }
       ],

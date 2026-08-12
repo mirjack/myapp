@@ -142,24 +142,53 @@ export function getLatestSupportMessage(request, customerId) {
     })[0];
 }
 
+function isCustomerPerson(person, customerId) {
+  if (!person || customerId == null) return false;
+  return Number(person?.id) === Number(customerId);
+}
+
+function getAssignedSupportPerson(request, customerId) {
+  const candidates = [
+    request?.assignedUser,
+    request?.assigned_user,
+    request?.assignee,
+    request?.agent,
+    request?.manager,
+    request?.operator,
+    request?.admin,
+    request?.user,
+  ];
+
+  return candidates.find(
+    (person) =>
+      person &&
+      typeof person === "object" &&
+      !isCustomerPerson(person, customerId) &&
+      getPersonDisplayName(person),
+  );
+}
+
+function getPersonAvatar(person) {
+  return (
+    person?.avatar ||
+    person?.avatarUrl ||
+    person?.image ||
+    person?.photo ||
+    null
+  );
+}
+
 export function getRequestAgentProfile(request, customerId, t) {
   const latestSupportMessage = getLatestSupportMessage(request, customerId);
+  const assignedSupportPerson = getAssignedSupportPerson(request, customerId);
   const name =
     getPersonDisplayName(latestSupportMessage?.sender) ||
-    getPersonDisplayName(request?.user) ||
-    t?.("support.managerTitle") ||
-    "Manager";
+    getPersonDisplayName(assignedSupportPerson) ||
+    "Support";
 
   const avatarUri =
-    latestSupportMessage?.sender?.avatar ||
-    latestSupportMessage?.sender?.avatarUrl ||
-    latestSupportMessage?.sender?.image ||
-    latestSupportMessage?.sender?.photo ||
-    request?.user?.avatar ||
-    request?.user?.avatarUrl ||
-    request?.user?.image ||
-    request?.user?.photo ||
-    null;
+    getPersonAvatar(latestSupportMessage?.sender) ||
+    getPersonAvatar(assignedSupportPerson);
 
   return {
     name,

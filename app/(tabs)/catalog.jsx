@@ -1,5 +1,5 @@
-import { HybridShell } from "@/components/hybrid-shell";
+import { NativeCatalogScreen } from "@/components/native-catalog/native-catalog-screen";
 
 export default function CatalogTabScreen() {
-  return <HybridShell routePath="/catalog" />;
+  return <NativeCatalogScreen />;
 }
