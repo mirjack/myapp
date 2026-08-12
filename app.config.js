@@ -1,7 +1,5 @@
-const googleMapsApiKey =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
-  process.env.GOOGLE_MAPS_API_KEY ||
-  "";
+const { withAppDelegate } = require("expo/config-plugins");
+
 const appMetricaApiKey =
   process.env.EXPO_PUBLIC_APP_METRICA_API_KEY ||
   process.env.APP_METRICA_API_KEY ||
@@ -10,6 +8,62 @@ const yandexMapsApiKey =
   process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY ||
   process.env.YANDEX_MAPS_API_KEY ||
   "";
+
+function addOnce(contents, needle, replacement) {
+  return contents.includes(needle)
+    ? contents
+    : contents.replace(replacement.from, replacement.to);
+}
+
+function withYandexMaps(config) {
+  if (!yandexMapsApiKey) return config;
+
+  return withAppDelegate(config, (nextConfig) => {
+    const appDelegate = nextConfig.modResults;
+    const escapedApiKey = JSON.stringify(yandexMapsApiKey);
+    const objcApiKey = `@"${yandexMapsApiKey
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')}"`;
+
+    if (appDelegate.language === "swift") {
+      appDelegate.contents = addOnce(
+        appDelegate.contents,
+        "import YandexMapsMobile",
+        {
+          from: /import Expo\s*\n/,
+          to: "import Expo\nimport YandexMapsMobile\n",
+        },
+      );
+      appDelegate.contents = addOnce(
+        appDelegate.contents,
+        "YMKMapKit.sharedInstance()",
+        {
+          from: /\s+return super\.application\(application, didFinishLaunchingWithOptions: launchOptions\)/,
+          to: `\n    YMKMapKit.setApiKey(${escapedApiKey})\n    YMKMapKit.setLocale("ru_RU")\n    _ = YMKMapKit.sharedInstance()\n\n    return super.application(application, didFinishLaunchingWithOptions: launchOptions)`,
+        },
+      );
+    } else {
+      appDelegate.contents = addOnce(
+        appDelegate.contents,
+        "#import <YandexMapsMobile/YMKMapKitFactory.h>",
+        {
+          from: /#import "AppDelegate.h"/,
+          to: '#import "AppDelegate.h"\n#import <YandexMapsMobile/YMKMapKitFactory.h>',
+        },
+      );
+      appDelegate.contents = addOnce(
+        appDelegate.contents,
+        "[YMKMapKit mapKit];",
+        {
+          from: /\s+return YES;/,
+          to: `\n\n\t[YMKMapKit setApiKey:${objcApiKey}];\n\t[YMKMapKit setLocale:@"ru_RU"];\n\t[YMKMapKit mapKit];\n\n\treturn YES;`,
+        },
+      );
+    }
+
+    return nextConfig;
+  });
+}
 
 module.exports = ({ config }) => {
   const resolvedConfig = config || require("./app.json").expo || {};
@@ -61,9 +115,11 @@ module.exports = ({ config }) => {
       !(Array.isArray(plugin) && plugin[0] === "expo-asset"),
   );
 
-  return {
+  const nextConfig = {
     ...resolvedConfig,
     name: `${resolvedConfig.name || "Mio Beauty"}${appNameSuffix}`,
+    newArchEnabled: false,
+    platforms: ["ios", "android"],
     scheme: `${baseScheme}${schemeSuffix}`,
     plugins: [
       ...otherPlugins,
@@ -96,29 +152,19 @@ module.exports = ({ config }) => {
               NSAppTransportSecurity: undefined,
             }),
       },
-      config: {
-        ...(ios.config || {}),
-        googleMapsApiKey,
-      },
     },
     android: {
       ...android,
       package: androidPackage,
-      config: {
-        ...(android.config || {}),
-        googleMaps: {
-          ...((android.config && android.config.googleMaps) || {}),
-          apiKey: googleMapsApiKey,
-        },
-      },
     },
     extra: {
       ...extra,
-      googleMapsApiKey,
       appMetricaApiKey,
       yandexMapsApiKey,
       tenantDomain,
       allowCleartextTraffic,
     },
   };
+
+  return withYandexMaps(nextConfig);
 };

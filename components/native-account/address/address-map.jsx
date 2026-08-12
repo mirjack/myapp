@@ -1,8 +1,68 @@
-import { memo, useCallback, useEffect, useRef } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  NativeModules,
+  Platform,
+  StyleSheet,
+  Text,
+  UIManager,
+  View,
+} from "react-native";
+import YaMap, { Animation, Marker } from "react-native-yamap";
 
 import { DEFAULT_TASHKENT_REGION } from "@/lib/address-geocoding-service";
+import { YANDEX_MAPS_API_KEY } from "@/lib/runtime-config";
+
+let yandexMapInitKey = "";
+let yandexMapInitPromise = null;
+
+function hasYandexNativeView() {
+  return Boolean(
+    NativeModules?.yamap &&
+      (UIManager.getViewManagerConfig?.("YamapView") ||
+        UIManager.YamapView),
+  );
+}
+
+function initYandexMap(apiKey) {
+  if (!apiKey) return Promise.reject(new Error("Missing Yandex Maps API key"));
+  if (yandexMapInitKey === apiKey) return Promise.resolve();
+  if (yandexMapInitPromise) return yandexMapInitPromise;
+
+  yandexMapInitPromise = YaMap.init(apiKey)
+    .then(() => {
+      yandexMapInitKey = apiKey;
+    })
+    .finally(() => {
+      yandexMapInitPromise = null;
+    });
+
+  return yandexMapInitPromise;
+}
+
+function regionToPoint(region) {
+  return {
+    lat: Number(region?.latitude) || DEFAULT_TASHKENT_REGION.latitude,
+    lon: Number(region?.longitude) || DEFAULT_TASHKENT_REGION.longitude,
+  };
+}
+
+function deltaToZoom(region) {
+  const latitudeDelta =
+    Number(region?.latitudeDelta) || DEFAULT_TASHKENT_REGION.latitudeDelta;
+  const zoom = Math.round(Math.log2(360 / latitudeDelta)) - 1;
+  return Math.max(5, Math.min(18, zoom));
+}
+
+function cameraToRegion(camera) {
+  const point = camera?.point || {};
+  return {
+    latitude: Number(point.lat) || DEFAULT_TASHKENT_REGION.latitude,
+    longitude: Number(point.lon) || DEFAULT_TASHKENT_REGION.longitude,
+    latitudeDelta: DEFAULT_TASHKENT_REGION.latitudeDelta,
+    longitudeDelta: DEFAULT_TASHKENT_REGION.longitudeDelta,
+    zoom: Number(camera?.zoom) || deltaToZoom(DEFAULT_TASHKENT_REGION),
+  };
+}
 
 export const AddressMap = memo(function AddressMap({
   mapRef,
@@ -13,26 +73,112 @@ export const AddressMap = memo(function AddressMap({
 }) {
   const nativeMapRef = useRef(null);
   const hasNativeMap = Platform.OS !== "web";
+  const hasApiKey = Boolean(YANDEX_MAPS_API_KEY);
+  const hasNativeView = hasNativeMap && hasYandexNativeView();
+  const [isMapReady, setIsMapReady] = useState(
+    !hasNativeMap ||
+      !hasNativeView ||
+      !hasApiKey ||
+      yandexMapInitKey === YANDEX_MAPS_API_KEY,
+  );
+  const initialRegion = useMemo(
+    () => ({
+      ...regionToPoint(DEFAULT_TASHKENT_REGION),
+      zoom: deltaToZoom(DEFAULT_TASHKENT_REGION),
+    }),
+    [],
+  );
 
   const applyRegion = useCallback((region) => {
     if (!region) return;
 
-    const nextRegion = {
-      latitude: Number(region.latitude) || DEFAULT_TASHKENT_REGION.latitude,
-      longitude: Number(region.longitude) || DEFAULT_TASHKENT_REGION.longitude,
-      latitudeDelta: Number(region.latitudeDelta) || 0.006,
-      longitudeDelta: Number(region.longitudeDelta) || 0.006,
-    };
-
-    nativeMapRef.current?.animateToRegion(nextRegion, 250);
+    nativeMapRef.current?.setCenter(
+      regionToPoint(region),
+      deltaToZoom(region),
+      0,
+      0,
+      250,
+      Animation.SMOOTH,
+    );
   }, []);
+
+  const handleCameraPositionChange = useCallback(
+    (event) => {
+      const camera = event?.nativeEvent;
+      if (camera?.reason === "GESTURES") onPanDrag?.();
+    },
+    [onPanDrag],
+  );
+
+  const handleCameraPositionChangeEnd = useCallback(
+    (event) => {
+      onRegionChangeComplete?.(cameraToRegion(event?.nativeEvent));
+    },
+    [onRegionChangeComplete],
+  );
+
+  const handleMapPress = useCallback(
+    (event) => {
+      const point = event?.nativeEvent;
+      if (!point) return;
+
+      onPanDrag?.();
+      onRegionChangeComplete?.({
+        latitude: Number(point.lat) || DEFAULT_TASHKENT_REGION.latitude,
+        longitude: Number(point.lon) || DEFAULT_TASHKENT_REGION.longitude,
+        latitudeDelta: DEFAULT_TASHKENT_REGION.latitudeDelta,
+        longitudeDelta: DEFAULT_TASHKENT_REGION.longitudeDelta,
+      });
+      nativeMapRef.current?.setCenter(point, deltaToZoom(DEFAULT_TASHKENT_REGION));
+    },
+    [onPanDrag, onRegionChangeComplete],
+  );
+
+  useEffect(() => {
+    if (
+      !hasNativeMap ||
+      !hasNativeView ||
+      !hasApiKey ||
+      yandexMapInitKey === YANDEX_MAPS_API_KEY
+    ) {
+      setIsMapReady(
+        !hasNativeMap ||
+          !hasNativeView ||
+          !hasApiKey ||
+          yandexMapInitKey === YANDEX_MAPS_API_KEY,
+      );
+      return;
+    }
+
+    let isMounted = true;
+    setIsMapReady(false);
+
+    initYandexMap(YANDEX_MAPS_API_KEY)
+      .then(() => {
+        if (isMounted) setIsMapReady(true);
+      })
+      .catch(() => {
+        yandexMapInitKey = "";
+        if (isMounted) {
+          setIsMapReady(false);
+          onStatusChange?.({
+            hasNativeMap,
+            hasApiKey: false,
+          });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hasApiKey, hasNativeMap, hasNativeView, onStatusChange]);
 
   useEffect(() => {
     onStatusChange?.({
-      hasNativeMap,
-      hasApiKey: true,
+      hasNativeMap: hasNativeMap && hasNativeView && isMapReady,
+      hasApiKey,
     });
-  }, [hasNativeMap, onStatusChange]);
+  }, [hasApiKey, hasNativeMap, hasNativeView, isMapReady, onStatusChange]);
 
   useEffect(() => {
     if (!mapRef) return;
@@ -59,40 +205,66 @@ export const AddressMap = memo(function AddressMap({
     );
   }
 
+  if (!hasApiKey) {
+    return (
+      <View style={[styles.map, styles.webFallback]}>
+        <View style={styles.fallbackCard}>
+          <Text style={styles.fallbackTitle}>Yandex Maps API key is missing.</Text>
+          <Text style={styles.fallbackText}>Add EXPO_PUBLIC_YANDEX_MAPS_API_KEY and rebuild the app.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!hasNativeView) {
+    return (
+      <View style={[styles.map, styles.webFallback]}>
+        <View style={styles.fallbackCard}>
+          <Text style={styles.fallbackTitle}>Yandex native map is not available in this build.</Text>
+          <Text style={styles.fallbackText}>Rebuild the development app after installing react-native-yamap.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!isMapReady) {
+    return (
+      <View style={[styles.map, styles.loadingMap]}>
+        <Text style={styles.loadingText}>Loading Yandex map...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <MapView
+      <YaMap
+        fastTapEnabled
+        followUser={false}
+        initialRegion={initialRegion}
+        logoPadding={{ horizontal: 16, vertical: 104 }}
+        logoPosition={{ horizontal: "left", vertical: "bottom" }}
+        mapType="vector"
+        maxFps={60}
+        onCameraPositionChange={handleCameraPositionChange}
+        onCameraPositionChangeEnd={handleCameraPositionChangeEnd}
+        onMapPress={handleMapPress}
         ref={nativeMapRef}
-        initialRegion={{
-          latitude: DEFAULT_TASHKENT_REGION.latitude,
-          longitude: DEFAULT_TASHKENT_REGION.longitude,
-          latitudeDelta: 0.006,
-          longitudeDelta: 0.006,
-        }}
-        loadingEnabled
-        moveOnMarkerPress={false}
-        onPanDrag={onPanDrag}
-        onRegionChangeComplete={onRegionChangeComplete}
-        showsCompass={false}
-        showsMyLocationButton={false}
-        showsPointsOfInterest={false}
+        showUserPosition={false}
         style={styles.map}
-        toolbarEnabled={false}
       >
         {userLocation ? (
           <Marker
-            coordinate={{
-              latitude: Number(userLocation.latitude),
-              longitude: Number(userLocation.longitude),
+            point={{
+              lat: Number(userLocation.latitude),
+              lon: Number(userLocation.longitude),
             }}
-            tracksViewChanges={false}
           >
             <View style={styles.userMarker}>
               <View style={styles.userMarkerDot} />
             </View>
           </Marker>
         ) : null}
-      </MapView>
+      </YaMap>
     </View>
   );
 });
@@ -100,15 +272,27 @@ export const AddressMap = memo(function AddressMap({
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
   webFallback: {
     justifyContent: "flex-end",
     backgroundColor: "#F4F4F6",
     paddingHorizontal: 16,
     paddingBottom: 140,
+  },
+  loadingMap: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F4F4F6",
+  },
+  loadingText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#747479",
   },
   fallbackCard: {
     alignSelf: "center",
