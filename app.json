@@ -7,7 +7,7 @@
     "icon": "./assets/images/logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "uz.miobeauty.app",
       "buildNumber": "1",
@@ -26,7 +26,6 @@
     "android": {
       "package": "uz.miobeauty.app",
       "versionCode": 1,
-      "launchMode": "singleTask",
       "icon": "./assets/images/logo.png",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",

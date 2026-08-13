@@ -1,4 +1,4 @@
-const { withAppDelegate } = require("expo/config-plugins");
+const { withAndroidManifest, withAppDelegate } = require("expo/config-plugins");
 
 const appMetricaApiKey =
   process.env.EXPO_PUBLIC_APP_METRICA_API_KEY ||
@@ -65,6 +65,22 @@ function withYandexMaps(config) {
   });
 }
 
+function withAndroidLaunchMode(config) {
+  return withAndroidManifest(config, (nextConfig) => {
+    const application = nextConfig.modResults.manifest.application?.[0];
+    const mainActivity = application?.activity?.find((activity) => {
+      const activityName = activity.$?.["android:name"];
+      return activityName === ".MainActivity" || activityName === "MainActivity";
+    });
+
+    if (mainActivity?.$) {
+      mainActivity.$["android:launchMode"] = "singleTask";
+    }
+
+    return nextConfig;
+  });
+}
+
 module.exports = ({ config }) => {
   const resolvedConfig = config || require("./app.json").expo || {};
   const ios = resolvedConfig.ios || {};
@@ -118,7 +134,7 @@ module.exports = ({ config }) => {
   const nextConfig = {
     ...resolvedConfig,
     name: `${resolvedConfig.name || "Mio Beauty"}${appNameSuffix}`,
-    newArchEnabled: false,
+    newArchEnabled: true,
     platforms: ["ios", "android"],
     scheme: `${baseScheme}${schemeSuffix}`,
     plugins: [
@@ -130,6 +146,7 @@ module.exports = ({ config }) => {
           ...((expoBuildPropertiesPlugin && expoBuildPropertiesPlugin[1]) || {}),
           android: {
             ...(((expoBuildPropertiesPlugin && expoBuildPropertiesPlugin[1]) || {}).android || {}),
+            minSdkVersion: 26,
             usesCleartextTraffic: allowCleartextTraffic,
           },
         },
@@ -166,5 +183,5 @@ module.exports = ({ config }) => {
     },
   };
 
-  return withYandexMaps(nextConfig);
+  return withYandexMaps(withAndroidLaunchMode(nextConfig));
 };
