@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { NativePageHeader } from "@/components/native-page-header";
+import { GuestAuthCard } from "@/components/guest-auth-card";
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { getHeaderCache } from "@/lib/native-header-cache";
 
@@ -245,8 +257,18 @@ function normalizeContactUrl(type, value) {
   }
 
   if (type === "youtube") {
-    if (raw.startsWith("http")) return raw;
-    return `https://youtube.com/${raw.replace(/^@/, "")}`;
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    const withoutProtocol = raw.replace(/^\/\//, "");
+    if (/^(?:www\.)?youtube\.com\//i.test(withoutProtocol)) {
+      return `https://${withoutProtocol}`;
+    }
+    if (/^(?:www\.)?youtu\.be\//i.test(withoutProtocol)) {
+      return `https://${withoutProtocol}`;
+    }
+
+    const handle = raw.replace(/^@/, "");
+    return `https://www.youtube.com/@${handle}`;
   }
 
   if (type === "phone") {
@@ -254,6 +276,28 @@ function normalizeContactUrl(type, value) {
   }
 
   return raw;
+}
+
+function formatContactValue(type, value) {
+  const raw = String(value || "").trim();
+  if (
+    !raw ||
+    (type !== "telegram" && type !== "instagram" && type !== "youtube")
+  ) {
+    return raw;
+  }
+
+  const username = raw
+    .replace(
+      /^https?:\/\/(?:www\.)?(?:t\.me|telegram\.me|instagram\.com|youtube\.com)\//i,
+      "",
+    )
+    .replace(/^https?:\/\/(?:www\.)?youtu\.be\//i, "")
+    .replace(/^@/, "")
+    .replace(/[/?#].*$/, "")
+    .trim();
+
+  return username ? `@${username}` : raw;
 }
 
 export function NativeProfileScreen() {
@@ -373,6 +417,24 @@ export function NativeProfileScreen() {
     : currentTierIndex >= 0 && tiers.length > 1
       ? ((currentTierIndex + (progress ?? 0) / 100) / (tiers.length - 1)) * 100
       : progress;
+  const animatedProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const target = displayedProgress == null ? 0 : displayedProgress;
+    animatedProgress.stopAnimation();
+    animatedProgress.setValue(0);
+    Animated.timing(animatedProgress, {
+      toValue: target,
+      duration: 1100,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animatedProgress, displayedProgress]);
+
+  const animatedProgressWidth = animatedProgress.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"],
+  });
   const pointsToNextTier = isLastTier ? "" : rawPointsToNextTier;
   const tierTrail = currentTierIndex >= 0
     ? tiers.slice(isLastTier ? Math.max(0, currentTierIndex - 2) : currentTierIndex)
@@ -575,12 +637,7 @@ export function NativeProfileScreen() {
       id: type,
       type,
       label: getChannelLabel(type, t),
-      value:
-        type === "phone"
-          ? value
-          : type === "telegram" && value && !value.startsWith("http")
-            ? `@${value.replace(/^@/, "")}`
-            : value,
+      value: formatContactValue(type, value),
       url,
       };
   }).filter((channel) => Boolean(channel.url));
@@ -598,15 +655,13 @@ export function NativeProfileScreen() {
       </View>
 
       {!isLoggedIn ? (
-        <View style={styles.loginPrompt}>
-          <Text style={styles.loginTitle}>{t("profile.authorizeTitle")}</Text>
-          <Text style={styles.loginText}>
-            {t("profile.authorizeDescription")}
-          </Text>
-          <Pressable onPress={openLogin} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
-          </Pressable>
-        </View>
+        <GuestAuthCard
+          icon="person-outline"
+          title={t("profile.authorizeTitle")}
+          description={t("profile.authorizeDescription")}
+          actionLabel={t("common.login")}
+          onAction={openLogin}
+        />
       ) : (
         <ScrollView
           style={styles.scroll}
@@ -670,18 +725,41 @@ export function NativeProfileScreen() {
             <LoyaltyCardSkeleton />
           ) : (
             <Pressable onPress={openLoyaltyInfo} style={styles.loyaltyCard}>
+              <LinearGradient
+                colors={["rgba(3,229,254,0.12)", "rgba(3,241,170,0.07)", "rgba(18,18,18,0)"]}
+                end={{ x: 0, y: 1 }}
+                pointerEvents="none"
+                start={{ x: 1, y: 0 }}
+                style={styles.loyaltyGlow}
+              />
               <View style={styles.loyaltyContent}>
                 <View style={styles.loyaltyTop}>
                   <Text style={styles.loyaltyCaption}>
                     {t("profile.currentLevel")}
                   </Text>
                   <View style={styles.loyaltyLevelTrail}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.loyaltyLevelText, styles.loyaltyLevelTextActive]}
-                    >
-                      {currentLevelLabel}
-                    </Text>
+                    {(tierTrail.length > 0 ? tierTrail : [{ name: currentLevelLabel }]).map(
+                      (tier, index) => {
+                        const tierIndex = tiers.indexOf(tier);
+                        const isCurrentTier = tierIndex === currentTierIndex || index === 0;
+                        return (
+                          <View key={tier.id ?? `${tier.name}-${index}`} style={styles.loyaltyLevelItem}>
+                            {index > 0 ? (
+                              <Ionicons color="rgba(255,255,255,0.3)" name="chevron-forward" size={16} />
+                            ) : null}
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.loyaltyLevelText,
+                                isCurrentTier ? styles.loyaltyLevelTextActive : null,
+                              ]}
+                            >
+                              {tier.name ?? ""}
+                            </Text>
+                          </View>
+                        );
+                      },
+                    )}
                   </View>
                 </View>
 
@@ -698,11 +776,11 @@ export function NativeProfileScreen() {
                 {tiers.length > 0 ? (
                   <View>
                     <View style={styles.loyaltyProgressTrack}>
-                      <View
+                      <Animated.View
                         style={[
                           styles.loyaltyProgressFill,
                           {
-                            width: displayedProgress == null ? "0%" : `${displayedProgress}%`,
+                            width: animatedProgressWidth,
                           },
                         ]}
                       />

@@ -120,6 +120,7 @@ function ProductCardComponent({
   onIncrease,
   favorite = false,
   compact = false,
+  stretch = false,
 }) {
   const router = useRouter();
   const normalizedProduct = useMemo(
@@ -335,8 +336,14 @@ function ProductCardComponent({
   }));
 
   return (
-    <View style={[styles.cardShadow, isCompact && styles.cardCompact]}>
-      <View style={styles.card}>
+    <View
+      style={[
+        styles.cardShadow,
+        isCompact && styles.cardCompact,
+        stretch && styles.cardStretch,
+      ]}
+    >
+      <View style={[styles.card, stretch && styles.cardStretch]}>
         <Pressable
           onPress={handleOpen}
           style={styles.imageWrap}
@@ -468,6 +475,9 @@ const styles = StyleSheet.create({
   },
   cardCompact: {
     minWidth: 150,
+  },
+  cardStretch: {
+    flex: 1,
   },
   imageWrap: {
     position: "relative",

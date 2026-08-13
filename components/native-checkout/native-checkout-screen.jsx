@@ -851,7 +851,7 @@ export function NativeCheckoutScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 65 + Math.max(12, insets.bottom) },
+          { paddingBottom: 96 + Math.max(12, insets.bottom) },
         ]}
         keyboardShouldPersistTaps="handled"
       >

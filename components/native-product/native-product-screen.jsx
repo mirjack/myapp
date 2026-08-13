@@ -571,7 +571,7 @@ export function NativeProductScreen() {
             <View style={styles.relatedGrid}>
               {relatedProducts.map((item) => (
                 <View key={item.id} style={styles.relatedCell}>
-                  <ProductCard product={item} compact />
+                  <ProductCard product={item} compact stretch />
                 </View>
               ))}
             </View>
@@ -902,11 +902,13 @@ const styles = StyleSheet.create({
   relatedGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    alignItems: "stretch",
     justifyContent: "space-between",
     gap: 12,
   },
   relatedCell: {
     width: "48%",
+    alignSelf: "stretch",
   },
   errorBox: {
     marginBottom: 12,

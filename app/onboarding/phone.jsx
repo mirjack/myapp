@@ -393,9 +393,12 @@ export default function OnboardingPhoneScreen() {
                 {otpDigits.map((digit, index) => (
                   <TextInput
                     key={index}
+                    autoComplete={index === 0 ? "sms-otp" : "off"}
+                    autoCorrect={false}
                     ref={(input) => {
                       otpInputRefs.current[index] = input;
                     }}
+                    importantForAutofill={index === 0 ? "yes" : "no"}
                     keyboardType="number-pad"
                     maxLength={index === 0 ? 6 : 1}
                     onChangeText={(value) => handleOtpDigitChange(index, value)}

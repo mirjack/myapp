@@ -142,8 +142,17 @@ export const nativeProfileStyles = StyleSheet.create({
     padding: 16,
     minHeight: 140,
   },
+  loyaltyGlow: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   loyaltyContent: {
-    gap: 14,
+    position: "relative",
+    zIndex: 1,
+    gap: 12,
   },
   loyaltyTop: {
     gap: 6,
@@ -157,7 +166,7 @@ export const nativeProfileStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "nowrap",
-    gap: 8,
+    gap: 12,
   },
   loyaltyLevelItem: {
     flexDirection: "row",

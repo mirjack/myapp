@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NativePageHeader } from "@/components/native-page-header";
+import { GuestAuthCard } from "@/components/guest-auth-card";
 import {
   computePriceStats,
   formatCurrency,
@@ -197,11 +198,14 @@ function DetailLine({ icon, label, value, badge }) {
 
 function SummaryMenuIcon({ progress }) {
   const topBarStyle = {
-    top: progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [3, 9],
-    }),
+    top: 3,
     transform: [
+      {
+        translateY: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 6],
+        }),
+      },
       {
         rotate: progress.interpolate({
           inputRange: [0, 1],
@@ -217,11 +221,14 @@ function SummaryMenuIcon({ progress }) {
     }),
   };
   const bottomBarStyle = {
-    top: progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [15, 9],
-    }),
+    top: 15,
     transform: [
+      {
+        translateY: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -6],
+        }),
+      },
       {
         rotate: progress.interpolate({
           inputRange: [0, 1],
@@ -355,12 +362,15 @@ export function NativeCartScreen() {
   }, [loadCart]);
 
   useEffect(() => {
-    Animated.timing(detailsProgress, {
+    const animation = Animated.timing(detailsProgress, {
       toValue: detailsVisible ? 1 : 0,
       duration: 140,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+
+    return () => animation.stop();
   }, [detailsProgress, detailsVisible]);
 
   useEffect(() => {
@@ -566,9 +576,12 @@ export function NativeCartScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        contentContainerStyle={[styles.scrollContent]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          !tokens?.access ? styles.emptyScrollContent : null,
+        ]}
       >
-        {error ? (
+        {error && tokens?.access ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
             {!tokens?.access ? (
@@ -628,6 +641,14 @@ export function NativeCartScreen() {
               }
             </Text>
           </View>
+        ) : !tokens?.access ? (
+          <GuestAuthCard
+            icon="bag-outline"
+            title={t("hybrid.authRequiredTitle")}
+            description={t("hybrid.authRequiredDescription")}
+            actionLabel={t("common.login")}
+            onAction={handleLogin}
+          />
         ) : null}
 
         {recommended.length > 0 ? (
@@ -666,16 +687,15 @@ export function NativeCartScreen() {
               { bottom: 120 + insets.bottom },
               {
                 opacity: detailsProgress,
-                maxHeight: detailsProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 168],
-                }),
                 transform: [
                   {
                     translateY: detailsProgress.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [8, 0],
+                      outputRange: [84, 0],
                     }),
+                  },
+                  {
+                    scaleY: detailsProgress,
                   },
                 ],
               },
@@ -707,14 +727,6 @@ export function NativeCartScreen() {
               detailsVisible ? styles.summaryWrapDetailsOpen : null,
               {
                 bottom: 12 + insets.bottom,
-                borderTopLeftRadius: detailsProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [24, 0],
-                }),
-                borderTopRightRadius: detailsProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [24, 0],
-                }),
               },
             ]}
           >
@@ -1021,11 +1033,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 12,
-    shadowColor: "#000014",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.025,
-    shadowRadius: 8,
-    elevation: 3,
   },
   summaryWrap: {
     position: "absolute",
@@ -1044,6 +1051,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   summaryWrapDetailsOpen: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     shadowOpacity: 0,
     elevation: 0,
   },

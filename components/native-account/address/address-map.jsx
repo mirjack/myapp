@@ -194,6 +194,27 @@ export const AddressMap = memo(function AddressMap({
     };
   }, [applyRegion, mapRef]);
 
+  // The location marker and the native map view are updated in separate
+  // passes. Re-center after both are mounted so the picker follows the user,
+  // including when the location button is pressed immediately after opening.
+  useEffect(() => {
+    if (!userLocation || !isMapReady || !nativeMapRef.current) return;
+
+    const region = {
+      latitude: Number(userLocation.latitude),
+      longitude: Number(userLocation.longitude),
+      latitudeDelta: DEFAULT_TASHKENT_REGION.latitudeDelta,
+      longitudeDelta: DEFAULT_TASHKENT_REGION.longitudeDelta,
+    };
+    const firstCenter = setTimeout(() => applyRegion(region), 80);
+    const secondCenter = setTimeout(() => applyRegion(region), 420);
+
+    return () => {
+      clearTimeout(firstCenter);
+      clearTimeout(secondCenter);
+    };
+  }, [applyRegion, isMapReady, userLocation]);
+
   if (Platform.OS === "web") {
     return (
       <View style={[styles.map, styles.webFallback]}>

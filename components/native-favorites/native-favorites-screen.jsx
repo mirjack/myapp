@@ -15,10 +15,17 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NativePageHeader } from "@/components/native-page-header";
+import { GuestAuthCard } from "@/components/guest-auth-card";
 import { ProductCard } from "@/components/product-card";
 import { getHeaderCache } from "@/lib/native-header-cache";
-import { fetchFavorites, removeFavoriteByProduct } from "@/lib/native-market-api";
-import { getStoredAuthTokens, getStoredAuthTokensSync } from "@/lib/auth-storage";
+import {
+  fetchFavorites,
+  removeFavoriteByProduct,
+} from "@/lib/native-market-api";
+import {
+  getStoredAuthTokens,
+  getStoredAuthTokensSync,
+} from "@/lib/auth-storage";
 import {
   emitFavoriteChanged,
   subscribeFavoriteChanges,
@@ -35,21 +42,6 @@ function parseTokensString(tokensString) {
   } catch {
     return null;
   }
-}
-
-function FavoritesAuthCard({ title, description, actionLabel, onAction }) {
-  return (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrap}>
-        <Ionicons name="heart-outline" size={34} color="#FE946E" />
-      </View>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyDescription}>{description}</Text>
-      <Pressable onPress={onAction} style={styles.emptyButton}>
-        <Text style={styles.emptyButtonText}>{actionLabel}</Text>
-      </Pressable>
-    </View>
-  );
 }
 
 function FavoriteCardSkeleton() {
@@ -97,7 +89,7 @@ export function NativeFavoritesScreen() {
   const loadFavorites = useCallback(async () => {
     if (!tokens?.access) {
       setFavorites([]);
-      setError(t("hybrid.authRequiredDescription"));
+      setError("");
       setLoading(false);
       setRefreshing(false);
       return;
@@ -182,7 +174,9 @@ export function NativeFavoritesScreen() {
         await removeFavoriteByProduct(tokens.access, productId);
         emitFavoriteChanged({ productId, isFavorite: false });
         setFavorites((prev) =>
-          prev.filter((entry) => String(entry?.product?.id) !== String(productId)),
+          prev.filter(
+            (entry) => String(entry?.product?.id) !== String(productId),
+          ),
         );
       } catch {
         setError(t("profile.loadError"));
@@ -290,28 +284,33 @@ export function NativeFavoritesScreen() {
               );
             })}
           </View>
-        ) : (
-          tokens?.access ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="heart-dislike-outline" size={34} color="#FE946E" />
-              </View>
-              <Text style={styles.emptyTitle}>{emptyState.title}</Text>
-              <Text style={styles.emptyDescription}>{emptyState.description}</Text>
-              <Pressable onPress={handleRefresh} style={styles.emptyButton}>
-                <Text style={styles.emptyButtonText}>{emptyState.action}</Text>
-              </Pressable>
+        ) : tokens?.access ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons
+                name="heart-dislike-outline"
+                size={34}
+                color="#FE946E"
+              />
             </View>
-          ) : (
-            <FavoritesAuthCard
-              title={emptyState.title}
-              description={emptyState.description}
-              actionLabel={emptyState.action}
-              onAction={handleAuthAction}
-            />
-          )
+            <Text style={styles.emptyTitle}>{emptyState.title}</Text>
+            <Text style={styles.emptyDescription}>
+              {emptyState.description}
+            </Text>
+            <Pressable onPress={handleRefresh} style={styles.emptyButton}>
+              <Text style={styles.emptyButtonText}>{emptyState.action}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <GuestAuthCard
+            icon="heart-outline"
+            title={emptyState.title}
+            description={emptyState.description}
+            actionLabel={emptyState.action}
+            onAction={handleAuthAction}
+          />
         )}
-        <View style={styles.androidTabSpacer} />
+        {tokens?.access ? <View style={styles.androidTabSpacer} /> : null}
       </ScrollView>
       {/*
       {Platform.OS === "android" ? (
@@ -342,7 +341,7 @@ export function NativeFavoritesScreen() {
 const styles = {
   screen: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#fff",
   },
   headerWrap: {
     width: "100%",
