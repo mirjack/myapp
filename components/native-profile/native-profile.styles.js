@@ -204,6 +204,14 @@ export const nativeProfileStyles = StyleSheet.create({
     height: 2,
     backgroundColor: "#D7FE03",
   },
+  loyaltyProgressBase: {
+    position: "absolute",
+    left: 4,
+    right: 4,
+    top: 3,
+    height: 2,
+    backgroundColor: "#646464",
+  },
   loyaltyDotsRow: {
     flexDirection: "row",
     justifyContent: "space-between",

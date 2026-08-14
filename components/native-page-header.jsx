@@ -9,6 +9,7 @@ function NativePageHeaderComponent({
   isLoggedIn = false,
   walletBalance = 0,
   onLoginPress,
+  onWalletPress,
   backgroundColor = "#FFFFFF",
   borderRadius = 24,
 }) {
@@ -23,7 +24,7 @@ function NativePageHeaderComponent({
   );
 
   const rightContent = isLoggedIn ? (
-    <Pressable onPress={onLoginPress}>
+    <Pressable onPress={onWalletPress || onLoginPress}>
       <LinearGradient
         colors={["#FAF56C", "#7EFDEC"]}
         start={{ x: 0, y: 0.434 }}

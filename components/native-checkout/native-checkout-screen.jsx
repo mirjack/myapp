@@ -709,12 +709,9 @@ export function NativeCheckoutScreen() {
     try {
       const order = await createOrder(tokens.access, {
         cart_item_ids: cartItemIds,
-        address_snapshot: addressSnapshot,
-        delivery_fee: String(totals.shipping),
+        address_id: selectedAddress?.id,
         payment_method: paymentMethod,
-        ...(appliedBonuses > 0
-          ? { points_redeemed: Math.floor(appliedBonuses) }
-          : {}),
+        use_points: useBonuses,
       });
 
       if (paymentMethod === "card" && order?.id) {
@@ -752,14 +749,13 @@ export function NativeCheckoutScreen() {
       setPlacingOrder(false);
     }
   }, [
-    appliedBonuses,
     finishOrder,
     paymentMethod,
     placingOrder,
     selectedAddress,
     selectedItems,
     tokens?.access,
-    totals.shipping,
+    useBonuses,
   ]);
 
   const paymentRows = [
@@ -1338,7 +1334,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     paddingHorizontal: 20,
     color: "#202124",
-    fontSize: 16,
+    fontSize: 18,
+    textAlignVertical: "center",
   },
   bonusInputError: {
     borderColor: "#FF5B5B",

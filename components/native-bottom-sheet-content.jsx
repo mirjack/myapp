@@ -236,6 +236,27 @@ function ContactInfoSheet({ payload }) {
   );
 }
 
+function LoginRequiredSheet({ payload, onAction }) {
+  return (
+    <View style={styles.loginRequiredSheetWrap}>
+      <Text style={styles.loginRequiredTitle}>
+        {payload?.title || "Sign in"}
+      </Text>
+      <Text style={styles.loginRequiredDescription}>
+        {payload?.description || "Please sign in to continue."}
+      </Text>
+      <Pressable
+        onPress={() => onAction?.("login_required", null)}
+        style={styles.loginRequiredButton}
+      >
+        <Text style={styles.loginRequiredButtonText}>
+          {payload?.actionLabel || "Login"}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function LogoutConfirmSheet({ payload, onAction }) {
   const isLoading = Boolean(payload?.isLoading);
 
@@ -1347,7 +1368,7 @@ function ProductDetailSheet({ payload, onAction }) {
 export function renderSheetContent(sheet, onAction) {
   if (!sheet) return null;
   if (sheet.sheetKey === "login_required") {
-    return null;
+    return <LoginRequiredSheet payload={sheet.payload} onAction={onAction} />;
   }
   if (sheet.sheetKey === "language_select") {
     return <LanguageSelectSheet payload={sheet.payload} onAction={onAction} />;

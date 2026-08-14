@@ -191,16 +191,16 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 44,
-    borderRadius: 16,
+    borderRadius: 999,
     backgroundColor: addressPalette.mutedSurface,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 18,
     color: addressPalette.text,
   },
   addressPicker: {
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: 999,
     backgroundColor: addressPalette.mutedSurface,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 18,
     lineHeight: 19,
     color: addressPalette.text,
   },

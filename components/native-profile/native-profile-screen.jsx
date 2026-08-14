@@ -138,7 +138,7 @@ function normalizeLoyaltyProfile(data = {}) {
     total_earned_points: pickLoyaltyValue(
       data,
       ["total_earned_points", "totalEarnedPoints"],
-      0,
+      pickLoyaltyValue(data, ["wallet_balance", "walletBalance"], 0),
     ),
     tier_name: pickLoyaltyValue(data, ["tier_name", "current_tier_name"], ""),
     next_tier_name: pickLoyaltyValue(data, ["next_tier_name", "nextTierName"], ""),
@@ -339,12 +339,6 @@ export function NativeProfileScreen() {
   );
   const primaryMenuItems = useMemo(
     () => [
-      {
-        key: "edit-profile",
-        label: t("profile.editProfile"),
-        icon: "person-outline",
-        route: "/(tabs)/profile/me",
-      },
       {
         key: "orders",
         label: t("profile.orders"),
@@ -581,6 +575,12 @@ export function NativeProfileScreen() {
       return;
     }
 
+    if (actionId === "loyalty_info") {
+      closeSheet();
+      router.push("/loyalty-info");
+      return;
+    }
+
     if (actionId === "cancel_logout") {
       closeSheet();
       return;
@@ -624,6 +624,40 @@ export function NativeProfileScreen() {
     router.push("/loyalty-info");
   };
 
+  const openLoyaltySheet = () => {
+    const points = parseLoyaltyNumber(
+      loyaltyProfile?.total_earned_points ?? loyaltyProfile?.wallet_balance,
+    ) ?? 0;
+    const progressValue = Math.max(0, Math.min(100, Math.round(progress ?? 0)));
+    const pointsToNext = loyaltyProfile?.points_to_next_tier ?? 0;
+
+    setSheet({
+      sheetKey: "loyalty_progress",
+      payload: {
+        headText: tierName || currentLevelLabel,
+        monet: t("homePage.progress.amount", "points"),
+        subTextPrefix: `${progressValue}% ${t(
+          "homePage.progress.completed",
+          "completed",
+        )}. ${formatLoyaltyValue(pointsToNext)} ${t(
+          "homePage.progress.amount",
+          "points",
+        )} ${t("homePage.progress.prefix", "to level")}`,
+        subTextAccent: nextTier,
+        allBalls: points,
+        indicatorPercent: progressValue,
+        modalTitle: t("homePage.modalTitle", "How points work"),
+        modalBody: t(
+          "homePage.modalBody",
+          "Earn points for every order and spend them on future purchases.",
+        ),
+        modalCta: t("homePage.modalCta", "Learn more"),
+      },
+      options: {},
+    });
+    setIsSheetVisible(true);
+  };
+
   const openContactChannel = (url) => {
     if (!url) return;
     Linking.openURL(String(url)).catch(() => {});
@@ -650,6 +684,7 @@ export function NativeProfileScreen() {
           title={t("tabs.profile")}
           isLoggedIn={isLoggedIn}
           walletBalance={headerCache.walletBalance}
+          onWalletPress={isLoggedIn ? openLoyaltySheet : undefined}
           onLoginPress={isLoggedIn ? undefined : openLogin}
         />
       </View>
@@ -776,6 +811,7 @@ export function NativeProfileScreen() {
                 {tiers.length > 0 ? (
                   <View>
                     <View style={styles.loyaltyProgressTrack}>
+                      <View style={styles.loyaltyProgressBase} />
                       <Animated.View
                         style={[
                           styles.loyaltyProgressFill,

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image as ExpoImage } from "expo-image";
@@ -143,6 +143,7 @@ function ProductCardComponent({
   const initialQuantity =
     Number(syncedCartQuantity || cartQuantity || quantityProp || 0) || 0;
   const [quantity, setQuantity] = useState(initialQuantity);
+  const quantityRef = useRef(initialQuantity);
   const [isFavorite, setIsFavorite] = useState(
     Boolean(favorite || product?.is_favorite || product?.isFavorite),
   );
@@ -150,7 +151,10 @@ function ProductCardComponent({
 
   useEffect(() => {
     if (isPending) return;
-    setQuantity(Number(syncedCartQuantity || cartQuantity || quantityProp || 0) || 0);
+    const nextQuantity =
+      Number(syncedCartQuantity || cartQuantity || quantityProp || 0) || 0;
+    quantityRef.current = nextQuantity;
+    setQuantity(nextQuantity);
   }, [cartQuantity, isPending, quantityProp, syncedCartQuantity]);
 
   useEffect(() => {
@@ -192,7 +196,7 @@ function ProductCardComponent({
 
   const handleCartDelta = useCallback(
     async (delta, overrideHandler) => {
-      if (!productId || isPending) return;
+      if (!productId) return;
       if (overrideHandler) {
         overrideHandler(normalizedProduct);
         return;
@@ -204,28 +208,19 @@ function ProductCardComponent({
         return;
       }
 
-      const previousQuantity = quantity;
+      const previousQuantity = quantityRef.current;
       const nextQuantity = Math.max(0, previousQuantity + delta);
+      quantityRef.current = nextQuantity;
       setQuantity(nextQuantity);
       setCartQuantity(productId, nextQuantity);
-      setIsPending(true);
       try {
-        const updated = await adjustCartItemByProduct(
-          tokens.access,
-          productId,
-          delta,
-        );
-        const updatedQuantity = Number(updated?.quantity ?? nextQuantity) || 0;
-        setQuantity(updatedQuantity);
-        setCartQuantity(productId, updatedQuantity);
+        await adjustCartItemByProduct(tokens.access, productId, delta);
       } catch {
-        setQuantity(previousQuantity);
-        setCartQuantity(productId, previousQuantity);
-      } finally {
-        setIsPending(false);
+        // Keep the optimistic quantity visible; the next cart hydration will
+        // reconcile it if the request fails.
       }
     },
-    [getTokens, isPending, normalizedProduct, productId, quantity, requireAuth],
+    [getTokens, normalizedProduct, productId, requireAuth],
   );
 
   const handleFavorite = useCallback(async () => {
@@ -415,7 +410,7 @@ function ProductCardComponent({
                 onPress={() => handleCartDelta(-1, onDecrease)}
                 style={styles.counterButton}
                 hitSlop={8}
-                disabled={isPending || quantity <= 0}
+                disabled={quantity <= 0}
               >
                 <Ionicons name="remove" size={18} color="#131314" />
               </Pressable>
@@ -424,7 +419,6 @@ function ProductCardComponent({
                 onPress={() => handleCartDelta(1, onIncrease)}
                 style={styles.counterButton}
                 hitSlop={8}
-                disabled={isPending}
               >
                 <Ionicons name="add" size={18} color="#131314" />
               </Pressable>
@@ -439,7 +433,6 @@ function ProductCardComponent({
               onPress={() => handleCartDelta(1, onAdd)}
               style={styles.addButton}
               hitSlop={8}
-              disabled={isPending}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
             </Pressable>

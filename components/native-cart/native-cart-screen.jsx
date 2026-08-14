@@ -672,7 +672,7 @@ export function NativeCartScreen() {
             pointerEvents="none"
             style={[
               styles.summaryScrollSpacer,
-              { height: 120 + insets.bottom },
+              { height: 200 + insets.bottom },
             ]}
           />
         ) : null}
@@ -684,7 +684,7 @@ export function NativeCartScreen() {
             pointerEvents={detailsVisible ? "auto" : "none"}
             style={[
               styles.summaryDetailsPanel,
-              { bottom: 120 + insets.bottom },
+              { bottom: 200 + insets.bottom },
               {
                 opacity: detailsProgress,
                 transform: [
@@ -726,7 +726,7 @@ export function NativeCartScreen() {
               styles.summaryWrap,
               detailsVisible ? styles.summaryWrapDetailsOpen : null,
               {
-                bottom: 12 + insets.bottom,
+                bottom: 92 + insets.bottom,
               },
             ]}
           >
@@ -1046,9 +1046,9 @@ const styles = StyleSheet.create({
     gap: 8,
     shadowColor: "#000014",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.025,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.012,
+    shadowRadius: 4,
+    elevation: 2,
   },
   summaryWrapDetailsOpen: {
     borderTopLeftRadius: 0,

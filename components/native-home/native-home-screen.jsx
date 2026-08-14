@@ -18,7 +18,7 @@ import { openBrowserAsync } from "expo-web-browser";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "react-native-svg";
 
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { NativePageHeader } from "@/components/native-page-header";
@@ -42,6 +42,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  setPendingAuthAction,
 } from "@/lib/auth-storage";
 import {
   setCurrentWebPath,
@@ -340,10 +341,16 @@ function LoyaltyStats({ profile, loading, onOpen, t }) {
               {formatCompactLoyaltyValue(profile.wallet_balance)}
             </Text>
             <Svg width={20} height={20} viewBox="0 0 16 16" fill="none">
+              <Defs>
+                <SvgLinearGradient id="walletMetricGradient" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0" stopColor="#FAF56C" />
+                  <Stop offset="1" stopColor="#7EFDEC" />
+                </SvgLinearGradient>
+              </Defs>
               <Circle cx="8" cy="8" r="8" fill="#131314" />
               <Path
                 d="M10.684 4.321c.633-.291 1.286.362.995.995l-1.09 2.371a.75.75 0 0 0 0 .626l1.09 2.371c.291.633-.362 1.286-.995.995l-2.371-1.09a.75.75 0 0 0-.626 0l-2.371 1.09c-.633.291-1.286-.362-.995-.995l1.09-2.371a.75.75 0 0 0 0-.626l-1.09-2.371c-.291-.633.362-1.286.995-.995l2.371 1.09a.75.75 0 0 0 .626 0l2.371-1.09Z"
-                fill="#fff"
+                fill="url(#walletMetricGradient)"
               />
             </Svg>
           </View>
@@ -404,6 +411,7 @@ export function NativeHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
   const [activeSheet, setActiveSheet] = useState(null);
+  const [isActiveSheetVisible, setIsActiveSheetVisible] = useState(false);
   const requestIdRef = useRef(0);
   const headerCache = getHeaderCache();
   const isLoggedIn = Boolean(tokens?.access);
@@ -411,8 +419,23 @@ export function NativeHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      let mounted = true;
       setCurrentWebPath("/");
       setTabBarForcedHidden(false);
+
+      getStoredAuthTokens().then((stored) => {
+        if (!mounted) return;
+        const nextTokens = parseTokensString(stored);
+        setTokens(nextTokens);
+        if (!nextTokens?.access) {
+          setLoyaltyProfile(null);
+          setLoading((current) => ({ ...current, loyalty: false }));
+        }
+      });
+
+      return () => {
+        mounted = false;
+      };
     }, []),
   );
 
@@ -635,7 +658,9 @@ export function NativeHomeScreen() {
   );
 
   const openLoyaltySheet = useCallback(() => {
-    const points = parseLoyaltyNumber(loyaltyProfile?.total_earned_points) ?? 0;
+    const points = parseLoyaltyNumber(
+      loyaltyProfile?.total_earned_points ?? loyaltyProfile?.wallet_balance,
+    ) ?? 0;
     const progress = Math.max(
       0,
       Math.min(
@@ -681,13 +706,45 @@ export function NativeHomeScreen() {
       },
       options: {},
     });
+    setIsActiveSheetVisible(true);
   }, [loyaltyProfile, t]);
+
+  const openLoginRequiredSheet = useCallback(
+    async (product) => {
+      await setPendingAuthAction({
+        type: "cart",
+        productId: product?.id,
+        delta: 1,
+      });
+      setActiveSheet({
+        sheetKey: "login_required",
+        payload: {
+          title: t("hybrid.authRequiredTitle"),
+          description: t("hybrid.authRequiredDescription"),
+          actionLabel: t("hybrid.authRequiredButton"),
+        },
+        options: {},
+      });
+      setIsActiveSheetVisible(true);
+    },
+    [t],
+  );
 
   const handleSheetAction = useCallback(
     (actionId) => {
       if (actionId === "loyalty_info") {
-        setActiveSheet(null);
+        setIsActiveSheetVisible(false);
+        setTimeout(() => setActiveSheet(null), 300);
         router.push("/loyalty-info");
+        return;
+      }
+      if (actionId === "login_required") {
+        setIsActiveSheetVisible(false);
+        setTimeout(() => setActiveSheet(null), 300);
+        router.push({
+          pathname: "/onboarding/phone",
+          params: { next: "/(tabs)" },
+        });
       }
     },
     [router],
@@ -707,6 +764,7 @@ export function NativeHomeScreen() {
         walletBalance={Number(
           loyaltyProfile?.wallet_balance ?? headerCache.walletBalance ?? 0,
         )}
+        onWalletPress={isLoggedIn ? openLoyaltySheet : undefined}
         onLoginPress={
           isLoggedIn
             ? undefined
@@ -796,7 +854,10 @@ export function NativeHomeScreen() {
                 <View style={styles.grid}>
                   {products.map((product) => (
                     <View key={product.id} style={styles.cardCell}>
-                      <ProductCard product={product} />
+                      <ProductCard
+                        product={product}
+                        onAdd={isLoggedIn ? undefined : openLoginRequiredSheet}
+                      />
                     </View>
                   ))}
                 </View>
@@ -821,9 +882,15 @@ export function NativeHomeScreen() {
 
       <NativeBottomSheet
         mounted={Boolean(activeSheet)}
-        visible={Boolean(activeSheet)}
+        visible={isActiveSheetVisible}
         sheet={activeSheet}
-        onClose={() => setActiveSheet(null)}
+        onClose={() => {
+          if (activeSheet?.sheetKey === "login_required") {
+            void setPendingAuthAction(null);
+          }
+          setIsActiveSheetVisible(false);
+          setTimeout(() => setActiveSheet(null), 300);
+        }}
         onAction={handleSheetAction}
       />
       <NativeStoriesViewer
@@ -850,7 +917,7 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     height: 44,
-    borderRadius: 22,
+    borderRadius: 999,
     backgroundColor: "#F5F5F6",
     paddingHorizontal: 14,
     flexDirection: "row",
@@ -861,9 +928,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: "#131314",
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 18,
+    lineHeight: 22,
     paddingVertical: 0,
+    textAlignVertical: "center",
   },
   clearSearch: {
     width: 28,

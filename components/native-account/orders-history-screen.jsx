@@ -20,7 +20,7 @@ import {
   setTabBarForcedHidden,
 } from "@/lib/tab-bar-visibility";
 
-const ACTIVE_STATUSES = new Set(["pending", "confirmed", "processing", "shipped"]);
+const ACTIVE_STATUSES = new Set(["pending", "processing", "shipped"]);
 const STATUS_META = {
   pending: {
     label: "Pending",

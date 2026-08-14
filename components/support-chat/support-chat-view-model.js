@@ -226,8 +226,15 @@ export function getRequestLastActivityTime(request) {
 
 export function getRequestStatusLabel(request, t) {
   const statusName = String(request?.status?.name || "").toUpperCase();
-  if (statusName === "DONE" || statusName === "CLOSED" || statusName === "RESOLVED") {
+  if (
+    statusName === "DONE" ||
+    statusName === "CLOSED" ||
+    statusName === "RESOLVED"
+  ) {
     return t("support.status.closed");
+  }
+  if (statusName === "SOLVED") {
+    return "Solved";
   }
   if (statusName === "PENDING_USER_CONFIRMATION") {
     return t("support.status.pendingConfirmation");
@@ -247,7 +254,12 @@ export function getRequestStatusLabel(request, t) {
 export function getRequestStatusTone(request) {
   const statusName = String(request?.status?.name || "").toUpperCase();
 
-  if (statusName === "DONE") {
+  if (
+    statusName === "DONE" ||
+    statusName === "CLOSED" ||
+    statusName === "RESOLVED" ||
+    statusName === "SOLVED"
+  ) {
     return {
       bg: "#F3F4F7",
       text: "#1E1F23",

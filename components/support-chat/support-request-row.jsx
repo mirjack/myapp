@@ -62,15 +62,20 @@ export function SupportRequestRow({ request, customerId, onPress }) {
                 </Text>
               </View>
             </View>
-            <Text numberOfLines={1} style={supportStyles.requestSummary}>
-              {getRequestSummary(
-                request,
-                customerId,
-                agentProfile.name,
-                t,
-                i18n.language,
-              )}
-            </Text>
+            <View style={supportStyles.requestSummaryRow}>
+              <Text numberOfLines={1} style={supportStyles.requestSummary}>
+                {getRequestSummary(
+                  request,
+                  customerId,
+                  agentProfile.name,
+                  t,
+                  i18n.language,
+                )}
+              </Text>
+              <Text style={supportStyles.requestTime}>
+                {formatRequestTime(getRequestLastActivityTime(request))}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -81,9 +86,6 @@ export function SupportRequestRow({ request, customerId, onPress }) {
             <Text style={supportStyles.countBadgeText}>{unreadCount}</Text>
           </View>
         ) : null}
-        <Text style={supportStyles.requestTime}>
-          {formatRequestTime(getRequestLastActivityTime(request))}
-        </Text>
       </View>
     </Pressable>
   );

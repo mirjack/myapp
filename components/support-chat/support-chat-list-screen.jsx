@@ -287,6 +287,8 @@ export function SupportChatListScreen() {
                 onFocus={() => setIsSearchActive(true)}
                 placeholder={t("support.searchPlaceholder")}
                 placeholderTextColor={supportColors.muted}
+                cursorColor="#131314"
+                selectionColor="#131314"
                 style={[
                   supportStyles.searchInput,
                   searchTerm ? supportStyles.searchInputWithClear : null,

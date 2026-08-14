@@ -533,9 +533,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: "#55565A",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 22,
     paddingVertical: 0,
+    textAlignVertical: "center",
   },
   clearSearch: {
     width: 24,
@@ -805,11 +806,13 @@ const styles = StyleSheet.create({
   },
   priceInput: {
     height: 46,
-    borderRadius: 16,
+    borderRadius: 999,
     backgroundColor: "#F3F3F3",
     paddingHorizontal: 14,
     color: "#131314",
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 22,
+    textAlignVertical: "center",
   },
   sheetActions: {
     marginTop: 18,

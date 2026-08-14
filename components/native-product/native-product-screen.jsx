@@ -16,6 +16,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import Svg, { Path } from "react-native-svg";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -104,7 +105,12 @@ function CashbackPill({ children }) {
       end={{ x: 1, y: 0.5 }}
       style={styles.cashbackPill}
     >
-      <Ionicons name="sparkles" size={14} color="#0B0B0B" />
+      <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+        <Path
+          d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM11.6787 5.31641C11.9696 4.68384 11.3162 4.03042 10.6836 4.32129L8.31348 5.41113C8.1146 5.50258 7.8854 5.50258 7.68652 5.41113L5.31641 4.32129C4.68384 4.03042 4.03042 4.68384 4.32129 5.31641L5.41113 7.68652C5.50258 7.8854 5.50258 8.1146 5.41113 8.31348L4.32129 10.6836C4.03042 11.3162 4.68384 11.9696 5.31641 11.6787L7.68652 10.5889C7.8854 10.4974 8.1146 10.4974 8.31348 10.5889L10.6836 11.6787C11.3162 11.9696 11.9696 11.3162 11.6787 10.6836L10.5889 8.31348C10.4974 8.1146 10.4974 7.8854 10.5889 7.68652L11.6787 5.31641Z"
+          fill="#0B0B0B"
+        />
+      </Svg>
       <Text style={styles.cashbackText}>{children}</Text>
     </LinearGradient>
   );
@@ -165,6 +171,7 @@ export function NativeProductScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [cartPending, setCartPending] = useState(false);
+  const [buyPending, setBuyPending] = useState(false);
   const [favoritePending, setFavoritePending] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -356,11 +363,52 @@ export function NativeProductScreen() {
       await setPendingAuthAction(action);
       router.push({
         pathname: "/onboarding/phone",
-        params: { next: "/catalog" },
+        params: { next: action?.next || "/catalog" },
       });
     },
     [router],
   );
+
+  const handleBuyNow = useCallback(async () => {
+    if (!productId || cartPending || buyPending) return;
+
+    const tokens = await getTokens();
+    if (!tokens?.access) {
+      await requireAuth({
+        type: "cart",
+        productId,
+        delta: 1,
+        next: "/checkout",
+      });
+      return;
+    }
+
+    setBuyPending(true);
+    try {
+      let nextQuantity = quantity;
+      if (nextQuantity <= 0) {
+        const updated = await adjustCartItemByProduct(
+          tokens.access,
+          productId,
+          1,
+        );
+        nextQuantity = Math.max(1, Number(updated?.quantity ?? 1) || 1);
+        setQuantity(nextQuantity);
+        setCartQuantity(productId, nextQuantity);
+      }
+
+      setCurrentWebPath("/checkout");
+      setTabBarForcedHidden(true);
+      router.replace({
+        pathname: "/checkout",
+        params: { checkoutProductId: String(productId) },
+      });
+    } catch (err) {
+      setError(err?.message || "Unable to start checkout.");
+    } finally {
+      setBuyPending(false);
+    }
+  }, [buyPending, cartPending, getTokens, productId, quantity, requireAuth, router]);
 
   const changeQuantity = useCallback(
     async (delta) => {
@@ -443,7 +491,9 @@ export function NativeProductScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: 196 + insets.bottom }}
+        contentContainerStyle={{
+          paddingBottom: (quantity > 0 ? 196 : 80) + insets.bottom,
+        }}
       >
         <View style={styles.imageWrap}>
           <View style={styles.topBarOverlay}>
@@ -634,7 +684,7 @@ export function NativeProductScreen() {
           <View style={styles.footerRow}>
             <Pressable
               onPress={() => changeQuantity(1)}
-              disabled={cartPending}
+              disabled={cartPending || buyPending}
               style={styles.secondaryAddButton}
             >
               {cartPending ? (
@@ -644,8 +694,8 @@ export function NativeProductScreen() {
               )}
             </Pressable>
             <Pressable
-              onPress={() => changeQuantity(1)}
-              disabled={cartPending}
+              onPress={handleBuyNow}
+              disabled={cartPending || buyPending}
               style={styles.buyButton}
             >
               <Text style={styles.buyButtonText}>Buy now</Text>

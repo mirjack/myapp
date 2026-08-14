@@ -118,13 +118,15 @@ export const nativeAccountStyles = StyleSheet.create({
   },
   input: {
     minHeight: 48,
-    borderRadius: 8,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: "#CDCDD4",
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 18,
+    lineHeight: 24,
+    textAlignVertical: "center",
     color: "#131314",
   },
   inputDisabled: {

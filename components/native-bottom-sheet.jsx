@@ -235,9 +235,10 @@ export function NativeBottomSheet({
   return (
     <Modal
       visible={mounted}
-      transparent
-      animationType="none"
-      statusBarTranslucent
+    transparent
+    animationType="none"
+    hardwareAccelerated
+    statusBarTranslucent
       navigationBarTranslucent
       onRequestClose={onClose}
     >
