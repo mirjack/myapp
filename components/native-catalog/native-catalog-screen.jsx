@@ -368,7 +368,7 @@ export function NativeCatalogScreen() {
   const renderProduct = useCallback(
     ({ item }) => (
       <View style={styles.cardCell}>
-        <ProductCard product={item} onPress={handleOpenProduct} />
+        <ProductCard product={item} onPress={handleOpenProduct} stretch />
       </View>
     ),
     [handleOpenProduct],
@@ -485,7 +485,12 @@ export function NativeCatalogScreen() {
           { paddingBottom: 98 + insets.bottom },
         ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#FE946E"
+            colors={["#FE946E"]}
+          />
         }
         keyboardShouldPersistTaps="always"
       />
@@ -612,11 +617,13 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     justifyContent: "space-between",
+    alignItems: "stretch",
     gap: 12,
     marginBottom: 12,
   },
   cardCell: {
     width: "48%",
+    alignSelf: "stretch",
   },
   grid: {
     flexDirection: "row",

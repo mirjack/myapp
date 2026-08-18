@@ -338,7 +338,13 @@ function ProductCardComponent({
         stretch && styles.cardStretch,
       ]}
     >
-      <View style={[styles.card, stretch && styles.cardStretch]}>
+      <View
+        style={[
+          styles.card,
+          stretch && styles.cardStretch,
+          stretch && styles.cardColumn,
+        ]}
+      >
         <Pressable
           onPress={handleOpen}
           style={styles.imageWrap}
@@ -375,7 +381,7 @@ function ProductCardComponent({
 
         <Pressable
           onPress={handleOpen}
-          style={styles.body}
+          style={[styles.body, stretch && styles.bodyStretch]}
           android_ripple={null}
         >
           <Text style={styles.title} numberOfLines={2}>
@@ -472,6 +478,9 @@ const styles = StyleSheet.create({
   cardStretch: {
     flex: 1,
   },
+  cardColumn: {
+    flexDirection: "column",
+  },
   imageWrap: {
     position: "relative",
     width: "100%",
@@ -522,6 +531,9 @@ const styles = StyleSheet.create({
   body: {
     paddingHorizontal: 4,
     paddingTop: 8,
+  },
+  bodyStretch: {
+    flex: 1,
   },
   title: {
     minHeight: 36,

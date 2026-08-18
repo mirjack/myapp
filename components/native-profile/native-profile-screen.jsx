@@ -6,6 +6,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -324,6 +325,7 @@ export function NativeProfileScreen() {
   const [isLoyaltyLoading, setIsLoyaltyLoading] = useState(
     Boolean(initialTokens?.access && !initialCachedLoyaltyProfile),
   );
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [brandingContacts, setBrandingContacts] = useState({});
   const [sheet, setSheet] = useState(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
@@ -624,6 +626,42 @@ export function NativeProfileScreen() {
     router.push("/loyalty-info");
   };
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    setError("");
+
+    const [profileResult, loyaltyResult, brandingResult] =
+      await Promise.allSettled([
+        fetchCurrentUserProfile(),
+        fetchNativeLoyaltyProfile(),
+        fetchNativeBranding(),
+      ]);
+
+    if (profileResult.status === "fulfilled") {
+      setUser(profileResult.value);
+      setIsUserLoading(false);
+    } else if (profileResult.reason?.status === 401) {
+      setError("");
+    } else {
+      setError(t("profile.loadError"));
+    }
+
+    if (loyaltyResult.status === "fulfilled") {
+      if (loyaltyResult.value) {
+        setLoyaltyProfile(normalizeLoyaltyProfile(loyaltyResult.value));
+      }
+      setIsLoyaltyLoading(false);
+    }
+
+    if (brandingResult.status === "fulfilled") {
+      setBrandingContacts(brandingResult.value?.organization?.contacts || {});
+    }
+
+    setIsRefreshing(false);
+  };
+
   const openLoyaltySheet = () => {
     const points = parseLoyaltyNumber(
       loyaltyProfile?.total_earned_points ?? loyaltyProfile?.wallet_balance,
@@ -701,9 +739,17 @@ export function NativeProfileScreen() {
         <ScrollView
           style={styles.scroll}
           scrollEnabled={isProfileScrollEnabled}
-          bounces={false}
-          alwaysBounceVertical={false}
-          overScrollMode="never"
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor="#FE946E"
+              colors={["#FE946E"]}
+            />
+          }
           onLayout={(event) => {
             setScrollViewportHeight(event.nativeEvent.layout.height);
           }}

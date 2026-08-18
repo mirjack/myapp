@@ -489,7 +489,12 @@ export function NativeProductScreen() {
         bounces={false}
         overScrollMode="never"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FE946E"
+            colors={["#FE946E"]}
+          />
         }
         contentContainerStyle={{
           paddingBottom: (quantity > 0 ? 196 : 80) + insets.bottom,
@@ -688,7 +693,7 @@ export function NativeProductScreen() {
               style={styles.secondaryAddButton}
             >
               {cartPending ? (
-                <ActivityIndicator color="#131314" />
+                <ActivityIndicator color="#FE946E" />
               ) : (
                 <Text style={styles.addButtonText}>Add to cart</Text>
               )}

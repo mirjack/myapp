@@ -28,6 +28,7 @@ import {
   useSupportChatSnapshot,
 } from "@/lib/support-chat-service";
 import { sortSupportRequests } from "@/lib/support-chat-state";
+import { setTabBarForcedHidden } from "@/lib/tab-bar-visibility";
 
 function isSupportAuthError(errorMessage) {
   return String(errorMessage || "")
@@ -54,6 +55,15 @@ export function SupportChatListScreen() {
   const chatDetailPath = isProfileStackRoute
     ? "/(tabs)/profile/chat/[id]"
     : "/chat/[id]";
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isProfileStackRoute) return undefined;
+
+      setTabBarForcedHidden(true);
+      return () => setTabBarForcedHidden(false);
+    }, [isProfileStackRoute]),
+  );
 
   useEffect(() => {
     supportChatService.enterChatListView();

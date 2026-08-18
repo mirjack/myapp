@@ -25,7 +25,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   useEffect(() => {
     ensureNotificationSetupAsync({
-      requestIfUndetermined: Platform.OS === "android",
+      requestIfUndetermined: true,
     }).catch(() => {});
   }, []);
 

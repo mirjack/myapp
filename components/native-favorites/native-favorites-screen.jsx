@@ -243,7 +243,12 @@ export function NativeFavoritesScreen() {
       <ScrollView
         style={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#FE946E"
+            colors={["#FE946E"]}
+          />
         }
         contentContainerStyle={[
           styles.scrollContent,
@@ -270,6 +275,7 @@ export function NativeFavoritesScreen() {
                   <ProductCard
                     product={product}
                     favorite
+                    stretch
                     onPress={() => handleOpen(favorite)}
                     onToggleFavorite={() => {
                       if (!isRemoving) handleRemove(favorite);
@@ -379,6 +385,7 @@ const styles = {
   cardCell: {
     width: "48%",
     position: "relative",
+    alignSelf: "stretch",
   },
   skeletonCard: {
     width: "100%",

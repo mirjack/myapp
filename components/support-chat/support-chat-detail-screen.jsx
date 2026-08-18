@@ -149,7 +149,7 @@ function MessageBubble({
           {sendStatus === "sending" ? (
             <ActivityIndicator
               size="small"
-              color="#8D8D8D"
+              color="#FE946E"
               style={supportStyles.bubbleMetaLoader}
             />
           ) : null}

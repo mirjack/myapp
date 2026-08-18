@@ -63,12 +63,18 @@ function TabsBody() {
           : segments[1] === "profile"
             ? "profile"
             : "index";
+  const handleTabPress = (tab) => {
+    // Replacing the already active root tab remounts its stack and replays
+    // the transition animation, especially on the profile stack.
+    if (tab.key === activeKey && !isNestedProfileRoute) return;
+    router.replace(tab.path);
+  };
   const androidBar = (
     <AndroidTabBar
       activeKey={activeKey}
       hidden={!shouldShowTabBar}
       labels={Object.fromEntries(ANDROID_TABS.map((tab) => [tab.key, t(tab.label)]))}
-      onPress={(tab) => router.replace(tab.path)}
+      onPress={handleTabPress}
     />
   );
 

@@ -432,10 +432,21 @@ export function AddressesScreen() {
       const currentLocation = await getCurrentLocation();
       setUserLocation(currentLocation);
       applySelectedLocation({
-        formattedAddress,
+        formattedAddress: "",
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
       });
+      // The native map can be one frame behind the location response. Retry
+      // the camera command after layout so the fixed center pin follows it.
+      const centerLocation = () => {
+        animateToCoordinate(
+          currentLocation.latitude,
+          currentLocation.longitude,
+        );
+      };
+      centerLocation();
+      setTimeout(centerLocation, 280);
+      setTimeout(centerLocation, 900);
       runReverseGeocode(currentLocation.latitude, currentLocation.longitude);
     } catch (locationRequestError) {
       setLocationError(
@@ -446,7 +457,7 @@ export function AddressesScreen() {
     } finally {
       setIsLocating(false);
     }
-  }, [applySelectedLocation, formattedAddress, runReverseGeocode, t]);
+  }, [animateToCoordinate, applySelectedLocation, runReverseGeocode, t]);
 
   const handleRegionChangeComplete = useCallback((region) => {
     setSelectedCoordinates({
@@ -1087,7 +1098,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FE946E",
+    backgroundColor: "#FFFFFF",
   },
   emptyButtonText: {
     fontSize: 14,

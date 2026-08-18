@@ -150,7 +150,7 @@ export function AddressDetailsForm({
       {showSubmitButton ? (
         <Pressable disabled={isSubmitting} onPress={onSubmit} style={({ pressed }) => [styles.submitButton, isSubmitting && styles.submitButtonDisabled, pressed && styles.submitButtonPressed]}>
           {isSubmitting ? (
-            <ActivityIndicator color="#131314" size="small" />
+            <ActivityIndicator color="#FE946E" size="small" />
           ) : (
             <Text style={styles.submitButtonText}>{t("addresses.deliverHere")}</Text>
           )}

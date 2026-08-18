@@ -114,73 +114,164 @@ function ProductGridSkeleton() {
 function StoriesRow({ stories, loading, onOpen }) {
   if (loading) {
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.storiesRow}
-      >
-        {Array.from({ length: 4 }).map((_, index) => (
-          <View key={index} style={styles.storySkeleton} />
-        ))}
-      </ScrollView>
+      <View style={styles.storiesViewport}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.storiesRow}
+        >
+          {Array.from({ length: 4 }).map((_, index) => (
+            <View key={index} style={styles.storySkeleton} />
+          ))}
+        </ScrollView>
+      </View>
     );
   }
   if (!stories.length) return null;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.storiesRow}
-    >
-      {stories.map((story, index) => (
-        <Pressable
-          key={story.id || story.mediaName || index}
-          onPress={() => onOpen(index)}
-          style={[styles.storyButton, { borderColor: story.borderColor }]}
-        >
-          <ExpoImage
-            source={{ uri: story.previewUrl || story.mediaUrl }}
-            style={styles.storyImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-          />
-        </Pressable>
-      ))}
-    </ScrollView>
+    <View style={styles.storiesViewport}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storiesRow}
+      >
+        {stories.map((story, index) => (
+          <Pressable
+            key={story.id || story.mediaName || index}
+            onPress={() => onOpen(index)}
+            style={[styles.storyButton, { borderColor: story.borderColor }]}
+          >
+            <ExpoImage
+              source={{ uri: story.previewUrl || story.mediaUrl }}
+              style={styles.storyImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
 function BannerCarousel({ banners, loading, onPressBanner }) {
   const { width } = useWindowDimensions();
   const cardWidth = Math.max(280, width - 32);
+  const scrollRef = useRef(null);
+  const physicalIndexRef = useRef(1);
+  const isDraggingRef = useRef(false);
+  const autoPlayTimeoutRef = useRef(null);
+  const scheduleAutoPlayRef = useRef(null);
+  const interval = cardWidth + 12;
+
+  const loopedBanners = useMemo(() => {
+    if (banners.length < 2) return banners;
+    return [banners[banners.length - 1], ...banners, banners[0]];
+  }, [banners]);
+
+  useEffect(() => {
+    if (!banners.length) return undefined;
+
+    const hasLoop = banners.length >= 2;
+    physicalIndexRef.current = hasLoop ? 1 : 0;
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        x: hasLoop ? interval : 0,
+        animated: false,
+      });
+    });
+
+    let cancelled = false;
+    const scheduleAutoPlay = () => {
+      if (cancelled || !hasLoop) return;
+      autoPlayTimeoutRef.current = setTimeout(() => {
+        if (isDraggingRef.current) {
+          scheduleAutoPlay();
+          return;
+        }
+        const nextIndex = physicalIndexRef.current + 1;
+        physicalIndexRef.current = nextIndex;
+        scrollRef.current?.scrollTo({
+          x: nextIndex * interval,
+          animated: true,
+        });
+        scheduleAutoPlay();
+      }, 5000);
+    };
+    scheduleAutoPlayRef.current = scheduleAutoPlay;
+    scheduleAutoPlay();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      clearTimeout(autoPlayTimeoutRef.current);
+      if (scheduleAutoPlayRef.current === scheduleAutoPlay) {
+        scheduleAutoPlayRef.current = null;
+      }
+    };
+  }, [banners.length, interval]);
+
   if (loading) return <View style={styles.bannerSkeleton} />;
   if (!banners.length) return null;
 
   return (
-    <ScrollView
-      horizontal
-      pagingEnabled
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={cardWidth + 12}
-      decelerationRate="fast"
-      contentContainerStyle={styles.bannerRow}
-    >
-      {banners.map((banner, index) => (
-        <Pressable
-          key={banner.id || index}
-          onPress={() => onPressBanner(banner)}
-          style={[styles.bannerCard, { width: cardWidth }]}
-        >
-          <ExpoImage
-            source={{ uri: banner.imageUrl }}
-            style={styles.bannerImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-          />
-        </Pressable>
-      ))}
-    </ScrollView>
+    <View style={styles.bannerViewport}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={interval}
+        snapToAlignment="start"
+        disableIntervalMomentum
+        decelerationRate="normal"
+        contentContainerStyle={styles.bannerRow}
+        onScrollBeginDrag={() => {
+          isDraggingRef.current = true;
+        }}
+        onMomentumScrollEnd={(event) => {
+          const offsetX = event.nativeEvent.contentOffset.x;
+          let nextIndex = Math.round(offsetX / interval);
+
+          if (banners.length >= 2 && nextIndex <= 0) {
+            nextIndex = banners.length;
+            scrollRef.current?.scrollTo({
+              x: nextIndex * interval,
+              animated: false,
+            });
+          } else if (
+            banners.length >= 2 &&
+            nextIndex >= banners.length + 1
+          ) {
+            nextIndex = 1;
+            scrollRef.current?.scrollTo({
+              x: nextIndex * interval,
+              animated: false,
+            });
+          }
+
+          physicalIndexRef.current = nextIndex;
+          isDraggingRef.current = false;
+          clearTimeout(autoPlayTimeoutRef.current);
+          scheduleAutoPlayRef.current?.();
+        }}
+      >
+        {loopedBanners.map((banner, index) => (
+          <Pressable
+            key={`${banner.id || banner.imageUrl || index}-${index}`}
+            onPress={() => onPressBanner(banner)}
+            style={[styles.bannerCard, { width: cardWidth }]}
+          >
+            <ExpoImage
+              source={{ uri: banner.imageUrl }}
+              style={styles.bannerImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -189,15 +280,17 @@ function CategoriesRow({ categories, loading, onPressCategory, t }) {
     return (
       <View style={styles.sectionBlock}>
         <View style={styles.sectionTitleSkeleton} />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesRow}
-        >
-          {Array.from({ length: 3 }).map((_, index) => (
-            <View key={index} style={styles.categorySkeleton} />
-          ))}
-        </ScrollView>
+        <View style={styles.categoriesViewport}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesRow}
+          >
+            {Array.from({ length: 3 }).map((_, index) => (
+              <View key={index} style={styles.categorySkeleton} />
+            ))}
+          </ScrollView>
+        </View>
       </View>
     );
   }
@@ -208,39 +301,41 @@ function CategoriesRow({ categories, loading, onPressCategory, t }) {
       <Text style={styles.sectionTitle}>
         {t("homePage.categoriesTitle", "Categories")}
       </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesRow}
-      >
-        {categories.map((category) => (
-          <Pressable
-            key={category.id}
-            onPress={() => onPressCategory(category)}
-            style={styles.categoryCard}
-          >
-            <View style={styles.categoryImageWrap}>
-              {category.image ? (
-                <ExpoImage
-                  source={{ uri: category.image }}
-                  style={styles.categoryImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                />
-              ) : null}
-            </View>
-            <Text style={styles.categoryName} numberOfLines={1}>
-              {category.name}
-            </Text>
-            <Text style={styles.categoryCount} numberOfLines={1}>
-              {t("homePage.categoryProducts", {
-                count: category.productsCount,
-                defaultValue: `${category.productsCount} products`,
-              })}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.categoriesViewport}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesRow}
+        >
+          {categories.map((category) => (
+            <Pressable
+              key={category.id}
+              onPress={() => onPressCategory(category)}
+              style={styles.categoryCard}
+            >
+              <View style={styles.categoryImageWrap}>
+                {category.image ? (
+                  <ExpoImage
+                    source={{ uri: category.image }}
+                    style={styles.categoryImage}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                  />
+                ) : null}
+              </View>
+              <Text style={styles.categoryName} numberOfLines={1}>
+                {category.name}
+              </Text>
+              <Text style={styles.categoryCount} numberOfLines={1}>
+                {t("homePage.categoryProducts", {
+                  count: category.productsCount,
+                  defaultValue: `${category.productsCount} products`,
+                })}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -784,7 +879,12 @@ export function NativeHomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FE946E"
+            colors={["#FE946E"]}
+          />
         }
         keyboardShouldPersistTaps="always"
       >
@@ -856,6 +956,7 @@ export function NativeHomeScreen() {
                     <View key={product.id} style={styles.cardCell}>
                       <ProductCard
                         product={product}
+                        stretch
                         onAdd={isLoggedIn ? undefined : openLoginRequiredSheet}
                       />
                     </View>
@@ -944,7 +1045,10 @@ const styles = StyleSheet.create({
   storiesRow: {
     gap: 8,
     paddingTop: 24,
-    paddingRight: 16,
+    paddingHorizontal: 16,
+  },
+  storiesViewport: {
+    marginHorizontal: -16,
   },
   storyButton: {
     width: 96,
@@ -969,7 +1073,10 @@ const styles = StyleSheet.create({
   bannerRow: {
     gap: 12,
     paddingTop: 24,
-    paddingRight: 16,
+    paddingHorizontal: 16,
+  },
+  bannerViewport: {
+    marginHorizontal: -16,
   },
   bannerCard: {
     height: 192,
@@ -1006,7 +1113,10 @@ const styles = StyleSheet.create({
   },
   categoriesRow: {
     gap: 10,
-    paddingRight: 16,
+    paddingHorizontal: 16,
+  },
+  categoriesViewport: {
+    marginHorizontal: -16,
   },
   categoryCard: {
     width: 131,
@@ -1178,6 +1288,7 @@ const styles = StyleSheet.create({
   },
   cardCell: {
     width: "48.5%",
+    alignSelf: "stretch",
   },
   skeletonCard: {
     minHeight: 260,

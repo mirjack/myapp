@@ -47,6 +47,9 @@ function regionToPoint(region) {
 }
 
 function deltaToZoom(region) {
+  if (Number.isFinite(Number(region?.zoom))) {
+    return Number(region.zoom);
+  }
   const latitudeDelta =
     Number(region?.latitudeDelta) || DEFAULT_TASHKENT_REGION.latitudeDelta;
   const zoom = Math.round(Math.log2(360 / latitudeDelta)) - 1;
@@ -72,6 +75,7 @@ export const AddressMap = memo(function AddressMap({
   userLocation,
 }) {
   const nativeMapRef = useRef(null);
+  const cameraZoomRef = useRef(deltaToZoom(DEFAULT_TASHKENT_REGION));
   const hasNativeMap = Platform.OS !== "web";
   const hasApiKey = Boolean(YANDEX_MAPS_API_KEY);
   const hasNativeView = hasNativeMap && hasYandexNativeView();
@@ -82,19 +86,37 @@ export const AddressMap = memo(function AddressMap({
       yandexMapInitKey === YANDEX_MAPS_API_KEY,
   );
   const initialRegion = useMemo(
-    () => ({
-      ...regionToPoint(DEFAULT_TASHKENT_REGION),
-      zoom: deltaToZoom(DEFAULT_TASHKENT_REGION),
-    }),
-    [],
+    () => {
+      const latitude = Number(userLocation?.latitude);
+      const longitude = Number(userLocation?.longitude);
+      const hasLocation =
+        Number.isFinite(latitude) && Number.isFinite(longitude);
+
+      return {
+        lat: hasLocation ? latitude : DEFAULT_TASHKENT_REGION.latitude,
+        lon: hasLocation ? longitude : DEFAULT_TASHKENT_REGION.longitude,
+        zoom: cameraZoomRef.current,
+      };
+    },
+    [userLocation],
   );
+  const mapInstanceKey = userLocation
+    ? `${userLocation.latitude}:${userLocation.longitude}`
+    : "default-map";
 
   const applyRegion = useCallback((region) => {
     if (!region) return;
 
+    const zoom =
+      Number.isFinite(Number(region.zoom))
+        ? Number(region.zoom)
+        : Number.isFinite(Number(region.latitudeDelta))
+          ? deltaToZoom(region)
+          : cameraZoomRef.current;
+
     nativeMapRef.current?.setCenter(
       regionToPoint(region),
-      deltaToZoom(region),
+      zoom,
       0,
       0,
       250,
@@ -105,6 +127,9 @@ export const AddressMap = memo(function AddressMap({
   const handleCameraPositionChange = useCallback(
     (event) => {
       const camera = event?.nativeEvent;
+      if (Number.isFinite(Number(camera?.zoom))) {
+        cameraZoomRef.current = Number(camera.zoom);
+      }
       if (camera?.reason === "GESTURES") onPanDrag?.();
     },
     [onPanDrag],
@@ -129,9 +154,12 @@ export const AddressMap = memo(function AddressMap({
         latitudeDelta: DEFAULT_TASHKENT_REGION.latitudeDelta,
         longitudeDelta: DEFAULT_TASHKENT_REGION.longitudeDelta,
       });
-      nativeMapRef.current?.setCenter(point, deltaToZoom(DEFAULT_TASHKENT_REGION));
+      applyRegion({
+        latitude: Number(point.lat),
+        longitude: Number(point.lon),
+      });
     },
-    [onPanDrag, onRegionChangeComplete],
+    [applyRegion, onPanDrag, onRegionChangeComplete],
   );
 
   useEffect(() => {
@@ -262,10 +290,21 @@ export const AddressMap = memo(function AddressMap({
         fastTapEnabled
         followUser={false}
         initialRegion={initialRegion}
+        key={mapInstanceKey}
         logoPadding={{ horizontal: 16, vertical: 104 }}
         logoPosition={{ horizontal: "left", vertical: "bottom" }}
         mapType="vector"
         maxFps={60}
+        onMapLoaded={() => {
+          if (userLocation) {
+            applyRegion({
+              latitude: Number(userLocation.latitude),
+              longitude: Number(userLocation.longitude),
+              latitudeDelta: DEFAULT_TASHKENT_REGION.latitudeDelta,
+              longitudeDelta: DEFAULT_TASHKENT_REGION.longitudeDelta,
+            });
+          }
+        }}
         onCameraPositionChange={handleCameraPositionChange}
         onCameraPositionChangeEnd={handleCameraPositionChangeEnd}
         onMapPress={handleMapPress}

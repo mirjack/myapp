@@ -135,7 +135,7 @@
     }
   },
   "orderDetail": {
-    "discount": "Discount"
+    "discount": "Скидка"
   },
   "addresses": {
     "loadErrorAuth": "Пожалуйста, войдите, чтобы посмотреть ваши адреса.",

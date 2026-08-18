@@ -7,9 +7,9 @@ export function CurrentLocationButton({ isLoading, onPress }) {
   return (
     <Pressable disabled={isLoading} onPress={onPress} style={({ pressed }) => [styles.button, addressSharedStyles.shadow, pressed && styles.buttonPressed]}>
       {isLoading ? (
-        <ActivityIndicator color="#131314" size="small" />
+        <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <Ionicons color="#131314" name="navigate-outline" size={21} />
+        <Ionicons color="#FFFFFF" name="navigate-outline" size={21} />
       )}
     </Pressable>
   );

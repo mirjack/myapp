@@ -131,7 +131,7 @@ function CartRow({
             style={styles.removeButton}
           >
             {pending ? (
-              <ActivityIndicator color="#E73C50" size="small" />
+              <ActivityIndicator color="#FE946E" size="small" />
             ) : (
               <Ionicons name="trash-outline" size={20} color="#E73C50" />
             )}
@@ -574,7 +574,12 @@ export function NativeCartScreen() {
       <ScrollView
         style={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#FE946E"
+            colors={["#FE946E"]}
+          />
         }
         contentContainerStyle={[
           styles.scrollContent,
