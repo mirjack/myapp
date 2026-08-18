@@ -48,6 +48,7 @@ import { applyAppLanguage } from "@/lib/i18n";
 import { getStoredLanguageCode } from "@/lib/app-preferences";
 
 import { nativeProfileStyles as styles } from "./native-profile.styles";
+import { ProfileSvgIcon, profileIconNames } from "./profile-icons";
 
 function DeveloperMark() {
   return (
@@ -163,10 +164,10 @@ function normalizeLoyaltyProfile(data = {}) {
 }
 
 const CONTACT_ICONS = {
-  telegram: "paper-plane-outline",
-  instagram: "logo-instagram",
-  youtube: "logo-youtube",
-  phone: "call-outline",
+  telegram: "telegram",
+  instagram: "instagram",
+  youtube: "youtube",
+  phone: "phone",
 };
 
 const CONTACT_ORDER = ["telegram", "instagram", "youtube", "phone"];
@@ -344,25 +345,25 @@ export function NativeProfileScreen() {
       {
         key: "orders",
         label: t("profile.orders"),
-        icon: "bag-handle-outline",
+        icon: "orderHistory",
         route: "/(tabs)/profile/orders",
       },
       {
         key: "addresses",
         label: t("profile.addresses"),
-        icon: "location-outline",
+        icon: "addresses",
         route: "/(tabs)/profile/addresses",
       },
       {
         key: "chats",
         label: t("profile.chats"),
-        icon: "chatbubble-ellipses-outline",
+        icon: "chat",
         route: "/(tabs)/profile/chat",
       },
       {
         key: "notifications",
         label: t("profile.notifications"),
-        icon: "notifications-outline",
+        icon: "notifications",
       },
       {
         key: "language",
@@ -379,12 +380,12 @@ export function NativeProfileScreen() {
       {
         key: "privacy",
         label: t("profile.privacy"),
-        icon: "shield-checkmark-outline",
+        icon: "terms",
       },
       {
         key: "terms",
         label: t("profile.terms"),
-        icon: "ribbon-outline",
+        icon: "termsVerified",
       },
     ],
     [t],
@@ -884,7 +885,20 @@ export function NativeProfileScreen() {
                       {tiers.map((tier, index) => (
                         <Text
                           key={tier.id ?? `${tier.name}-label-${index}`}
-                          style={styles.loyaltyTierLabel}
+                          style={[
+                            styles.loyaltyTierLabel,
+                            {
+                              left: `${
+                                tiers.length > 1
+                                  ? index === 0
+                                    ? 4
+                                    : index === tiers.length - 1
+                                      ? 96
+                                      : (index / (tiers.length - 1)) * 100
+                                  : 50
+                              }%`,
+                            },
+                          ]}
                           numberOfLines={1}
                         >
                           {tier.name ?? ""}
@@ -914,7 +928,11 @@ export function NativeProfileScreen() {
                   index > 0 ? styles.menuRowBorder : null,
                 ]}
               >
-                <Ionicons color="#0B0B0B" name={item.icon} size={20} />
+                {profileIconNames.has(item.icon) ? (
+                  <ProfileSvgIcon name={item.icon} size={22} />
+                ) : (
+                  <Ionicons color="#0B0B0B" name={item.icon} size={20} />
+                )}
                 <Text style={styles.menuLabel}>{item.label}</Text>
                 {item.value ? (
                   <Text style={styles.menuValue}>{item.value}</Text>
@@ -945,7 +963,14 @@ export function NativeProfileScreen() {
                     !hasUrl ? styles.contactRowDisabled : null,
                   ]}
                 >
-                  <Ionicons color="#0B0B0B" name={IconName} size={20} />
+                  {profileIconNames.has(IconName) ? (
+                    <ProfileSvgIcon
+                      name={IconName}
+                      size={channel.type === "telegram" || channel.type === "instagram" ? 24 : 22}
+                    />
+                  ) : (
+                    <Ionicons color="#0B0B0B" name={IconName} size={20} />
+                  )}
                   <View style={styles.contactBody}>
                     <Text style={styles.contactLabel}>{channel.label}</Text>
                     <Text style={styles.contactValue}>
@@ -973,7 +998,11 @@ export function NativeProfileScreen() {
                   index > 0 ? styles.menuRowBorder : null,
                 ]}
               >
-                <Ionicons color="#0B0B0B" name={item.icon} size={20} />
+                {profileIconNames.has(item.icon) ? (
+                  <ProfileSvgIcon name={item.icon} size={22} />
+                ) : (
+                  <Ionicons color="#0B0B0B" name={item.icon} size={20} />
+                )}
                 <Text style={styles.menuLabel}>{item.label}</Text>
                 <Ionicons
                   color="#7C7C7C"
