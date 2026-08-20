@@ -46,6 +46,7 @@ import {
 } from "@/lib/native-account-api";
 import { applyAppLanguage } from "@/lib/i18n";
 import { getStoredLanguageCode } from "@/lib/app-preferences";
+import { readCachedNativeBrandingContacts } from "@/lib/native-branding-cache";
 
 import { nativeProfileStyles as styles } from "./native-profile.styles";
 import { ProfileSvgIcon, profileIconNames } from "./profile-icons";
@@ -454,12 +455,17 @@ export function NativeProfileScreen() {
         const hasAccessToken = Boolean(tokens?.access);
         setIsLoggedIn(hasAccessToken);
 
+        const cachedContacts = await readCachedNativeBrandingContacts();
+        if (!isMounted) return;
+        if (cachedContacts) {
+          setBrandingContacts(cachedContacts);
+        }
+
         if (!hasAccessToken) {
           setUser(null);
           setIsUserLoading(false);
           setLoyaltyProfile(null);
           setIsLoyaltyLoading(false);
-          setBrandingContacts({});
           return;
         }
 
@@ -521,10 +527,7 @@ export function NativeProfileScreen() {
             if (!isMounted) return;
             setBrandingContacts(data?.organization?.contacts || {});
           })
-          .catch(() => {
-            if (!isMounted) return;
-            setBrandingContacts({});
-          });
+          .catch(() => {});
       })
       .catch(() => {
         if (!isMounted) return;
