@@ -5,9 +5,8 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/lib/i18n";
-import { ensureNotificationSetupAsync } from "@/lib/notifications";
+import { initializeAppAsync } from "@/lib/app-bootstrap";
 
-// Custom themani yaratamiz - DefaultTheme'dan meros olib
 export const AppTheme = {
   ...DefaultTheme,
   colors: {
@@ -24,40 +23,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   useEffect(() => {
-    ensureNotificationSetupAsync({
-      requestIfUndetermined: true,
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    // AppMetrica temporarily disabled to avoid native module crash in dev builds.
-    // const apiKey = getRuntimeConfig().appMetricaApiKey;
-    // if (!apiKey) return;
-    // if (Constants?.appOwnership === "expo") return;
-    // if (!NativeModules?.AppMetrica) return;
-    //
-    // let cancelled = false;
-    //
-    // const initAppMetrica = async () => {
-    //   try {
-    //     const module = require("@appmetrica/react-native-analytics");
-    //     if (cancelled) return;
-    //
-    //     module.default.activate({
-    //       apiKey,
-    //       logs: __DEV__,
-    //       sessionTimeout: 120,
-    //     });
-    //   } catch {
-    //     // Ignore analytics bootstrap issues so the app can continue to load.
-    //   }
-    // };
-    //
-    // void initAppMetrica();
-    //
-    // return () => {
-    //   cancelled = true;
-    // };
+    void initializeAppAsync().catch(() => {});
   }, []);
 
   return (

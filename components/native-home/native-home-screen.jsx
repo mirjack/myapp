@@ -42,6 +42,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
   setPendingAuthAction,
 } from "@/lib/auth-storage";
 import {
@@ -56,15 +57,6 @@ const homeCache = {
   categories: new Map(),
   sections: new Map(),
 };
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function parseLoyaltyNumber(value) {
   const parsed = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
@@ -477,7 +469,7 @@ export function NativeHomeScreen() {
   const insets = useSafeAreaInsets();
   const languageCode = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [tokens, setTokens] = useState(
-    parseTokensString(getStoredAuthTokensSync()),
+    parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [stories, setStories] = useState(
@@ -520,7 +512,7 @@ export function NativeHomeScreen() {
 
       getStoredAuthTokens().then((stored) => {
         if (!mounted) return;
-        const nextTokens = parseTokensString(stored);
+        const nextTokens = parseAuthTokens(stored);
         setTokens(nextTokens);
         if (!nextTokens?.access) {
           setLoyaltyProfile(null);
@@ -539,7 +531,7 @@ export function NativeHomeScreen() {
     (async () => {
       const stored = await getStoredAuthTokens();
       if (!mounted) return;
-      setTokens(parseTokensString(stored));
+      setTokens(parseAuthTokens(stored));
     })();
     return () => {
       mounted = false;

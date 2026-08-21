@@ -25,6 +25,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
   emitFavoriteChanged,
@@ -34,15 +35,6 @@ import {
   setCurrentWebPath,
   setTabBarForcedHidden,
 } from "@/lib/tab-bar-visibility";
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function FavoriteCardSkeleton() {
   return (
@@ -78,7 +70,7 @@ export function NativeFavoritesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const initialTokens = parseTokensString(getStoredAuthTokensSync());
+  const initialTokens = parseAuthTokens(getStoredAuthTokensSync());
   const [tokens, setTokens] = useState(initialTokens);
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +104,7 @@ export function NativeFavoritesScreen() {
     (async () => {
       const stored = await getStoredAuthTokens();
       if (!mounted) return;
-      setTokens(parseTokensString(stored));
+      setTokens(parseAuthTokens(stored));
     })();
     return () => {
       mounted = false;

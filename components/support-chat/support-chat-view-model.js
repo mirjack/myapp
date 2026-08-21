@@ -19,7 +19,7 @@ export function getAvatarLabel(value) {
   );
 }
 
-export function getPersonDisplayName(person) {
+function getPersonDisplayName(person) {
   if (!person || typeof person !== "object") return "";
 
   const directName =
@@ -118,7 +118,7 @@ export function getLocalizedProblemTypeLabel(problemType, t, language) {
   return rawLabel || `Type #${problemType?.id ?? ""}`;
 }
 
-export function getLastTextMessage(request) {
+function getLastTextMessage(request) {
   return [...(request?.messages || [])]
     .filter((message) => String(message?.text || "").trim())
     .sort((left, right) => {
@@ -128,7 +128,7 @@ export function getLastTextMessage(request) {
     })[0];
 }
 
-export function getLatestSupportMessage(request, customerId) {
+function getLatestSupportMessage(request, customerId) {
   return [...(request?.messages || [])]
     .filter(
       (message) =>

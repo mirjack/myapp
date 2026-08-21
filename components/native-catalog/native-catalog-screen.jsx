@@ -24,6 +24,7 @@ import { fetchProductList, getCategories } from "@/lib/native-market-api";
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
   setCurrentWebPath,
@@ -31,15 +32,6 @@ import {
 } from "@/lib/tab-bar-visibility";
 
 const catalogProductsCache = new Map();
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function parsePriceValue(value, fallback = null) {
   const normalized = String(value ?? "").replace(/[^\d.]/g, "");
@@ -128,7 +120,7 @@ export function NativeCatalogScreen() {
   const initialCategoryId = String(params.category_id ?? "");
   const initialQuery = String(params.q ?? "");
   const [tokens, setTokens] = useState(
-    parseTokensString(getStoredAuthTokensSync()),
+    parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [searchInput, setSearchInput] = useState(initialQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(initialQuery.trim());
@@ -167,7 +159,7 @@ export function NativeCatalogScreen() {
     let mounted = true;
     (async () => {
       const stored = await getStoredAuthTokens();
-      if (mounted) setTokens(parseTokensString(stored));
+      if (mounted) setTokens(parseAuthTokens(stored));
     })();
     return () => {
       mounted = false;

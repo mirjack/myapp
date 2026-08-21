@@ -8,12 +8,13 @@ export default function AccountLayout() {
         gestureEnabled: true,
         fullScreenGestureEnabled: true,
         gestureDirection: "horizontal",
+        headerShown: false,
       }}
     >
-      <Stack.Screen name="me" options={{ headerShown: false }} />
-      <Stack.Screen name="orders" options={{ headerShown: false }} />
-      <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="addresses" options={{ headerShown: false }} />
+      <Stack.Screen name="me" />
+      <Stack.Screen name="orders" />
+      <Stack.Screen name="orders/[id]" />
+      <Stack.Screen name="addresses" />
     </Stack>
   );
 }

@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getPendingAuthAction,
+  parseAuthTokens,
   setPendingAuthAction,
   setStoredAuthTokens,
 } from "@/lib/auth-storage";
@@ -55,17 +56,8 @@ function toNativeTabsPath(pathname) {
   return "/(tabs)";
 }
 
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
-
 async function flushPendingAuthAction(tokensString) {
-  const tokens = parseTokensString(tokensString);
+  const tokens = parseAuthTokens(tokensString);
   if (!tokens?.access) return;
   const action = await getPendingAuthAction();
   if (!action?.type || action.productId == null) return;

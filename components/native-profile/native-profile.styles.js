@@ -31,7 +31,6 @@ export const nativeProfileStyles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: "#F8F8F8",

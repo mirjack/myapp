@@ -3,7 +3,7 @@ import { Dimensions } from "react-native";
 export const WINDOW_SIZE = Dimensions.get("window");
 export const SHEET_CLOSED_Y = WINDOW_SIZE.height;
 export const SHEET_OPEN_WIDTH = Math.max(100, WINDOW_SIZE.width - 32);
-export const SHEET_CLOSED_WIDTH = 100;
+const SHEET_CLOSED_WIDTH = 100;
 export const SHEET_CLOSED_SCALE = SHEET_CLOSED_WIDTH / SHEET_OPEN_WIDTH;
 export const SHEET_DISMISS_DRAG_Y = 34;
 export const SHEET_DISMISS_VELOCITY_Y = 0;

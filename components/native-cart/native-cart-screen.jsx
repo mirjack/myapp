@@ -35,6 +35,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
   hydrateCartQuantities,
@@ -45,15 +46,6 @@ import {
   setCurrentWebPath,
   setTabBarForcedHidden,
 } from "@/lib/tab-bar-visibility";
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function CheckBox({ checked, onPress }) {
   return (
@@ -260,7 +252,7 @@ export function NativeCartScreen() {
   const cartQuantitiesState = useCartQuantitiesState();
   const cartQuantities = cartQuantitiesState.quantities;
   const [tokens, setTokens] = useState(
-    parseTokensString(getStoredAuthTokensSync()),
+    parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [items, setItems] = useState([]);
   const [recommended, setRecommended] = useState([]);
@@ -315,8 +307,8 @@ export function NativeCartScreen() {
     if (!silent) setLoading(true);
     try {
       const storedTokens =
-        parseTokensString(getStoredAuthTokensSync()) ||
-        parseTokensString(await getStoredAuthTokens());
+        parseAuthTokens(getStoredAuthTokensSync()) ||
+        parseAuthTokens(await getStoredAuthTokens());
       setTokens(storedTokens);
 
       if (!storedTokens?.access) {

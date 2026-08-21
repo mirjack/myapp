@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -39,24 +39,6 @@ const PROGRAM_LEVELS = [
       "Самый высокий уровень — и самые щедрые бонусы. Вы получаете 5% от суммы заказа.",
   },
 ];
-
-function StatCard({ icon, label, value, accent = false }) {
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statIcon, accent ? styles.statIconAccent : null]}>
-        <Ionicons
-          name={icon}
-          size={18}
-          color={accent ? "#688900" : "#131314"}
-        />
-      </View>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text numberOfLines={1} style={styles.statValue}>
-        {value}
-      </Text>
-    </View>
-  );
-}
 
 export default function LoyaltyInfoScreen() {
   const router = useRouter();
@@ -110,28 +92,6 @@ export default function LoyaltyInfoScreen() {
   const balance = formatValue(profile?.wallet_balance);
   const pointsToNext = formatValue(profile?.points_to_next_tier);
   const isLastTier = !nextTier;
-  const stats = useMemo(
-    () => [
-      { icon: "wallet-outline", label: "Доступно бонусов", value: balance },
-      {
-        icon: "trending-up-outline",
-        label: "Накоплено всего",
-        value: formatValue(profile?.total_earned_points),
-      },
-      {
-        icon: "gift-outline",
-        label: "Потрачено бонусов",
-        value: formatValue(profile?.total_redeemed_points),
-      },
-      {
-        icon: "cash-outline",
-        label: "Экономия за месяц",
-        value: formatValue(profile?.savings_month_amount),
-      },
-    ],
-    [balance, profile],
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" translucent={false} backgroundColor="#F8F8F8" />

@@ -26,6 +26,7 @@ import {
   clearStoredAuthTokens,
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
   isNativeProfileCacheFresh,
@@ -67,15 +68,6 @@ function DeveloperMark() {
       />
     </Svg>
   );
-}
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
 }
 
 function formatFullName(user) {
@@ -306,7 +298,7 @@ function formatContactValue(type, value) {
 export function NativeProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const initialTokens = parseTokensString(getStoredAuthTokensSync());
+  const initialTokens = parseAuthTokens(getStoredAuthTokensSync());
   const initialCachedProfileEntry = readCachedNativeProfileSync(
     initialTokens?.access || null,
   );
@@ -451,7 +443,7 @@ export function NativeProfileScreen() {
     getStoredAuthTokens()
       .then(async (tokensString) => {
         if (!isMounted) return;
-        const tokens = parseTokensString(tokensString);
+        const tokens = parseAuthTokens(tokensString);
         const hasAccessToken = Boolean(tokens?.access);
         setIsLoggedIn(hasAccessToken);
 

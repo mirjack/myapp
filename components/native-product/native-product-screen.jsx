@@ -43,6 +43,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
   setPendingAuthAction,
 } from "@/lib/auth-storage";
 import {
@@ -55,15 +56,6 @@ import { emitFavoriteChanged } from "@/lib/native-favorites-events";
 
 const DEFAULT_PRODUCT_IMAGE =
   "https://www.figma.com/api/mcp/asset/240cc9ae-83de-433c-a66a-e4c026d9e177.png";
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function getProductIdFromPath(value) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -227,9 +219,9 @@ export function NativeProductScreen() {
   );
 
   const getTokens = useCallback(async () => {
-    const cached = parseTokensString(getStoredAuthTokensSync());
+    const cached = parseAuthTokens(getStoredAuthTokensSync());
     if (cached?.access) return cached;
-    return parseTokensString(await getStoredAuthTokens());
+    return parseAuthTokens(await getStoredAuthTokens());
   }, []);
 
   const loadProduct = useCallback(

@@ -36,6 +36,7 @@ import {
 import {
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
   setCurrentWebPath,
@@ -47,15 +48,6 @@ const currencyFormatter = new Intl.NumberFormat("ru-RU", {
 });
 
 const ACCENT_COLOR = BrandColors.primary;
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function parseNumber(value) {
   const n = Number(value);
@@ -490,7 +482,7 @@ export function NativeCheckoutScreen() {
   const directCheckoutProductId =
     params?.checkoutProductId != null ? String(params.checkoutProductId) : null;
   const [tokens, setTokens] = useState(
-    parseTokensString(getStoredAuthTokensSync()),
+    parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -581,8 +573,8 @@ export function NativeCheckoutScreen() {
       setError("");
       try {
         const storedTokens =
-          parseTokensString(getStoredAuthTokensSync()) ||
-          parseTokensString(await getStoredAuthTokens());
+          parseAuthTokens(getStoredAuthTokensSync()) ||
+          parseAuthTokens(await getStoredAuthTokens());
         setTokens(storedTokens);
         if (!storedTokens?.access) {
           router.replace({
