@@ -136,6 +136,9 @@ export function NativeCatalogScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [softLoading, setSoftLoading] = useState(false);
+  const productsRef = useRef(products);
+  const productRequestRef = useRef(null);
+  useEffect(() => { productsRef.current = products; }, [products]);
   const [error, setError] = useState("");
   const [activeSheet, setActiveSheet] = useState(null);
   const [renderedSheet, setRenderedSheet] = useState(null);
@@ -196,6 +199,9 @@ export function NativeCatalogScreen() {
   const loadProducts = useCallback(
     async ({ force = false } = {}) => {
       const requestId = ++requestIdRef.current;
+      productRequestRef.current?.abort();
+      const controller = new AbortController();
+      productRequestRef.current = controller;
       const trimmedQuery = debouncedSearch;
       const nextCacheKey = `${languageCode}::${categoryId}::${trimmedQuery}`;
       const cachedProducts = catalogProductsCache.get(nextCacheKey);
@@ -204,7 +210,7 @@ export function NativeCatalogScreen() {
         setProducts(cachedProducts);
         setLoading(false);
         setSoftLoading(false);
-      } else if (products.length > 0) {
+      } else if (productsRef.current.length > 0) {
         setSoftLoading(true);
       } else {
         setLoading(true);
@@ -214,9 +220,12 @@ export function NativeCatalogScreen() {
         const data = await fetchProductList({
           categoryId: categoryId || undefined,
           search: trimmedQuery || undefined,
+          signal: controller.signal,
         });
         if (requestId !== requestIdRef.current) return;
+        catalogProductsCache.delete(nextCacheKey);
         catalogProductsCache.set(nextCacheKey, data);
+        if (catalogProductsCache.size > 30) catalogProductsCache.delete(catalogProductsCache.keys().next().value);
         setProducts(data);
         setError("");
       } catch {
@@ -231,7 +240,7 @@ export function NativeCatalogScreen() {
         }
       }
     },
-    [categoryId, debouncedSearch, languageCode, products.length, t],
+    [categoryId, debouncedSearch, languageCode, t],
   );
 
   useEffect(() => {
@@ -241,6 +250,8 @@ export function NativeCatalogScreen() {
     }, 0);
     return () => {
       cancelled = true;
+      requestIdRef.current += 1;
+      productRequestRef.current?.abort();
       clearTimeout(timer);
     };
   }, [loadProducts]);
@@ -453,7 +464,10 @@ export function NativeCatalogScreen() {
       </View>
 
       <FlatList
-        data={loading || softLoading ? [] : visibleProducts}
+        data={loading ? [] : visibleProducts}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
         renderItem={renderProduct}
@@ -634,7 +648,7 @@ const styles = StyleSheet.create({
   skeletonImage: {
     position: "relative",
     width: "100%",
-    aspectRatio: 1.08,
+    aspectRatio: 1016 / 1350,
     borderRadius: 20,
     backgroundColor: "#ECECEF",
   },

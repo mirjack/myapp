@@ -89,6 +89,15 @@ module.exports = ({ config }) => {
   const plugins = Array.isArray(resolvedConfig.plugins) ? resolvedConfig.plugins : [];
   const appVariant =
     process.env.APP_VARIANT || process.env.EAS_BUILD_PROFILE || "production";
+  // Keep the universal defaults for development and Play Store bundles.
+  // EAS preview profiles select only the ABIs needed by the target phones.
+  const supportedAndroidArchs = ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"];
+  const androidBuildArchs = process.env.ANDROID_BUILD_ARCHS
+    ? [...new Set(process.env.ANDROID_BUILD_ARCHS.split(",").map(value => value.trim()))]
+    : undefined;
+  if (androidBuildArchs?.some(arch => !supportedAndroidArchs.includes(arch))) {
+    throw new Error("ANDROID_BUILD_ARCHS contains an unsupported Android ABI");
+  }
   const isDevelopmentVariant = appVariant === "development";
   const isPreviewVariant = appVariant === "preview";
   const variantSuffix = isDevelopmentVariant
@@ -147,6 +156,7 @@ module.exports = ({ config }) => {
           android: {
             ...(((expoBuildPropertiesPlugin && expoBuildPropertiesPlugin[1]) || {}).android || {}),
             minSdkVersion: 26,
+            ...(androidBuildArchs ? { buildArchs: androidBuildArchs } : {}),
             usesCleartextTraffic: allowCleartextTraffic,
           },
         },
@@ -176,6 +186,8 @@ module.exports = ({ config }) => {
     },
     extra: {
       ...extra,
+      privacyPolicyUrl: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL || extra.privacyPolicyUrl || "",
+      termsUrl: process.env.EXPO_PUBLIC_TERMS_URL || extra.termsUrl || "",
       appMetricaApiKey,
       yandexMapsApiKey,
       tenantDomain,

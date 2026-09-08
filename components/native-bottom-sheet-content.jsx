@@ -16,6 +16,7 @@ import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import Animated, { useSharedValue } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 
 import { SUPPORT_REQUEST_SHEET_ART } from "@/components/support-chat/support-request-sheet-art";
 import {
@@ -188,7 +189,7 @@ function LanguageSelectSheet({ payload, onAction }) {
   return (
     <View style={styles.languageSheetWrap}>
       <Text style={styles.languageSheetTitle}>
-        {payload?.title || "Language"}
+        {payload?.title || "Мы рядом и готовы помочь"}
       </Text>
       <Text style={styles.languageSheetDescription}>
         {payload?.description || ""}
@@ -221,7 +222,7 @@ function LanguageSelectSheet({ payload, onAction }) {
 function ContactInfoSheet({ payload }) {
   return (
     <View style={styles.compactInfoSheetWrap}>
-      <Text style={styles.sectionTitle}>{payload?.title || "Contact"}</Text>
+      <Text style={styles.sectionTitle}>{payload?.title || "Мы рядом и готовы помочь"}</Text>
       <Text style={styles.sectionDescription}>
         {payload?.description || ""}
       </Text>
@@ -240,7 +241,7 @@ function LoginRequiredSheet({ payload, onAction }) {
   return (
     <View style={styles.loginRequiredSheetWrap}>
       <Text style={styles.loginRequiredTitle}>
-        {payload?.title || "Sign in"}
+        {payload?.title || "Мы рядом и готовы помочь"}
       </Text>
       <Text style={styles.loginRequiredDescription}>
         {payload?.description || "Please sign in to continue."}
@@ -263,7 +264,7 @@ function LogoutConfirmSheet({ payload, onAction }) {
   return (
     <View style={styles.supportDecisionSheetWrap}>
       <Text style={styles.supportDecisionTitle}>
-        {payload?.title || "Logout"}
+        {payload?.title || "Мы рядом и готовы помочь"}
       </Text>
       <Text style={styles.supportDecisionDescription}>
         {payload?.description || "Are you sure you want to log out?"}
@@ -336,7 +337,7 @@ function WalletInfoSheet({ payload }) {
           </View>
 
           <Text style={styles.walletHeroTitle}>
-            {payload?.title || "Your bonus balance"}
+            {payload?.title || "Мы рядом и готовы помочь"}
           </Text>
           <Text style={styles.walletHeroDescription}>
             {payload?.description || "Use bonuses for purchases in the app"}
@@ -387,11 +388,11 @@ function SupportRequestCreateSheet({ payload, onAction }) {
   return (
     <View style={styles.supportCreateSheetWrap}>
       <Text style={styles.supportCreateSheetTitle}>
-        {payload?.title || "ÃÅ“Ã‘â€¹ Ã‘â‚¬Ã‘ÂÃÂ´ÃÂ¾ÃÂ¼ ÃÂ¸ ÃÂ³ÃÂ¾Ã‘â€šÃÂ¾ÃÂ²Ã‘â€¹ ÃÂ¿ÃÂ¾ÃÂ¼ÃÂ¾Ã‘â€¡Ã‘Å’"}
+        {payload?.title || "Мы рядом и готовы помочь"}
       </Text>
       <Text style={styles.supportCreateSheetDescription}>
         {payload?.description ||
-          "ÃÅ¸ÃÂ¾ÃÂ´Ã‘ÂÃÂºÃÂ°ÃÂ¶ÃÂ¸Ã‘â€šÃÂµ, ÃÂ¿ÃÂ¾ÃÂ¶ÃÂ°ÃÂ»Ã‘Æ’ÃÂ¹Ã‘ÂÃ‘â€šÃÂ°, Ã‘Æ’ ÃÂ²ÃÂ°Ã‘Â ÃÂ²ÃÂ¾ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘Â ÃÂ¸ÃÂ»ÃÂ¸ ÃÂ²ÃÂ¾ÃÂ·ÃÂ½ÃÂ¸ÃÂºÃÂ»ÃÂ° ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ±ÃÂ»ÃÂµÃÂ¼ÃÂ°?"}
+          "Подскажите, пожалуйста, у вас вопрос или возникла проблема?"}
       </Text>
 
       <View style={styles.supportCreateCardRow}>
@@ -409,7 +410,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
               styles.supportCreateProblemTitle,
             ]}
           >
-            {payload?.problemTitle || "ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ±ÃÂ»ÃÂµÃÂ¼ÃÂ°"}
+            {payload?.problemTitle || "Проблема"}
           </Text>
           <ExpoImage
             source={{ uri: problemImageUrl }}
@@ -433,7 +434,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
               styles.supportCreateQuestionTitle,
             ]}
           >
-            {payload?.questionTitle || "Ãâ€™ÃÂ¾ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘Â"}
+            {payload?.questionTitle || "Вопрос"}
           </Text>
           <ExpoImage
             source={{ uri: questionImageUrl }}
@@ -443,7 +444,7 @@ function SupportRequestCreateSheet({ payload, onAction }) {
           />
           {activeKind === "question" ? (
             <Text style={styles.supportCreateLoadingText}>
-              {payload?.loadingLabel || "ÃÂ¡ÃÂ¾ÃÂ·ÃÂ´ÃÂ°ÃÂ½ÃÂ¸ÃÂµ..."}
+              {payload?.loadingLabel || "Создание..."}
             </Text>
           ) : null}
         </Pressable>
@@ -459,11 +460,11 @@ function SupportRequestCloseSheet({ payload, onAction }) {
   return (
     <View style={styles.supportDecisionSheetWrap}>
       <Text style={styles.supportDecisionTitle}>
-        {payload?.title || "Close request"}
+        {payload?.title || "Мы рядом и готовы помочь"}
       </Text>
       <Text style={styles.supportDecisionDescription}>
         {payload?.description ||
-          "Confirm that the issue is fully resolved before closing the request."}
+          "Подскажите, пожалуйста, у вас вопрос или возникла проблема?"}
       </Text>
 
       <View style={styles.supportDecisionActionStack}>
@@ -504,6 +505,7 @@ function SupportRequestCloseSheet({ payload, onAction }) {
 }
 
 function SupportRequestRateSheet({ payload, onAction }) {
+  const { t } = useTranslation();
   const [ratingValue, setRatingValue] = useState(payload?.ratingValue ?? 5);
   const [comment, setComment] = useState(payload?.comment || "");
 
@@ -517,16 +519,15 @@ function SupportRequestRateSheet({ payload, onAction }) {
   return (
     <View style={styles.supportDecisionSheetWrap}>
       <Text style={styles.supportDecisionTitle}>
-        {payload?.title || "Rate service"}
+        {payload?.title || t("support.rateService")}
       </Text>
       <Text style={styles.supportDecisionDescription}>
-        {payload?.description ||
-          "Share how the support experience went. A short comment is optional."}
+        {payload?.description || t("support.rateDescription")}
       </Text>
 
       <View style={styles.supportRateCard}>
         <Text style={styles.supportRateCardTitle}>
-          {payload?.ratingLabel || "Your rating"}
+          {payload?.ratingLabel || t("support.yourRating")}
         </Text>
         <View style={styles.supportRateRow}>
           {[1, 2, 3, 4, 5].map((value) => {
@@ -554,7 +555,9 @@ function SupportRequestRateSheet({ payload, onAction }) {
       <TextInput
         value={comment}
         onChangeText={setComment}
-        placeholder={payload?.commentPlaceholder || "Comment (optional)"}
+        placeholder={
+          payload?.commentPlaceholder || t("support.commentOptional")
+        }
         placeholderTextColor="#A0A0A0"
         multiline
         textAlignVertical="top"
@@ -645,6 +648,7 @@ function LoyaltyProgressSheet({ payload, onAction }) {
 }
 
 function CatalogFilterSheet({ payload, onAction }) {
+  const { t } = useTranslation();
   const filterKey = payload?.filterKey || "price";
   const initialMinText = String(payload?.price?.min ?? "").trim();
   const initialMaxText = String(payload?.price?.max ?? "").trim();
@@ -706,10 +710,10 @@ function CatalogFilterSheet({ payload, onAction }) {
   if (filterKey === "price") {
     return (
       <View style={styles.catalogFilterWrap}>
-        <Text style={styles.catalogFilterTitle}>{payload?.title || "Price"}</Text>
+        <Text style={styles.catalogFilterTitle}>{payload?.title || "Мы рядом и готовы помочь"}</Text>
         <View style={styles.priceInputRow}>
           <View style={styles.priceInputBox}>
-            <Text style={styles.priceInputPrefix}>from</Text>
+            <Text style={styles.priceInputPrefix}>{t("ui.bottomSheet.from")}</Text>
             <TextInput
               value={minPrice}
               onChangeText={(text) => {
@@ -727,7 +731,7 @@ function CatalogFilterSheet({ payload, onAction }) {
             />
           </View>
           <View style={[styles.priceInputBox, styles.priceInputBoxMuted]}>
-            <Text style={styles.priceInputPrefix}>to</Text>
+            <Text style={styles.priceInputPrefix}>{t("ui.bottomSheet.to")}</Text>
             <TextInput
               value={maxPrice}
               onChangeText={(text) => {
@@ -769,7 +773,7 @@ function CatalogFilterSheet({ payload, onAction }) {
 
   return (
     <View style={styles.catalogFilterWrap}>
-      <Text style={styles.catalogFilterTitle}>{payload?.title || "Filter"}</Text>
+      <Text style={styles.catalogFilterTitle}>{payload?.title || "Мы рядом и готовы помочь"}</Text>
       <View style={styles.catalogOptionGrid}>
         {options.map((option) => {
           const value = String(option.value ?? option.label ?? "");
@@ -943,6 +947,7 @@ function ProductPriceBlock({ priceStats, originalPrice, finalPrice }) {
 }
 
 function ProductDetailSheet({ payload, onAction }) {
+  const { t } = useTranslation();
   const product = payload?.product;
   const quantity = Math.max(0, Number(payload?.quantity || 0));
   const isLoading = Boolean(payload?.isLoading);
@@ -1030,7 +1035,7 @@ function ProductDetailSheet({ payload, onAction }) {
   if (error && !product) {
     return (
       <View style={styles.productErrorWrap}>
-        <Text style={styles.productTitle}>Product</Text>
+        <Text style={styles.productTitle}>{t("ui.bottomSheet.product")}</Text>
         <Text style={styles.productError}>{error}</Text>
       </View>
     );
@@ -1214,7 +1219,7 @@ function ProductDetailSheet({ payload, onAction }) {
           {quantity > 0 ? (
             <View style={styles.cartSummaryCard}>
               <View style={styles.cartSummary}>
-                <Text style={styles.cartSummaryLabel}>Cashback</Text>
+                <Text style={styles.cartSummaryLabel}>{t("ui.bottomSheet.cashback")}</Text>
                 <CashbackPill>+{formatCurrency(cashbackValue)}</CashbackPill>
               </View>
               <View style={styles.cartSummaryDivider} />
@@ -1258,7 +1263,7 @@ function ProductDetailSheet({ payload, onAction }) {
                 {isCartPending ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.addToCartText}>Add to cart</Text>
+                  <Text style={styles.addToCartText}>{t("ui.bottomSheet.addToCart")}</Text>
                 )}
               </Pressable>
             </View>
@@ -1365,6 +1370,18 @@ function ProductDetailSheet({ payload, onAction }) {
   );
 }
 
+function UnsupportedSheet({ sheetKey }) {
+  const { t } = useTranslation();
+  return (
+    <View>
+      <Text style={styles.fallbackTitle}>{t("ui.bottomSheet.fallback")}</Text>
+      <Text style={styles.fallbackText}>
+        {t("ui.bottomSheet.unsupported", { key: sheetKey })}
+      </Text>
+    </View>
+  );
+}
+
 export function renderSheetContent(sheet, onAction) {
   if (!sheet) return null;
   if (sheet.sheetKey === "login_required") {
@@ -1415,13 +1432,6 @@ export function renderSheetContent(sheet, onAction) {
     return <ProductDetailSheet payload={sheet.payload} onAction={onAction} />;
   }
 
-  return (
-    <View>
-      <Text style={styles.fallbackTitle}>Sheet</Text>
-      <Text style={styles.fallbackText}>
-        Unsupported sheet: {sheet.sheetKey}
-      </Text>
-    </View>
-  );
+  return <UnsupportedSheet sheetKey={sheet.sheetKey} />;
 }
 

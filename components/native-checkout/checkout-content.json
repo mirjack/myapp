@@ -1,0 +1,10 @@
+{
+  "paymentMethods": {
+    "card": {
+      "icon": "card"
+    },
+    "cash": {
+      "icon": "cash"
+    }
+  }
+}

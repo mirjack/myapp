@@ -123,6 +123,7 @@ export default function OnboardingPhoneScreen() {
   const [resendIn, setResendIn] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const otpInputRefs = useRef([]);
+  const submissionLock = useRef(false);
 
   const phoneNumber = digits.length > 0 ? `+998${digits}` : "";
   const isPhoneValid = digits.length === 9;
@@ -252,7 +253,8 @@ export default function OnboardingPhoneScreen() {
   );
 
   const submitPhone = useCallback(async () => {
-    if (!isPhoneValid || isSubmitting) return;
+    if (!isPhoneValid || submissionLock.current) return;
+    submissionLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -270,12 +272,14 @@ export default function OnboardingPhoneScreen() {
         ),
       );
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
-  }, [isPhoneValid, isSubmitting, phoneNumber, t]);
+  }, [isPhoneValid, phoneNumber, t]);
 
   const submitOtp = useCallback(async () => {
-    if (!isOtpValid || isSubmitting) return;
+    if (!isOtpValid || submissionLock.current) return;
+    submissionLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -289,8 +293,9 @@ export default function OnboardingPhoneScreen() {
       }
 
       const tokensString = JSON.stringify(tokens);
-      await setStoredAuthTokens(tokensString);
-      await flushPendingAuthAction(tokensString);
+      const committed = await setStoredAuthTokens(tokensString);
+      if (!committed) return;
+      void flushPendingAuthAction(tokensString);
       setAuthStateCache(true);
 
       if (tokens?.isNew) {
@@ -309,12 +314,14 @@ export default function OnboardingPhoneScreen() {
         ),
       );
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
-  }, [isOtpValid, isSubmitting, nextPath, otp, phoneNumber, router, t]);
+  }, [isOtpValid, nextPath, otp, phoneNumber, router, t]);
 
   const resendOtp = useCallback(async () => {
-    if (!isPhoneValid || isSubmitting || resendIn > 0) return;
+    if (!isPhoneValid || submissionLock.current || resendIn > 0) return;
+    submissionLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -330,9 +337,10 @@ export default function OnboardingPhoneScreen() {
         ),
       );
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
-  }, [isPhoneValid, isSubmitting, phoneNumber, resendIn, t]);
+  }, [isPhoneValid, phoneNumber, resendIn, t]);
 
   const isOtpStep = step === "otp";
   const primaryDisabled =

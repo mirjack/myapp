@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   imageWrap: {
     position: "relative",
     width: "100%",
-    aspectRatio: 1.08,
+    aspectRatio: 1016 / 1350,
     borderRadius: 20,
     overflow: "hidden",
     backgroundColor: "#FFF7F3",

@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { LEGAL_URLS } from "@/lib/runtime-config";
+import { openNotificationSettingsAsync } from "@/lib/notifications";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
+  Alert,
   Animated,
   Easing,
   Image,
@@ -12,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,9 +24,16 @@ import { NativePageHeader } from "@/components/native-page-header";
 import { GuestAuthCard } from "@/components/guest-auth-card";
 import { NativeBottomSheet } from "@/components/native-bottom-sheet";
 import { getHeaderCache } from "@/lib/native-header-cache";
+import {
+  clearCachedNativeBrandingContacts,
+  readCachedNativeBrandingContacts,
+} from "@/lib/native-branding-cache";
 
 import {
   clearStoredAuthTokens,
+  getAuthSessionVersion,
+  subscribeAuthTokens,
+  setPendingAuthAction,
   getStoredAuthTokens,
   getStoredAuthTokensSync,
   parseAuthTokens,
@@ -47,7 +57,6 @@ import {
 } from "@/lib/native-account-api";
 import { applyAppLanguage } from "@/lib/i18n";
 import { getStoredLanguageCode } from "@/lib/app-preferences";
-import { readCachedNativeBrandingContacts } from "@/lib/native-branding-cache";
 
 import { nativeProfileStyles as styles } from "./native-profile.styles";
 import { ProfileSvgIcon, profileIconNames } from "./profile-icons";
@@ -166,6 +175,7 @@ const CONTACT_ICONS = {
 const CONTACT_ORDER = ["telegram", "instagram", "youtube", "phone"];
 
 function DeveloperCredit() {
+  const { t } = useTranslation();
   const openBrandSite = () => {
     Linking.openURL("https://cmfrt.uz").catch(() => {});
   };
@@ -175,7 +185,7 @@ function DeveloperCredit() {
         onPress={openBrandSite}
         style={styles.developerCreditLink}
       >
-        <Text style={styles.developerCreditText}>Powered by</Text>
+        <Text style={styles.developerCreditText}>{t("ui.profile.poweredBy")}</Text>
         <View style={styles.developerCreditBadge}>
           <View style={styles.developerCreditIconWrap}>
             <DeveloperMark />
@@ -298,7 +308,9 @@ function formatContactValue(type, value) {
 export function NativeProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const initialTokens = parseAuthTokens(getStoredAuthTokensSync());
+  const storedTokens = useSyncExternalStore(subscribeAuthTokens, getStoredAuthTokensSync, getStoredAuthTokensSync);
+  const sessionVersion = getAuthSessionVersion();
+  const initialTokens = parseAuthTokens(storedTokens);
   const initialCachedProfileEntry = readCachedNativeProfileSync(
     initialTokens?.access || null,
   );
@@ -306,6 +318,7 @@ export function NativeProfileScreen() {
   const initialCachedLoyaltyProfile = readCachedNativeLoyaltyProfileSync(
     initialTokens?.access || null,
   )?.profile || null;
+  const renderedSessionRef = useRef(sessionVersion);
   const hasInitialCachedProfileRef = useRef(Boolean(initialCachedProfile));
   const hasInitialCachedLoyaltyProfileRef = useRef(Boolean(initialCachedLoyaltyProfile));
   const [user, setUser] = useState(initialCachedProfile);
@@ -436,19 +449,28 @@ export function NativeProfileScreen() {
     t("profile.currentLevel");
   const headerCache = getHeaderCache();
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let isMounted = true;
+    const version = sessionVersion;
+    const isCurrent = () => isMounted && version === getAuthSessionVersion();
+    if (renderedSessionRef.current !== version) {
+      renderedSessionRef.current = version;
+      setUser(null);
+      setLoyaltyProfile(null);
+      hasInitialCachedProfileRef.current = false;
+      hasInitialCachedLoyaltyProfileRef.current = false;
+    }
     setCurrentWebPath("/profile");
 
     getStoredAuthTokens()
       .then(async (tokensString) => {
-        if (!isMounted) return;
+        if (!isCurrent()) return;
         const tokens = parseAuthTokens(tokensString);
         const hasAccessToken = Boolean(tokens?.access);
         setIsLoggedIn(hasAccessToken);
 
         const cachedContacts = await readCachedNativeBrandingContacts();
-        if (!isMounted) return;
+        if (!isCurrent()) return;
         if (cachedContacts) {
           setBrandingContacts(cachedContacts);
         }
@@ -465,14 +487,14 @@ export function NativeProfileScreen() {
         setIsLoyaltyLoading(!hasInitialCachedLoyaltyProfileRef.current);
 
         const cachedLoyalty = await readCachedNativeLoyaltyProfileSync(tokens.access);
-        if (!isMounted) return;
+        if (!isCurrent()) return;
         if (cachedLoyalty?.profile) {
           setLoyaltyProfile((current) => current || normalizeLoyaltyProfile(cachedLoyalty.profile));
           setIsLoyaltyLoading(false);
         }
 
         const cached = await readCachedNativeProfile(tokens.access);
-        if (!isMounted) return;
+        if (!isCurrent()) return;
         if (cached?.profile) {
           setUser(cached.profile);
           setIsUserLoading(false);
@@ -484,16 +506,16 @@ export function NativeProfileScreen() {
         if (!isNativeProfileCacheFresh(cached)) {
           fetchCurrentUserProfile()
             .then((data) => {
-              if (!isMounted) return;
+              if (!isCurrent()) return;
               setUser(data);
               setIsUserLoading(false);
               setError("");
             })
             .catch((loadError) => {
-              if (!isMounted) return;
+              if (!isCurrent()) return;
               setIsUserLoading(false);
               if (loadError?.status === 401) {
-                setError("");
+                setError(t("profile.loadError"));
               } else {
                 setError(t("profile.loadError"));
               }
@@ -502,34 +524,36 @@ export function NativeProfileScreen() {
 
         fetchNativeLoyaltyProfile()
           .then((data) => {
-            if (!isMounted) return;
+            if (!isCurrent()) return;
             if (data) {
               setLoyaltyProfile(normalizeLoyaltyProfile(data));
             }
             setIsLoyaltyLoading(false);
           })
           .catch(() => {
-            if (!isMounted) return;
+            if (!isCurrent()) return;
             setIsLoyaltyLoading(false);
             // Keep existing cached tier if refresh fails.
           });
 
-        fetchNativeBranding()
-          .then((data) => {
-            if (!isMounted) return;
-            setBrandingContacts(data?.organization?.contacts || {});
-          })
-          .catch(() => {});
+        if (!cachedContacts) {
+          fetchNativeBranding()
+            .then((data) => {
+              if (!isCurrent()) return;
+              setBrandingContacts(data?.organization?.contacts || {});
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => {
-        if (!isMounted) return;
+        if (!isCurrent()) return;
         setIsUserLoading(false);
         setIsLoyaltyLoading(false);
         setError("");
       });
 
     getStoredLanguageCode().then((code) => {
-      if (isMounted) {
+      if (isCurrent()) {
         setLanguageCode(code || "ru");
       }
     });
@@ -537,7 +561,7 @@ export function NativeProfileScreen() {
     return () => {
       isMounted = false;
     };
-  }, [t]);
+  }, [t, sessionVersion]));
 
   const openLogin = () => {
     router.push({
@@ -551,18 +575,29 @@ export function NativeProfileScreen() {
     setTimeout(() => setSheet(null), 240);
   };
 
+  const logoutInProgress = useRef(false);
   const handleLogout = async () => {
-    await clearStoredAuthTokens();
-    setUser(null);
-    setIsUserLoading(false);
-    setError("");
-    setLoyaltyProfile(null);
-    setIsLoyaltyLoading(false);
-    setBrandingContacts({});
-    setIsLoggedIn(false);
-    setCurrentWebPath("/");
-    closeSheet();
-    router.replace("/(tabs)");
+    if (logoutInProgress.current) return;
+    logoutInProgress.current = true;
+    try {
+      await clearStoredAuthTokens();
+      await setPendingAuthAction(null);
+      await clearCachedNativeBrandingContacts();
+      setUser(null);
+      setIsUserLoading(false);
+      setError("");
+      setLoyaltyProfile(null);
+      setIsLoyaltyLoading(false);
+      setBrandingContacts({});
+      setIsLoggedIn(false);
+      setCurrentWebPath("/");
+      closeSheet();
+      router.replace("/(tabs)");
+    } catch {
+      Alert.alert(t("profile.logout"), t("profile.loadError"));
+    } finally {
+      logoutInProgress.current = false;
+    }
   };
 
   const handleSheetAction = async (actionId, payload) => {
@@ -590,6 +625,20 @@ export function NativeProfileScreen() {
   };
 
   const handleMenuPress = (item) => {
+    if (item.key === "privacy" || item.key === "terms") {
+      try {
+        const url = new URL(LEGAL_URLS[item.key]);
+        if (url.protocol !== "https:" || url.username || url.password) throw new Error("Invalid legal URL");
+        void Linking.openURL(url.toString()).catch(() => Alert.alert(item.label, t("profile.loadError")));
+      } catch {
+        Alert.alert(item.label, t("profile.documentUnavailable"));
+      }
+      return;
+    }
+    if (item.key === "notifications") {
+      void openNotificationSettingsAsync().catch(() => Alert.alert(t("profile.notifications"), t("profile.loadError")));
+      return;
+    }
     if (item.route) {
       if (
         String(item.route).startsWith("/account/") ||
@@ -625,6 +674,7 @@ export function NativeProfileScreen() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
 
+    const refreshSession = getAuthSessionVersion();
     setIsRefreshing(true);
     setError("");
 
@@ -635,11 +685,15 @@ export function NativeProfileScreen() {
         fetchNativeBranding(),
       ]);
 
+    if (refreshSession !== getAuthSessionVersion()) {
+      setIsRefreshing(false);
+      return;
+    }
     if (profileResult.status === "fulfilled") {
       setUser(profileResult.value);
       setIsUserLoading(false);
     } else if (profileResult.reason?.status === 401) {
-      setError("");
+      setError(t("profile.loadError"));
     } else {
       setError(t("profile.loadError"));
     }

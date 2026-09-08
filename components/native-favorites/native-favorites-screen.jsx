@@ -390,7 +390,7 @@ const styles = {
   skeletonImage: {
     position: "relative",
     width: "100%",
-    aspectRatio: 1.08,
+    aspectRatio: 1016 / 1350,
     borderRadius: 20,
     backgroundColor: "#ECECEF",
   },

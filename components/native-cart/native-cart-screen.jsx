@@ -33,12 +33,13 @@ import {
   getCartItems,
 } from "@/lib/native-market-api";
 import {
+  getAuthSessionVersion,
   getStoredAuthTokens,
   getStoredAuthTokensSync,
   parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
-  hydrateCartQuantities,
+  syncCartQuantities,
   setCartQuantity,
   useCartQuantitiesState,
 } from "@/lib/cart-quantities";
@@ -320,10 +321,12 @@ export function NativeCartScreen() {
         return;
       }
 
+      const session = getAuthSessionVersion();
       const [cartResponse, products] = await Promise.all([
         getCartItems(storedTokens.access),
         fetchProductList({ pageSize: 12 }).catch(() => []),
       ]);
+      if (session !== getAuthSessionVersion()) return;
       const nextItems = Array.isArray(cartResponse)
         ? cartResponse
         : (cartResponse?.items ?? []);
@@ -337,7 +340,7 @@ export function NativeCartScreen() {
         return next;
       });
       setRecommended(products);
-      await hydrateCartQuantities(storedTokens.access, { force: true });
+      syncCartQuantities(cartResponse, session);
       setError("");
     } catch {
       setError(

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import Svg, { Path } from "react-native-svg";
 
 import { BrandColors } from "@/constants/theme";
@@ -12,7 +13,10 @@ import {
   fetchNativeLoyaltyProfile,
   fetchNativeLoyaltyTransactions,
 } from "@/lib/native-account-api";
-import { setCurrentWebPath } from "@/lib/tab-bar-visibility";
+import {
+  getLastNonProductWebPath,
+  setCurrentWebPath,
+} from "@/lib/tab-bar-visibility";
 
 const numberValue = (value) => {
   const parsed = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
@@ -25,29 +29,21 @@ const formatValue = (value) =>
     .replace(/\u00a0/g, " ");
 
 const PROGRAM_LEVELS = [
-  {
-    title: "Новичок 🥉",
-    description: "На этом уровне вы получаете 3% от суммы заказа.",
-  },
-  {
-    title: "Постоянный клиент 🎖️",
-    description: "На этом уровне вы получаете 4% от суммы заказа.",
-  },
-  {
-    title: "Эксперт 🏆",
-    description:
-      "Самый высокий уровень — и самые щедрые бонусы. Вы получаете 5% от суммы заказа.",
-  },
+  { titleKey: "tierBeginner", descriptionKey: "tierBeginnerDescription" },
+  { titleKey: "tierRegular", descriptionKey: "tierRegularDescription" },
+  { titleKey: "tierExpert", descriptionKey: "tierExpertDescription" },
 ];
 
 export default function LoyaltyInfoScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(true);
 
   useEffect(() => {
+    const previousTabPath = getLastNonProductWebPath();
     setCurrentWebPath("/loyalty-info");
     let active = true;
     Promise.allSettled([
@@ -72,11 +68,12 @@ export default function LoyaltyInfoScreen() {
       });
     return () => {
       active = false;
+      setCurrentWebPath(previousTabPath);
     };
   }, []);
 
   const currentTier =
-    profile?.tier_name || profile?.current_tier_name || "Новичок";
+    profile?.tier_name || profile?.current_tier_name || t("ui.loyalty.tierBeginner");
   const nextTier = profile?.next_tier_name || profile?.nextTierName || "";
   const progress = Math.round(
     Math.min(
@@ -109,10 +106,10 @@ export default function LoyaltyInfoScreen() {
               name="chevron-back"
               size={28}
             />
-            <Text style={styles.commonHeaderBackText}>Назад</Text>
+            <Text style={styles.commonHeaderBackText}>{t("ui.loyalty.back")}</Text>
           </Pressable>
           <Text numberOfLines={1} style={styles.commonHeaderTitle}>
-            Мои бонусы
+            {t("ui.loyalty.title")}
           </Text>
           <View style={styles.commonHeaderSpacer} />
         </View>
@@ -125,11 +122,11 @@ export default function LoyaltyInfoScreen() {
             <View style={styles.heroGlow} />
             <View style={styles.heroTop}>
               <View>
-                <Text style={styles.heroCaption}>ВАШ УРОВЕНЬ</Text>
+                <Text style={styles.heroCaption}>{t("ui.loyalty.level")}</Text>
                 <View style={styles.levelLine}>
                   <Text style={styles.heroLevel}>{currentTier}</Text>
                   <Text style={styles.heroEmoji}>
-                    {currentTier === "Эксперт" ? "🏆" : "✨"}
+                    {currentTier.includes("Эксперт") || currentTier.includes("Expert") ? "🏆" : "✨"}
                   </Text>
                 </View>
               </View>
@@ -144,18 +141,18 @@ export default function LoyaltyInfoScreen() {
             </View>
             <View style={styles.balanceRow}>
               <View>
-                <Text style={styles.balanceCaption}>Доступно бонусов</Text>
+                <Text style={styles.balanceCaption}>{t("ui.loyalty.available")}</Text>
                 <Text style={styles.balance}>{isLoading ? "…" : balance}</Text>
               </View>
               <View style={styles.pointsPill}>
-                <Text style={styles.pointsPillText}>баллов</Text>
+                <Text style={styles.pointsPillText}>{t("ui.loyalty.points")}</Text>
               </View>
             </View>
             {!isLastTier ? (
               <View style={styles.progressBlock}>
                 <View style={styles.progressMeta}>
                   <Text style={styles.progressCaption}>
-                    Прогресс до {nextTier}
+                    {t("ui.loyalty.progress", { tier: nextTier })}
                   </Text>
                   <Text style={styles.progressPercent}>{progress}%</Text>
                 </View>
@@ -165,27 +162,27 @@ export default function LoyaltyInfoScreen() {
                   />
                 </View>
                 <Text style={styles.progressHint}>
-                  Осталось {pointsToNext} баллов до нового уровня
+                  {t("ui.loyalty.pointsToNext", { points: pointsToNext })}
                 </Text>
               </View>
             ) : (
               <Text style={styles.maxLevel}>
-                Поздравляем! Вы достигли максимального уровня.
+                {t("ui.loyalty.maxLevel")}
               </Text>
             )}
           </LinearGradient>
 
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>История бонусов</Text>
+              <Text style={styles.sectionTitle}>{t("ui.loyalty.history")}</Text>
             </View>
           </View>
           <View style={styles.levelsCard}>
             {isTransactionsLoading ? (
-              <Text style={styles.historyEmpty}>Загрузка истории...</Text>
+              <Text style={styles.historyEmpty}>{t("ui.loyalty.loadingHistory")}</Text>
             ) : transactions.length === 0 ? (
               <Text style={styles.historyEmpty}>
-                История бонусов пока пуста
+                {t("ui.loyalty.emptyHistory")}
               </Text>
             ) : (
               transactions.map((entry, index) => {
@@ -219,8 +216,8 @@ export default function LoyaltyInfoScreen() {
                       <View style={styles.levelTitleRow}>
                         <Text style={styles.levelName}>
                           {isAccrual
-                            ? "Начисление бонусов"
-                            : "Списание бонусов"}
+                            ? t("ui.loyalty.accrual")
+                            : t("ui.loyalty.deduction")}
                         </Text>
                         <Text
                           style={[
@@ -239,8 +236,10 @@ export default function LoyaltyInfoScreen() {
                           ? new Date(entry.created_at).toLocaleDateString(
                               "ru-RU",
                             )
-                          : "Дата не указана"}
-                        {entry.order_id ? ` · Заказ #${entry.order_id}` : ""}
+                          : t("ui.loyalty.dateUnknown")}
+                        {entry.order_id
+                          ? ` · ${t("ui.loyalty.order", { id: entry.order_id })}`
+                          : ""}
                       </Text>
                     </View>
                   </View>
@@ -250,19 +249,18 @@ export default function LoyaltyInfoScreen() {
           </View>
 
           <View style={styles.rulesSection}>
-            <Text style={styles.rulesTitle}>Как рассчитываются баллы?</Text>
+            <Text style={styles.rulesTitle}>{t("ui.loyalty.rules")}</Text>
             <Text style={styles.rulesDescription}>
-              За каждый заказ вы получаете баллы и повышаете свой статус.
-              Накопленные баллы вы сможете использовать для покупок.
+              {t("ui.loyalty.rulesDescription")}
             </Text>
             <View style={styles.rulesList}>
               {PROGRAM_LEVELS.map((level) => (
-                <View key={level.title} style={styles.ruleItem}>
-                  <Text style={styles.ruleTitle}>{level.title}</Text>
+                <View key={level.titleKey} style={styles.ruleItem}>
+                  <Text style={styles.ruleTitle}>{t(`ui.loyalty.${level.titleKey}`)}</Text>
                   <Text style={styles.ruleDescription}>
-                    {level.description}
+                    {t(`ui.loyalty.${level.descriptionKey}`)}
                   </Text>
-                  <Text style={styles.ruleNote}>1 балл = 1 000 сум</Text>
+                  <Text style={styles.ruleNote}>{t("ui.loyalty.rulePoint")}</Text>
                 </View>
               ))}
             </View>
@@ -275,7 +273,7 @@ export default function LoyaltyInfoScreen() {
               pressed && styles.pressed,
             ]}
           >
-            <Text style={styles.shopButtonText}>Перейти к покупкам</Text>
+            <Text style={styles.shopButtonText}>{t("ui.loyalty.shop")}</Text>
             <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
           </Pressable>
         </ScrollView>

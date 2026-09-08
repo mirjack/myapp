@@ -20,6 +20,7 @@ import Svg, { Path } from "react-native-svg";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -108,11 +109,13 @@ function CashbackPill({ children }) {
   );
 }
 
-function ProductPageSkeleton({ topInset, onBack }) {
+function ProductPageSkeleton({ onBack }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-      <View style={[styles.safeTop, { height: topInset }]} />
+      <View style={[styles.safeTop, { height: Math.max(24, insets.top) }]} />
       <View style={styles.skeletonImage}>
         <View style={styles.topBarOverlay}>
           <Pressable onPress={onBack} style={styles.iconButton}>
@@ -151,6 +154,7 @@ function ProductPageSkeleton({ topInset, onBack }) {
 
 export function NativeProductScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -191,6 +195,7 @@ export function NativeProductScreen() {
 
   const images = useMemo(() => getProductImages(product), [product]);
   const heroWidth = Math.max(1, Math.round(windowWidth));
+  const heroHeight = Math.round(heroWidth * (1350 / 1016));
   const priceStats = computePriceStats(product);
   const totalPrice = priceStats.finalPrice * Math.max(1, quantity);
   const cashbackValue = Math.max(0, Math.round(totalPrice * 0.03));
@@ -227,7 +232,7 @@ export function NativeProductScreen() {
   const loadProduct = useCallback(
     async ({ silent = false } = {}) => {
       if (!productId) {
-        setError("Product not found.");
+        setError(t("ui.product.notFound"));
         setLoading(false);
         setRefreshing(false);
         return;
@@ -292,13 +297,13 @@ export function NativeProductScreen() {
           setCartQuantity(productId, 0);
         }
       } catch {
-        setError("Failed to load product information.");
+        setError(t("ui.product.loadError"));
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [getTokens, productId],
+    [getTokens, productId, t],
   );
 
   useEffect(() => {
@@ -396,11 +401,11 @@ export function NativeProductScreen() {
         params: { checkoutProductId: String(productId) },
       });
     } catch (err) {
-      setError(err?.message || "Unable to start checkout.");
+      setError(err?.message || t("ui.product.checkoutError"));
     } finally {
       setBuyPending(false);
     }
-  }, [buyPending, cartPending, getTokens, productId, quantity, requireAuth, router]);
+  }, [buyPending, cartPending, getTokens, productId, quantity, requireAuth, router, t]);
 
   const changeQuantity = useCallback(
     async (delta) => {
@@ -470,13 +475,13 @@ export function NativeProductScreen() {
   }, [loadProduct]);
 
   if (loading && !product) {
-    return <ProductPageSkeleton topInset={insets.top} onBack={handleBack} />;
+    return <ProductPageSkeleton onBack={handleBack} />;
   }
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-      <View style={[styles.safeTop, { height: insets.top }]} />
+      <View style={[styles.safeTop, { height: Math.max(24, insets.top) }]} />
       <ScrollView
         bounces={false}
         overScrollMode="never"
@@ -525,7 +530,7 @@ export function NativeProductScreen() {
                   );
                 }}
                 renderItem={({ item }) => (
-                  <View style={{ width: heroWidth, height: 364 }}>
+                  <View style={{ width: heroWidth, height: heroHeight }}>
                     <Pressable
                       style={styles.productImagePressable}
                       onPress={() => setIsImageViewerVisible(true)}
@@ -534,7 +539,6 @@ export function NativeProductScreen() {
                         source={{ uri: item }}
                         style={styles.productImage}
                         contentFit="cover"
-                        contentPosition="center"
                         cachePolicy="memory-disk"
                         transition={180}
                         recyclingKey={`${productId}-${item}`}
@@ -593,7 +597,9 @@ export function NativeProductScreen() {
             </View>
           ) : null}
 
-          <Text style={styles.title}>{product?.name || "Product"}</Text>
+          <Text style={styles.title}>
+            {product?.name || t("ui.product.fallbackName")}
+          </Text>
           {product?.description ? (
             <Text style={styles.description}>{product.description}</Text>
           ) : null}
@@ -603,18 +609,20 @@ export function NativeProductScreen() {
           <View style={styles.stockIcon}>
             <Ionicons name="checkmark" size={22} color="#22C55E" />
           </View>
-          <Text style={styles.stockText}>В наличии</Text>
-          <Text style={styles.stockCount}>{availableQuantity} шт</Text>
+          <Text style={styles.stockText}>{t("ui.product.inStock")}</Text>
+          <Text style={styles.stockCount}>
+            {availableQuantity} {t("ui.product.unit")}
+          </Text>
           {false ? (
             <Text style={styles.stockCount}>
-              {Number(product.available_quantity) || 0} шт
+              {Number(product.available_quantity) || 0} {t("ui.product.unit")}
             </Text>
           ) : null}
         </View>
 
         {relatedProducts.length > 0 ? (
           <View style={styles.relatedSection}>
-            <Text style={styles.relatedTitle}>Similar products</Text>
+            <Text style={styles.relatedTitle}>{t("ui.product.related")}</Text>
             <View style={styles.relatedGrid}>
               {relatedProducts.map((item) => (
                 <View key={item.id} style={styles.relatedCell}>
@@ -636,7 +644,7 @@ export function NativeProductScreen() {
           ]}
         >
             <View style={styles.cashbackSummary}>
-              <Text style={styles.cashbackLabel}>Cashback</Text>
+              <Text style={styles.cashbackLabel}>{t("ui.product.cashback")}</Text>
               <CashbackPill>+{formatCurrency(cashbackValue)}</CashbackPill>
             </View>
             <View style={styles.divider} />
@@ -670,7 +678,7 @@ export function NativeProductScreen() {
               </View>
             </View>
             <Pressable onPress={handleGoToCart} style={styles.cartButton}>
-              <Text style={styles.cartButtonText}>Go to cart</Text>
+              <Text style={styles.cartButtonText}>{t("ui.product.goToCart")}</Text>
             </Pressable>
         </Animated.View>
 
@@ -687,7 +695,7 @@ export function NativeProductScreen() {
               {cartPending ? (
                 <ActivityIndicator color="#FE946E" />
               ) : (
-                <Text style={styles.addButtonText}>Add to cart</Text>
+                <Text style={styles.addButtonText}>{t("ui.product.addToCart")}</Text>
               )}
             </Pressable>
             <Pressable
@@ -695,7 +703,7 @@ export function NativeProductScreen() {
               disabled={cartPending || buyPending}
               style={styles.buyButton}
             >
-              <Text style={styles.buyButtonText}>Buy now</Text>
+              <Text style={styles.buyButtonText}>{t("ui.product.buyNow")}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -757,6 +765,7 @@ const styles = StyleSheet.create({
   },
   safeTop: {
     width: "100%",
+    height: 24,
     backgroundColor: "#FFFFFF",
   },
   topBar: {
@@ -767,7 +776,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 12,
     right: 12,
-    top: 8,
+    top: 28,
     zIndex: 3,
     flexDirection: "row",
     alignItems: "center",
@@ -975,7 +984,7 @@ const styles = StyleSheet.create({
   },
   skeletonImage: {
     position: "relative",
-    height: 364,
+    aspectRatio: 1016 / 1350,
     backgroundColor: "#F1F1F3",
   },
   skeletonPriceCard: {

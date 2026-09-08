@@ -18,8 +18,17 @@
     "build:ios": "eas build -p ios --profile preview",
     "build:ios:prod": "eas build -p ios --profile production",
     "lint": "expo lint",
+    "test:performance": "node --experimental-vm-modules --test scripts/performance.test.cjs",
+    "test:auth": "node --experimental-vm-modules --test scripts/auth.test.cjs",
     "postinstall": "patch-package",
-    "knip": "knip"
+    "knip": "knip",
+    "build:apk:arm64": "eas build -p android --profile preview-arm64",
+    "build:apk:universal": "eas build -p android --profile preview-universal",
+    "build:aab": "eas build -p android --profile production",
+    "test": "node --experimental-vm-modules --test scripts/*.test.cjs",
+    "check:release": "node scripts/check-release.cjs",
+    "audit:security": "npm audit --omit=dev --audit-level=high",
+    "eas-build-pre-install": "node scripts/check-eas-build.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

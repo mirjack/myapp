@@ -7,6 +7,8 @@ import "react-native-reanimated";
 import "@/lib/i18n";
 import { initializeAppAsync } from "@/lib/app-bootstrap";
 
+export { AppErrorBoundary as ErrorBoundary } from "@/components/app-error-boundary";
+
 export const AppTheme = {
   ...DefaultTheme,
   colors: {

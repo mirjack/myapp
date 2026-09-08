@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import YaMap, { Animation, Marker } from "react-native-yamap";
+import { useTranslation } from "react-i18next";
 
 import { DEFAULT_TASHKENT_REGION } from "@/lib/address-geocoding-service";
 import { YANDEX_MAPS_API_KEY } from "@/lib/runtime-config";
@@ -74,6 +75,7 @@ export const AddressMap = memo(function AddressMap({
   onStatusChange,
   userLocation,
 }) {
+  const { t } = useTranslation();
   const nativeMapRef = useRef(null);
   const cameraZoomRef = useRef(deltaToZoom(DEFAULT_TASHKENT_REGION));
   const hasNativeMap = Platform.OS !== "web";
@@ -247,8 +249,8 @@ export const AddressMap = memo(function AddressMap({
     return (
       <View style={[styles.map, styles.webFallback]}>
         <View style={styles.fallbackCard}>
-          <Text style={styles.fallbackTitle}>Map preview is available on iOS and Android only.</Text>
-          <Text style={styles.fallbackText}>Open the mobile app to pick an address on the map.</Text>
+          <Text style={styles.fallbackTitle}>{t("ui.map.webTitle")}</Text>
+          <Text style={styles.fallbackText}>{t("ui.map.webText")}</Text>
         </View>
       </View>
     );
@@ -258,8 +260,8 @@ export const AddressMap = memo(function AddressMap({
     return (
       <View style={[styles.map, styles.webFallback]}>
         <View style={styles.fallbackCard}>
-          <Text style={styles.fallbackTitle}>Yandex Maps API key is missing.</Text>
-          <Text style={styles.fallbackText}>Add EXPO_PUBLIC_YANDEX_MAPS_API_KEY and rebuild the app.</Text>
+          <Text style={styles.fallbackTitle}>{t("ui.map.missingKeyTitle")}</Text>
+          <Text style={styles.fallbackText}>{t("ui.map.missingKeyText")}</Text>
         </View>
       </View>
     );
@@ -269,8 +271,8 @@ export const AddressMap = memo(function AddressMap({
     return (
       <View style={[styles.map, styles.webFallback]}>
         <View style={styles.fallbackCard}>
-          <Text style={styles.fallbackTitle}>Yandex native map is not available in this build.</Text>
-          <Text style={styles.fallbackText}>Rebuild the development app after installing react-native-yamap.</Text>
+          <Text style={styles.fallbackTitle}>{t("ui.map.nativeTitle")}</Text>
+          <Text style={styles.fallbackText}>{t("ui.map.nativeText")}</Text>
         </View>
       </View>
     );
@@ -279,7 +281,7 @@ export const AddressMap = memo(function AddressMap({
   if (!isMapReady) {
     return (
       <View style={[styles.map, styles.loadingMap]}>
-        <Text style={styles.loadingText}>Loading Yandex map...</Text>
+        <Text style={styles.loadingText}>{t("ui.map.loading")}</Text>
       </View>
     );
   }

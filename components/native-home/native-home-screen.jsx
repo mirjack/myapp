@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
+  FlatList,
   Linking,
   Pressable,
   RefreshControl,
@@ -162,7 +162,7 @@ function BannerCarousel({ banners, loading, onPressBanner }) {
     return [banners[banners.length - 1], ...banners, banners[0]];
   }, [banners]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!banners.length) return undefined;
 
     const hasLoop = banners.length >= 2;
@@ -202,7 +202,7 @@ function BannerCarousel({ banners, loading, onPressBanner }) {
         scheduleAutoPlayRef.current = null;
       }
     };
-  }, [banners.length, interval]);
+  }, [banners.length, interval]));
 
   if (loading) return <View style={styles.bannerSkeleton} />;
   if (!banners.length) return null;
@@ -356,11 +356,11 @@ function LoyaltyStats({ profile, loading, onOpen, t }) {
   const tierName =
     profile.tier_name ||
     profile.current_tier_name ||
-    t("homePage.progress.defaultTier", "ÐÐ¾Ð²Ð¸Ñ‡Ð¾Ðº");
+    t("homePage.progress.defaultTier", "Новичок");
   const nextTier =
     profile.next_tier_name ||
     profile.nextTierName ||
-    t("homePage.progress.nextTier", "Ð­ÐºÑÐ¿ÐµÑ€Ñ‚");
+    t("homePage.progress.nextTier", "Эксперт");
   const pointsToNextTier =
     profile.points_to_next_tier ?? profile.pointsToNextTier ?? points;
   const pointsText = `${formatLoyaltyValue(pointsToNextTier)} ${t(
@@ -472,6 +472,7 @@ export function NativeHomeScreen() {
     parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearch = useDeferredValue(searchQuery);
   const [stories, setStories] = useState(
     () => homeCache.stories.get(languageCode) ?? [],
   );
@@ -558,7 +559,7 @@ export function NativeHomeScreen() {
           force || !homeCache.sections.has(languageCode)
             ? true
             : current.sections,
-        loyalty: Boolean(tokens?.access),
+        loyalty: current.loyalty,
       }));
 
       const nextStoriesPromise =
@@ -610,26 +611,25 @@ export function NativeHomeScreen() {
           categories: false,
         }));
 
-        const sectionSource =
-          !force && homeCache.sections.has(languageCode)
-            ? homeCache.sections.get(languageCode)
-            : await Promise.all(
-                nextCategories.map(async (category) => {
-                  const products = await fetchProductList({
-                    categoryId: category.id,
-                    pageSize: 8,
-                  });
-                  return {
-                    category,
-                    products: products.filter(
-                      (product) =>
-                        String(product.category_id) === String(category.id),
-                    ),
-                  };
-                }),
-              ).then((items) =>
-                items.filter((section) => section.products.length > 0),
-              );
+        let sectionSource = homeCache.sections.get(languageCode);
+        if (force || !sectionSource) {
+          sectionSource = [];
+          // Limit concurrent requests and publish each batch as it arrives.
+          for (let offset = 0; offset < nextCategories.length; offset += 4) {
+            if (requestId !== requestIdRef.current) return;
+            const batch = await Promise.all(nextCategories.slice(offset, offset + 4).map(async (category) => {
+              try {
+                const products = await fetchProductList({ categoryId: category.id, pageSize: 8 });
+                return { category, products: products.filter(product => String(product.category_id) === String(category.id)) };
+              } catch {
+                return homeCache.sections.get(languageCode)?.find(section => section.category.id === category.id);
+              }
+            }));
+            if (requestId !== requestIdRef.current) return;
+            sectionSource = [...sectionSource, ...batch.filter(section => section?.products.length)];
+            setSections(sectionSource);
+          }
+        }
         if (requestId !== requestIdRef.current) return;
         homeCache.sections.set(languageCode, sectionSource);
         setSections(sectionSource);
@@ -640,11 +640,12 @@ export function NativeHomeScreen() {
         }
       }
     },
-    [languageCode, tokens?.access],
+    [languageCode],
   );
 
   useEffect(() => {
-    void loadHome();
+    void loadHome().catch(() => {});
+    return () => { requestIdRef.current += 1; };
   }, [loadHome]);
 
   useEffect(() => {
@@ -674,7 +675,7 @@ export function NativeHomeScreen() {
   }, [tokens?.access]);
 
   const filteredSections = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = deferredSearch.trim().toLowerCase();
     if (!normalizedQuery) return sections;
     return sections
       .map((section) => ({
@@ -693,7 +694,15 @@ export function NativeHomeScreen() {
         }),
       }))
       .filter((section) => section.products.length > 0);
-  }, [searchQuery, sections]);
+  }, [deferredSearch, sections]);
+
+  const productRows = useMemo(() => filteredSections.flatMap(({ category, products }) => {
+    const rows = [{ key: `heading-${category.id}`, category }];
+    for (let index = 0; index < products.length; index += 2) {
+      rows.push({ key: `${category.id}-${products[index].id}`, products: products.slice(index, index + 2) });
+    }
+    return rows;
+  }), [filteredSections]);
 
   const openCategory = useCallback(
     (category) => {
@@ -760,11 +769,11 @@ export function NativeHomeScreen() {
     const tierName =
       loyaltyProfile?.tier_name ||
       loyaltyProfile?.current_tier_name ||
-      t("homePage.progress.defaultTier", "Current level");
+      t("homePage.progress.defaultTier", "Новичок");
     const nextTier =
       loyaltyProfile?.next_tier_name ||
       loyaltyProfile?.nextTierName ||
-      t("homePage.progress.nextTier", "next level");
+      t("homePage.progress.nextTier", "Эксперт");
     const pointsToNextTier =
       loyaltyProfile?.points_to_next_tier ??
       loyaltyProfile?.pointsToNextTier ??
@@ -839,7 +848,7 @@ export function NativeHomeScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    void loadHome({ force: true });
+    void loadHome({ force: true }).catch(() => {});
   }, [loadHome]);
 
   return (
@@ -863,7 +872,7 @@ export function NativeHomeScreen() {
         }
       />
 
-      <ScrollView
+      <FlatList
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
@@ -879,7 +888,25 @@ export function NativeHomeScreen() {
           />
         }
         keyboardShouldPersistTaps="always"
-      >
+        data={productRows}
+        keyExtractor={(item) => item.key}
+        initialNumToRender={5}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        renderItem={({ item }) => item.category ? (
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
+            {item.category.name || t("homePage.productsTitle", "Products")}
+          </Text>
+        ) : (
+          <View style={[styles.grid, { marginBottom: 12 }]}>
+            {item.products.map(product => (
+              <View key={product.id} style={styles.cardCell}>
+                <ProductCard product={product} stretch onAdd={isLoggedIn ? undefined : openLoginRequiredSheet} />
+              </View>
+            ))}
+          </View>
+        )}
+        ListHeaderComponent={<>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="#8D8E94" />
           <TextInput
@@ -934,44 +961,18 @@ export function NativeHomeScreen() {
           </>
         ) : null}
 
-        <View style={styles.productsBlock}>
-          {loading.sections && !sections.length ? (
-            <ProductGridSkeleton />
-          ) : filteredSections.length ? (
-            filteredSections.map(({ category, products }) => (
-              <View key={category.id} style={styles.productSection}>
-                <Text style={styles.sectionTitle}>
-                  {category.name || t("homePage.productsTitle", "Products")}
-                </Text>
-                <View style={styles.grid}>
-                  {products.map((product) => (
-                    <View key={product.id} style={styles.cardCell}>
-                      <ProductCard
-                        product={product}
-                        stretch
-                        onAdd={isLoggedIn ? undefined : openLoginRequiredSheet}
-                      />
-                    </View>
-                  ))}
-                </View>
+        </>}
+        ListEmptyComponent={
+          <View style={styles.productsBlock}>
+            {loading.sections ? <ProductGridSkeleton /> : (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>{t("homePage.productsEmpty", t("catalogPage.noProducts"))}</Text>
+                <Text style={styles.emptyText}>{t("homePage.productsTryDifferent", t("catalogPage.tryDifferent"))}</Text>
               </View>
-            ))
-          ) : (
-            <View style={styles.emptyBox}>
-              {loading.sections ? <ActivityIndicator color="#FE946E" /> : null}
-              <Text style={styles.emptyTitle}>
-                {t("homePage.productsEmpty", t("catalogPage.noProducts"))}
-              </Text>
-              <Text style={styles.emptyText}>
-                {t(
-                  "homePage.productsTryDifferent",
-                  t("catalogPage.tryDifferent"),
-                )}
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+            )}
+          </View>
+        }
+      />
 
       <NativeBottomSheet
         mounted={Boolean(activeSheet)}
@@ -1289,7 +1290,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   skeletonImage: {
-    aspectRatio: 1.08,
+    aspectRatio: 1016 / 1350,
     borderRadius: 20,
     backgroundColor: "#ECECEF",
   },
