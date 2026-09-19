@@ -41,6 +41,45 @@ test('caller cancellation reaches fetch and is not reported as a timeout', async
   controller.abort(); await assert.rejects(request, /caller canceled/);
 });
 
+test('cold-start reads recover automatically from network and temporary server failures', async () => {
+  let calls = 0;
+  const response = { status: 200 };
+  const { fetchWithTimeout } = await load('lib/network-request.js', { fetch: async () => {
+    calls++;
+    if (calls === 1) throw new TypeError('Network request failed');
+    if (calls === 2) return { status: 503 };
+    return response;
+  } });
+  assert.equal(await fetchWithTimeout('https://api.test/products'), response);
+  assert.equal(calls, 3);
+});
+
+test('read retries are bounded and authentication errors are returned immediately', async () => {
+  let calls = 0;
+  const { fetchWithTimeout } = await load('lib/network-request.js', { fetch: async () => {
+    calls++; throw new TypeError('offline');
+  } });
+  await assert.rejects(fetchWithTimeout('https://api.test/products'), /offline/);
+  assert.equal(calls, 3);
+  const auth = await load('lib/network-request.js', { fetch: async () => {
+    calls++; return { status: 401 };
+  } });
+  assert.equal((await auth.fetchWithTimeout('https://api.test/profile')).status, 401);
+  assert.equal(calls, 4);
+});
+
+test('cancellation during retry delay prevents another request', async () => {
+  let calls = 0;
+  const controller = new AbortController();
+  const { fetchWithTimeout } = await load('lib/network-request.js', { fetch: async () => {
+    calls++;
+    setTimeout(() => controller.abort(), 10);
+    throw new TypeError('offline');
+  } });
+  await assert.rejects(fetchWithTimeout('https://api.test/products', { signal: controller.signal }), error => error.name === 'AbortError');
+  assert.equal(calls, 1);
+});
+
 test('support data and an in-flight load are cleared when account changes', async () => {
   let session = 1, resolveLoad;
   const listeners = new Set();

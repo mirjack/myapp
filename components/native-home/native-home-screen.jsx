@@ -592,15 +592,25 @@ export function NativeHomeScreen() {
             );
 
       try {
+        // A failed request is not an empty catalog. Preserve prior data and
+        // leave missing cache entries available for the next load to retry.
+        let categoriesLoaded = false;
+        const resolveResource = async (promise, cache) => {
+          try {
+            const items = await promise;
+            if (requestId === requestIdRef.current) cache.set(languageCode, items);
+            if (cache === homeCache.categories) categoriesLoaded = true;
+            return items;
+          } catch {
+            return cache.get(languageCode) ?? [];
+          }
+        };
         const [nextStories, nextBanners, nextCategories] = await Promise.all([
-          nextStoriesPromise.catch(() => []),
-          nextBannersPromise.catch(() => []),
-          nextCategoriesPromise.catch(() => []),
+          resolveResource(nextStoriesPromise, homeCache.stories),
+          resolveResource(nextBannersPromise, homeCache.banners),
+          resolveResource(nextCategoriesPromise, homeCache.categories),
         ]);
         if (requestId !== requestIdRef.current) return;
-        homeCache.stories.set(languageCode, nextStories);
-        homeCache.banners.set(languageCode, nextBanners);
-        homeCache.categories.set(languageCode, nextCategories);
         setStories(nextStories);
         setBanners(nextBanners);
         setCategories(nextCategories);
@@ -612,6 +622,7 @@ export function NativeHomeScreen() {
         }));
 
         let sectionSource = homeCache.sections.get(languageCode);
+        let sectionsLoaded = categoriesLoaded;
         if (force || !sectionSource) {
           sectionSource = [];
           // Limit concurrent requests and publish each batch as it arrives.
@@ -622,6 +633,7 @@ export function NativeHomeScreen() {
                 const products = await fetchProductList({ categoryId: category.id, pageSize: 8 });
                 return { category, products: products.filter(product => String(product.category_id) === String(category.id)) };
               } catch {
+                sectionsLoaded = false;
                 return homeCache.sections.get(languageCode)?.find(section => section.category.id === category.id);
               }
             }));
@@ -631,7 +643,7 @@ export function NativeHomeScreen() {
           }
         }
         if (requestId !== requestIdRef.current) return;
-        homeCache.sections.set(languageCode, sectionSource);
+        if (sectionsLoaded) homeCache.sections.set(languageCode, sectionSource);
         setSections(sectionSource);
       } finally {
         if (requestId === requestIdRef.current) {
