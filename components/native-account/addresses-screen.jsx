@@ -216,6 +216,9 @@ export function AddressesScreen() {
   const mapRef = useRef(null);
   const reverseGeocodeAbortRef = useRef(null);
   const reverseGeocodeTimeoutRef = useRef(null);
+  const cameraTimeoutsRef = useRef([]);
+  const isMountedRef = useRef(false);
+  const loadSequenceRef = useRef(0);
   const [mode, setMode] = useState("list");
   const [addresses, setAddresses] = useState([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -243,23 +246,55 @@ export function AddressesScreen() {
   });
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      reverseGeocodeAbortRef.current?.abort();
+      if (reverseGeocodeTimeoutRef.current) {
+        clearTimeout(reverseGeocodeTimeoutRef.current);
+      }
+      cameraTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      cameraTimeoutsRef.current = [];
+    };
+  }, []);
+
   const loadAddresses = useCallback(async ({ silent = false } = {}) => {
+    const requestSequence = ++loadSequenceRef.current;
     if (silent) setIsRefreshing(true);
     else setIsLoadingList(true);
     setListError("");
 
     try {
       const data = await listNativeAddresses(silent);
+      if (
+        !isMountedRef.current ||
+        requestSequence !== loadSequenceRef.current
+      ) {
+        return;
+      }
       setAddresses(Array.isArray(data) ? data.map(normalizeAddressItem) : []);
     } catch (loadError) {
+      if (
+        !isMountedRef.current ||
+        requestSequence !== loadSequenceRef.current
+      ) {
+        return;
+      }
       setListError(
         loadError?.status === 401
           ? t("addresses.loadErrorAuth")
           : t("addresses.loadError"),
       );
     } finally {
-      setIsLoadingList(false);
-      setIsRefreshing(false);
+      if (
+        isMountedRef.current &&
+        requestSequence === loadSequenceRef.current
+      ) {
+        setIsLoadingList(false);
+        setIsRefreshing(false);
+      }
     }
   }, [t]);
 
@@ -292,6 +327,8 @@ export function AddressesScreen() {
     reverseGeocodeAbortRef.current?.abort();
     if (reverseGeocodeTimeoutRef.current)
       clearTimeout(reverseGeocodeTimeoutRef.current);
+    cameraTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    cameraTimeoutsRef.current = [];
     setSelectedCoordinates({
       latitude: DEFAULT_TASHKENT_REGION.latitude,
       longitude: DEFAULT_TASHKENT_REGION.longitude,
@@ -430,6 +467,8 @@ export function AddressesScreen() {
 
     try {
       const currentLocation = await getCurrentLocation();
+      if (!isMountedRef.current) return;
+
       setUserLocation(currentLocation);
       applySelectedLocation({
         formattedAddress: "",
@@ -439,23 +478,28 @@ export function AddressesScreen() {
       // The native map can be one frame behind the location response. Retry
       // the camera command after layout so the fixed center pin follows it.
       const centerLocation = () => {
+        if (!isMountedRef.current) return;
         animateToCoordinate(
           currentLocation.latitude,
           currentLocation.longitude,
         );
       };
       centerLocation();
-      setTimeout(centerLocation, 280);
-      setTimeout(centerLocation, 900);
+      cameraTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      cameraTimeoutsRef.current = [
+        setTimeout(centerLocation, 280),
+        setTimeout(centerLocation, 900),
+      ];
       runReverseGeocode(currentLocation.latitude, currentLocation.longitude);
     } catch (locationRequestError) {
+      if (!isMountedRef.current) return;
       setLocationError(
         locationRequestError?.code === "LOCATION_PERMISSION_DENIED"
           ? t("addresses.locationDenied")
           : t("addresses.locationUnavailable"),
       );
     } finally {
-      setIsLocating(false);
+      if (isMountedRef.current) setIsLocating(false);
     }
   }, [animateToCoordinate, applySelectedLocation, runReverseGeocode, t]);
 

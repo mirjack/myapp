@@ -18,7 +18,7 @@ function getStableTopInset(topInset) {
   return topInset;
 }
 
-export function useBackToProfile({ forceReplace = false } = {}) {
+function useBackToProfile({ forceReplace = false } = {}) {
   const router = useRouter();
 
   return useCallback(() => {

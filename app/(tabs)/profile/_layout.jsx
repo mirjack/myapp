@@ -8,15 +8,16 @@ export default function ProfileStackLayout() {
         gestureEnabled: true,
         fullScreenGestureEnabled: true,
         gestureDirection: "horizontal",
+        headerShown: false,
       }}
     >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="me" options={{ headerShown: false }} />
-      <Stack.Screen name="orders" options={{ headerShown: false }} />
-      <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="addresses" options={{ headerShown: false }} />
-      <Stack.Screen name="chat/index" options={{ headerShown: false }} />
-      <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="me" />
+      <Stack.Screen name="orders" />
+      <Stack.Screen name="orders/[id]" />
+      <Stack.Screen name="addresses" />
+      <Stack.Screen name="chat/index" />
+      <Stack.Screen name="chat/[id]" />
     </Stack>
   );
 }

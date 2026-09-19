@@ -33,11 +33,13 @@ import {
   getCartItems,
 } from "@/lib/native-market-api";
 import {
+  getAuthSessionVersion,
   getStoredAuthTokens,
   getStoredAuthTokensSync,
+  parseAuthTokens,
 } from "@/lib/auth-storage";
 import {
-  hydrateCartQuantities,
+  syncCartQuantities,
   setCartQuantity,
   useCartQuantitiesState,
 } from "@/lib/cart-quantities";
@@ -45,15 +47,6 @@ import {
   setCurrentWebPath,
   setTabBarForcedHidden,
 } from "@/lib/tab-bar-visibility";
-
-function parseTokensString(tokensString) {
-  if (!tokensString) return null;
-  try {
-    return JSON.parse(tokensString);
-  } catch {
-    return null;
-  }
-}
 
 function CheckBox({ checked, onPress }) {
   return (
@@ -260,7 +253,7 @@ export function NativeCartScreen() {
   const cartQuantitiesState = useCartQuantitiesState();
   const cartQuantities = cartQuantitiesState.quantities;
   const [tokens, setTokens] = useState(
-    parseTokensString(getStoredAuthTokensSync()),
+    parseAuthTokens(getStoredAuthTokensSync()),
   );
   const [items, setItems] = useState([]);
   const [recommended, setRecommended] = useState([]);
@@ -315,8 +308,8 @@ export function NativeCartScreen() {
     if (!silent) setLoading(true);
     try {
       const storedTokens =
-        parseTokensString(getStoredAuthTokensSync()) ||
-        parseTokensString(await getStoredAuthTokens());
+        parseAuthTokens(getStoredAuthTokensSync()) ||
+        parseAuthTokens(await getStoredAuthTokens());
       setTokens(storedTokens);
 
       if (!storedTokens?.access) {
@@ -328,10 +321,12 @@ export function NativeCartScreen() {
         return;
       }
 
+      const session = getAuthSessionVersion();
       const [cartResponse, products] = await Promise.all([
         getCartItems(storedTokens.access),
         fetchProductList({ pageSize: 12 }).catch(() => []),
       ]);
+      if (session !== getAuthSessionVersion()) return;
       const nextItems = Array.isArray(cartResponse)
         ? cartResponse
         : (cartResponse?.items ?? []);
@@ -345,7 +340,7 @@ export function NativeCartScreen() {
         return next;
       });
       setRecommended(products);
-      await hydrateCartQuantities(storedTokens.access, { force: true });
+      syncCartQuantities(cartResponse, session);
       setError("");
     } catch {
       setError(

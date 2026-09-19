@@ -203,6 +203,7 @@ export function SupportChatDetailScreen({
   const { bootstrapData, error, loading } = useSupportChatSnapshot();
   const scrollRef = useRef(null);
   const sheetCloseTimerRef = useRef(null);
+  const isMountedRef = useRef(false);
   const [input, setInput] = useState("");
   const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
   const [sending, setSending] = useState(false);
@@ -222,6 +223,18 @@ export function SupportChatDetailScreen({
   const chatDetailPath = isProfileStackRoute
     ? "/(tabs)/profile/chat/[id]"
     : "/chat/[id]";
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      if (sheetCloseTimerRef.current) {
+        clearTimeout(sheetCloseTimerRef.current);
+        sheetCloseTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const normalizedRequestType = useMemo(
     () => normalizeRequestKind(requestKind),
@@ -244,7 +257,7 @@ export function SupportChatDetailScreen({
         const nextBootstrap = hasBootstrap
           ? supportChatService.getSnapshot().bootstrapData
           : await supportChatService.load();
-        if (!isActive) return;
+        if (!isActive || !isMountedRef.current) return;
 
         if (isDraft && nextBootstrap?.activeRequestId) {
           router.replace({
@@ -405,6 +418,8 @@ export function SupportChatDetailScreen({
           text,
         });
 
+        if (!isMountedRef.current) return;
+
         setInput("");
         setIsEmojiPanelOpen(false);
         router.replace({
@@ -431,7 +446,7 @@ export function SupportChatDetailScreen({
     } catch {
       // state error is already owned by the shared service
     } finally {
-      if (isDraft) {
+      if (isDraft && isMountedRef.current) {
         setSending(false);
       }
     }
@@ -473,6 +488,7 @@ export function SupportChatDetailScreen({
         requestId: currentRequest.id,
         resolved: true,
       });
+      if (!isMountedRef.current) return;
       handleCloseActiveSheet();
 
       if (!updatedRequest?.rate && !updatedRequest?.ratedAt) {
@@ -487,7 +503,7 @@ export function SupportChatDetailScreen({
     } catch {
       // state error is already owned by the shared service
     } finally {
-      setIsClosingRequest(false);
+      if (isMountedRef.current) setIsClosingRequest(false);
     }
   }, [
     currentRequest?.id,
@@ -512,11 +528,12 @@ export function SupportChatDetailScreen({
         requestId: currentRequest.id,
         resolved: false,
       });
+      if (!isMountedRef.current) return;
       handleCloseActiveSheet();
     } catch {
       // state error is already owned by the shared service
     } finally {
-      setIsClosingRequest(false);
+      if (isMountedRef.current) setIsClosingRequest(false);
     }
   }, [
     currentRequest?.id,
@@ -1056,6 +1073,7 @@ export function SupportChatDetailScreen({
                 text: String(payload?.comment || "").trim() || null,
               })
               .then(() => {
+                if (!isMountedRef.current) return;
                 handleCloseActiveSheet();
                 if (returnToListAfterRating) {
                   router.replace(chatListPath);
@@ -1063,9 +1081,9 @@ export function SupportChatDetailScreen({
               })
               .catch(() => {})
               .finally(() => {
-                setIsSubmittingRating(false);
+                if (isMountedRef.current) setIsSubmittingRating(false);
               });
-            setIsSubmittingRating(true);
+            if (isMountedRef.current) setIsSubmittingRating(true);
           }
         }}
       />
