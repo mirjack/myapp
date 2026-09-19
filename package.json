@@ -67,6 +67,12 @@
     "rn-emoji-keyboard": "^1.7.0",
     "sockjs-client": "^1.6.1"
   },
+  "overrides": {
+    "decode-uri-component": "0.5.0",
+    "image-size": "2.0.4",
+    "postcss": "8.5.28",
+    "uuid": "11.1.1"
+  },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/react": "~19.1.0",
